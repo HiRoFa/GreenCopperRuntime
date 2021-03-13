@@ -25,7 +25,7 @@ http = ["ureq"]
 [dependencies]
 
 #quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime' }
-quickjs_runtime = "0.1.1"
+quickjs_runtime = "0.2.1"
 #quickjs_runtime = { path = '../quickjs_runtime'}
 libquickjs-sys = "0.9.0"
 #libquickjs-sys = {git= "https://github.com/HiRoFa/quickjs-rs"}
