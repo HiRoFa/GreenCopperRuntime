@@ -13,6 +13,7 @@ use std::sync::Arc;
 extern crate lazy_static;
 
 mod features;
+mod moduleloaders;
 mod modules;
 
 pub struct GrecoRuntimeBuilder {}
