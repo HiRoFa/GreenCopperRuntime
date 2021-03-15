@@ -1,10 +1,6 @@
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::esscript::EsScript;
-use quickjs_runtime::features::fetch::request::FetchRequest;
-use quickjs_runtime::features::fetch::response::FetchResponse;
-use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::quickjsruntime::{NativeModuleLoader, ScriptModuleLoader};
 use std::sync::Arc;
 
