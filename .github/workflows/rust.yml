@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Prepare
         run: |
-          sudo apt update
+          # sudo apt update
           sudo apt install gcc-7 ccache llvm autoconf2.13 automake clang python valgrind -y
       - name: Cache cargo registry
         uses: actions/cache@v2
