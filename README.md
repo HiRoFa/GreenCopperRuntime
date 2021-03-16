@@ -26,7 +26,7 @@ The following features are optionally added by specifying them in your Cargo.tom
     * [ ] [HTTP Client](docs/com/HTTP.md)
     * [ ] [Socket Client](docs/com/SOCKET.md)
 * [ ] IO
-    * [x] [GPIO](docs/io/GPIO.md) (Work in progress)
+    * [x] [GPIO](https://hirofa.github.io/green_copper_runtime/green_copper_runtime/modules/io/gpio.html) (Work in progress)
     * [ ] [FileIO](docs/io/FS.md)
     * [ ] USB access
     * [ ] camera control
