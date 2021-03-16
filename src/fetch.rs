@@ -35,7 +35,6 @@ pub fn fetch_response_provider(fetch_request: &FetchRequest) -> Box<dyn FetchRes
     let mut reader = response.into_reader();
     reader
         .read_to_end(&mut bytes)
-        .ok()
         .expect("could not read reader"); // todo remove this expect when we can return a Result
     Box::new(FetchResponseStruct {
         status,
@@ -71,8 +70,6 @@ impl FetchResponse for FetchResponseStruct {
 mod tests {
     use crate::new_greco_rt_builder;
     use quickjs_runtime::esscript::EsScript;
-    use std::sync::Arc;
-    use std::time::Duration;
 
     #[test]
     fn test_fetch() {

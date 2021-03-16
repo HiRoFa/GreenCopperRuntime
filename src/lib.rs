@@ -1,4 +1,3 @@
-use crate::fetch::fetch_response_provider;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
 #[allow(unused_imports)]

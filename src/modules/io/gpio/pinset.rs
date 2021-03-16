@@ -31,30 +31,9 @@ impl PinSetHandle {
             })
         })
     }
-    pub fn do_with_sync<R: Send + 'static, C: FnOnce(&PinSet) -> R + Send + 'static>(
-        &self,
-        consumer: C,
-    ) -> R {
-        self.event_queue.exe_task(|| {
-            PIN_SET.with(|rc| {
-                let ps = &*rc.borrow();
-                consumer(ps)
-            })
-        })
-    }
+
     pub fn do_with_mut<C: FnOnce(&mut PinSet) + Send + 'static>(&self, consumer: C) {
         self.event_queue.add_task(|| {
-            PIN_SET.with(|rc| {
-                let ps = &mut *rc.borrow_mut();
-                consumer(ps)
-            })
-        })
-    }
-    pub fn do_with_mut_sync<R: Send + 'static, C: FnOnce(&mut PinSet) -> R + Send + 'static>(
-        &self,
-        consumer: C,
-    ) -> R {
-        self.event_queue.exe_task(|| {
             PIN_SET.with(|rc| {
                 let ps = &mut *rc.borrow_mut();
                 consumer(ps)
@@ -72,6 +51,7 @@ pub enum PinMode {
     OUT,
 }
 
+#[allow(dead_code)]
 impl PinSet {
     pub fn new() -> Self {
         Self { handles: vec![] }
@@ -100,15 +80,13 @@ impl PinSet {
     }
     pub fn set_state(&self, states: &[u8]) -> Result<(), String> {
         log::trace!("PinSet.set_state: len:{}", states.len());
-        for x in 0..states.len() {
-            let handle = &self.handles[x];
-            handle.set_value(states[x]).map_err(|e| format!("{}", e))?;
-            self.set_state_idx(x, states[x])?;
+        for (x, state) in states.iter().enumerate() {
+            self.set_state_index(x, *state)?;
         }
         Ok(())
     }
-    pub fn set_state_idx(&self, pin_idx: usize, state: u8) -> Result<(), String> {
-        log::trace!("PinSet.set_state_idx: idx: {}, state: {}", pin_idx, state);
+    pub fn set_state_index(&self, pin_idx: usize, state: u8) -> Result<(), String> {
+        log::trace!("PinSet.set_state_index: idx: {}, state: {}", pin_idx, state);
 
         let handle = &self.handles[pin_idx];
         handle.set_value(state).map_err(|e| format!("{}", e))?;
@@ -161,12 +139,12 @@ impl PinSet {
             } else {
                 std::thread::sleep(off_time);
 
-                if let Some(err) = self.set_state_idx(0, 1).err() {
+                if let Some(err) = self.set_state_index(0, 1).err() {
                     log::error!("An error occurred in the pwm sequence: {}", err);
                     break;
                 }
                 std::thread::sleep(on_time);
-                if let Some(err) = self.set_state_idx(0, 0).err() {
+                if let Some(err) = self.set_state_index(0, 0).err() {
                     log::error!("An error occurred in the pwm sequence: {}", err);
                     break;
                 }

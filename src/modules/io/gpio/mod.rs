@@ -23,7 +23,6 @@
 
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
 use quickjs_runtime::eserror::EsError;
-use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::esvalue::{
     EsNullValue, EsPromise, EsValueConvertible, EsValueFacade, ES_NULL,
@@ -31,13 +30,12 @@ use quickjs_runtime::esvalue::{
 use quickjs_runtime::quickjs_utils;
 use quickjs_runtime::quickjs_utils::{arrays, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
-use quickjs_runtime::quickjsruntime::{NativeModuleLoader, QuickJsRuntime};
+use quickjs_runtime::quickjsruntime::NativeModuleLoader;
 use quickjs_runtime::reflection::Proxy;
 use quickjs_runtime::valueref::JSValueRef;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
-use std::sync::Arc;
 
 pub mod pinset;
 
@@ -151,7 +149,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     })
 
                 })
-                .method("getState", |q_ctx, instance_id, args| {
+                .method("getState", |_q_ctx, _instance_id, _args| {
                     // return prom
                     Ok(quickjs_utils::new_null_ref())
                 })
@@ -221,7 +219,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
 
                         // stop if running
                         if let Some(stopper) = &pin_set_handle.pwm_stop_sender {
-                            stopper.send(true).ok().expect("could not stop");
+                            stopper.send(true).expect("could not stop");
                             pin_set_handle.pwm_stop_sender.take();
                         }
 
@@ -236,18 +234,18 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     ES_NULL.to_es_value_facade().as_js_value(q_ctx)
 
                 })
-                .method("softPwmOff", |q_ctx, instance_id, args| {
+                .method("softPwmOff", |q_ctx, instance_id, _args| {
                     PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
                         let pin_set_handle = handles.get_mut(instance_id).expect("no such handle");
                         if let Some(stopper) = &pin_set_handle.pwm_stop_sender {
-                            stopper.send(true).ok().expect("could not stop");
+                            stopper.send(true).expect("could not stop");
                             pin_set_handle.pwm_stop_sender.take();
                         }
                     });
                     ES_NULL.to_es_value_facade().as_js_value(q_ctx)
                 })
-                .finalizer(|q_ctx, instance_id| {
+                .finalizer(|_q_ctx, instance_id| {
                     PIN_SET_HANDLES.with(|rc| {
                         let handles = &mut *rc.borrow_mut();
                         handles.remove(&instance_id);
