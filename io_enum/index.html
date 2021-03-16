@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `io_enum` crate."><meta name="keywords" content="rust, rustlang, rust-lang, io_enum"><title>io_enum - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../io_enum/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><p class="location">Crate io_enum</p><div class="block version"><p>Version 0.2.6</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all io_enum's items</p></a><p class="location"></p><script>window.sidebarCurrent = {name: "io_enum", ty: "mod", relpath: "../"};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/io_enum/lib.rs.html#1-147" title="goto source code">[src]</a></span><span class="in-band">Crate <a class="mod" href="">io_enum</a></span></h1><div class="docblock"><p>#[derive(Read, Write, Seek, BufRead)] for enums.</p>
+<h1 id="examples" class="section-header"><a href="#examples">Examples</a></h1>
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">io_enum</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">std</span>::{
+    <span class="ident">fs</span>::<span class="ident">File</span>,
+    <span class="ident">io</span>::{<span class="self">self</span>, <span class="ident">Write</span>},
+    <span class="ident">path</span>::<span class="ident">Path</span>,
+};
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Read</span>, <span class="ident">Write</span>, <span class="ident">Seek</span>, <span class="ident">BufRead</span>)]</span>
+<span class="kw">enum</span> <span class="ident">Either</span><span class="op">&lt;</span><span class="ident">A</span>, <span class="ident">B</span><span class="op">&gt;</span> {
+    <span class="ident">A</span>(<span class="ident">A</span>),
+    <span class="ident">B</span>(<span class="ident">B</span>),
+}
+
+<span class="kw">fn</span> <span class="ident">foo</span>(<span class="ident">path</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Path</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">impl</span> <span class="ident">Write</span> {
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">path</span>) <span class="op">=</span> <span class="ident">path</span> {
+        <span class="ident">Either</span>::<span class="ident">A</span>(<span class="ident">File</span>::<span class="ident">open</span>(<span class="ident">path</span>).<span class="ident">unwrap</span>())
+    } <span class="kw">else</span> {
+        <span class="ident">Either</span>::<span class="ident">B</span>(<span class="ident">io</span>::<span class="ident">stdout</span>())
+    }
+}</pre></div>
+<p>See <a href="https://github.com/taiki-e/auto_enums">auto_enums</a> crate for how to
+automate patterns like this.</p>
+<h1 id="supported-traits" class="section-header"><a href="#supported-traits">Supported traits</a></h1>
+<ul>
+<li><a href="https://doc.rust-lang.org/std/io/trait.Read.html"><code>Read</code></a> - <a href="https://github.com/taiki-e/io-enum/blob/master/doc/read.md">generated code</a></li>
+<li><a href="https://doc.rust-lang.org/std/io/trait.BufRead.html"><code>BufRead</code></a> - <a href="https://github.com/taiki-e/io-enum/blob/master/doc/buf_read.md">generated code</a></li>
+<li><a href="https://doc.rust-lang.org/std/io/trait.Write.html"><code>Write</code></a> - <a href="https://github.com/taiki-e/io-enum/blob/master/doc/write.md">generated code</a></li>
+<li><a href="https://doc.rust-lang.org/std/io/trait.Seek.html"><code>Seek</code></a> - <a href="https://github.com/taiki-e/io-enum/blob/master/doc/seek.md">generated code</a></li>
+</ul>
+</div><h2 id="derives" class="section-header"><a href="#derives">Derive Macros</a></h2>
+<table><tr class="module-item"><td><a class="derive" href="derive.BufRead.html" title="io_enum::BufRead derive">BufRead</a></td><td class="docblock-short"></td></tr><tr class="module-item"><td><a class="derive" href="derive.Read.html" title="io_enum::Read derive">Read</a></td><td class="docblock-short"></td></tr><tr class="module-item"><td><a class="derive" href="derive.Seek.html" title="io_enum::Seek derive">Seek</a></td><td class="docblock-short"></td></tr><tr class="module-item"><td><a class="derive" href="derive.Write.html" title="io_enum::Write derive">Write</a></td><td class="docblock-short"></td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../";window.currentCrate = "io_enum";</script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>

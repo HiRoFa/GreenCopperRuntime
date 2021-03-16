@@ -1,0 +1,5 @@
+(function() {var implementors = {};
+implementors["bigdecimal"] = [{"text":"impl Sum&lt;BigDecimal&gt; for BigDecimal","synthetic":false,"types":[]},{"text":"impl&lt;'a&gt; Sum&lt;&amp;'a BigDecimal&gt; for BigDecimal","synthetic":false,"types":[]}];
+implementors["num_bigint"] = [{"text":"impl&lt;T&gt; Sum&lt;T&gt; for BigInt <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;BigInt: Add&lt;T, Output = BigInt&gt;,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Sum&lt;T&gt; for BigUint <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;BigUint: Add&lt;T, Output = BigUint&gt;,&nbsp;</span>","synthetic":false,"types":[]}];
+implementors["rust_decimal"] = [{"text":"impl Sum&lt;Decimal&gt; for Decimal","synthetic":false,"types":[]},{"text":"impl&lt;'a&gt; Sum&lt;&amp;'a Decimal&gt; for Decimal","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,7 @@
+(function() {var implementors = {};
+implementors["bigdecimal"] = [{"text":"impl Serialize for BigDecimal","synthetic":false,"types":[]}];
+implementors["chrono"] = [{"text":"impl Serialize for NaiveDate","synthetic":false,"types":[]},{"text":"impl Serialize for NaiveDateTime","synthetic":false,"types":[]},{"text":"impl Serialize for NaiveTime","synthetic":false,"types":[]},{"text":"impl&lt;Tz:&nbsp;TimeZone&gt; Serialize for DateTime&lt;Tz&gt;","synthetic":false,"types":[]},{"text":"impl Serialize for Weekday","synthetic":false,"types":[]},{"text":"impl Serialize for Month","synthetic":false,"types":[]}];
+implementors["cookie_store"] = [{"text":"impl&lt;'a&gt; Serialize for Cookie&lt;'a&gt;","synthetic":false,"types":[]},{"text":"impl Serialize for CookieStore","synthetic":false,"types":[]}];
+implementors["rust_decimal"] = [{"text":"impl Serialize for Decimal","synthetic":false,"types":[]}];
+implementors["serde_json"] = [{"text":"impl Serialize for Map&lt;String, Value&gt;","synthetic":false,"types":[]},{"text":"impl Serialize for Value","synthetic":false,"types":[]},{"text":"impl Serialize for Number","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
