@@ -18,16 +18,16 @@ The quickjs_runtime provides interfaces for the fetch api and module loading, Gr
 
 The following features are optionally added by specifying them in your Cargo.toml.
 * [ ] DB
-    * [ ] Mysql / TiDb [MYSQL](docs/db/MYSQL.md) (Work in progress)
+    * [ ] Mysql / TiDb
     * [ ] Couchbase
     * [ ] Cassandra
     * [ ] Redis
 * [ ] COM
-    * [ ] [HTTP Client](docs/com/HTTP.md)
-    * [ ] [Socket Client](docs/com/SOCKET.md)
+    * [ ] HTTP Client
+    * [ ] Socket Client
 * [ ] IO
-    * [x] [GPIO](https://hirofa.github.io/green_copper_runtime/green_copper_runtime/modules/io/gpio.html) (Work in progress)
-    * [ ] [FileIO](docs/io/FS.md)
+    * [x] [GPIO](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/io/gpio.html) (Work in progress)
+    * [ ] FileIO
     * [ ] USB access
     * [ ] camera control
 * [ ] LibLoading

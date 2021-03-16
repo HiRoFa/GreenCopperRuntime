@@ -8,7 +8,7 @@ extern crate lazy_static;
 pub mod fetch;
 
 pub mod moduleloaders;
-mod modules;
+pub mod modules;
 
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     let mut rt_builder = EsRuntimeBuilder::new();
