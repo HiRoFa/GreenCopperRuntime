@@ -1,68 +1,39 @@
-use quickjs_runtime::eserror::EsError;
-use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::quickjsruntime::{NativeModuleLoader, ScriptModuleLoader};
-use std::sync::Arc;
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate lazy_static;
 
-mod features;
-mod moduleloaders;
+pub mod moduleloaders;
 mod modules;
 
-pub struct GrecoRuntimeBuilder {}
+pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
+    let mut rt_builder = EsRuntimeBuilder::new();
 
-impl GrecoRuntimeBuilder {
-    pub fn new() -> Self {
-        Self {}
-    }
+    rt_builder = modules::init(rt_builder);
 
-    pub fn build(self) -> Result<Arc<EsRuntime>, EsError> {
-        // todo config, add extra module loaders / script loaders etc
-        // gc server will want a custom loader for both files and libs
-        // pass those as param here? in Option? or impl as builder? builder pelase
-
-        let mut rt_builder = EsRuntimeBuilder::new();
-
-        rt_builder = modules::init(rt_builder);
-
-        // add fetch here
-
-        let rt = rt_builder
-            //.fetch_response_provider(todo)
-            .build();
-
-        rt.add_to_event_queue_sync(|q_js_rt| {
-            q_js_rt.add_context_init_hook(|q_js_rt, q_ctx| {
-                // this is only for adding toplevel methods like Worker,setTimeout etc
-                // all features should be dynamically loaded through the native module loader
-                features::init(q_js_rt, q_ctx)
-            })
-        })?;
-        Ok(rt)
-    }
+    rt_builder
 }
 
 #[cfg(test)]
 pub mod tests {
-    use crate::GrecoRuntimeBuilder;
+    use crate::new_greco_rt_builder;
 
     use log::LevelFilter;
-    use quickjs_runtime::eserror::EsError;
     use quickjs_runtime::esruntime::EsRuntime;
     use std::sync::Arc;
 
-    lazy_static! {
-        pub static ref TEST_RT: Arc<EsRuntime> = init_rt().ok().expect("init failed");
+    #[test]
+    fn test1() {
+        let rt = init_rt();
+        drop(rt);
     }
 
-    fn init_rt() -> Result<Arc<EsRuntime>, EsError> {
+    fn init_rt() -> Arc<EsRuntime> {
         simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
             .ok()
             .unwrap();
 
-        GrecoRuntimeBuilder::new().build()
+        new_greco_rt_builder().build()
     }
 }

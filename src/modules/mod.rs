@@ -1,7 +1,4 @@
-use crate::GrecoRuntimeBuilder;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::quickjsruntime::ModuleLoader;
-use std::collections::HashMap;
 
 mod com;
 mod db;
@@ -14,6 +11,5 @@ pub fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     let builder = db::init(builder);
     let builder = io::init(builder);
     let builder = lib::init(builder);
-    let builder = util::init(builder);
-    builder
+    util::init(builder)
 }

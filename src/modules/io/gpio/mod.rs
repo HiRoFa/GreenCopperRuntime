@@ -6,18 +6,18 @@ use quickjs_runtime::valueref::JSValueRef;
 struct GpioModuleLoader {}
 
 impl NativeModuleLoader for GpioModuleLoader {
-    fn has_module(&self, q_ctx: &QuickJsContext, module_name: &str) -> bool {
+    fn has_module(&self, _q_ctx: &QuickJsContext, module_name: &str) -> bool {
         module_name.eq("greco://gpio")
     }
 
-    fn get_module_export_names(&self, q_ctx: &QuickJsContext, module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(&self, _q_ctx: &QuickJsContext, _module_name: &str) -> Vec<&str> {
         vec!["PinSet"]
     }
 
     fn get_module_exports(
         &self,
-        q_ctx: &QuickJsContext,
-        module_name: &str,
+        _q_ctx: &QuickJsContext,
+        _module_name: &str,
     ) -> Vec<(&str, JSValueRef)> {
         unimplemented!()
     }
