@@ -16,12 +16,6 @@ pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
 
     rt_builder = modules::init(rt_builder);
 
-    // todo refactor fetch_responder to trait so we can create impl with rules like httpmoduleloader
-    #[cfg(any(feature = "all", feature = "io", feature = "gpio"))]
-    {
-        rt_builder = rt_builder.fetch_response_provider(fetch_response_provider);
-    }
-
     rt_builder
 }
 

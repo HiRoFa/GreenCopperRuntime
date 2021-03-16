@@ -1,3 +1,26 @@
+//! gpio module
+//!
+//! this module may be loaded in an EsRuntime initialized by green_copper_runtime::new_greco_runtime() by loading 'greco://gpio'
+//!
+//! # Example
+//! ```javascript
+//! async function test_gpio() {
+//!     // load the module
+//!     let gpio_mod = import('greco://gpio');
+//!     // create a new PinSet
+//!     let pin_set = new gpio_mod.PinSet();
+//!     // init a single pin
+//!     await pin_set.init('/dev/gpiochip0', 'out', [13]);
+//!     // set the state of that pin to 1 (e.g. turn on a led)
+//!     await pin_set.setState(1);
+//! }
+//! test_gpio().then(() => {
+//!     console.log("done testing GPIO");
+//! }).catch((ex) => {
+//!     console.error("GPIO test failed: %s", "" + ex);
+//! });
+//! ```
+
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntime::EsRuntime;

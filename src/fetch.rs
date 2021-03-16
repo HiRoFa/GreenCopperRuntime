@@ -9,9 +9,9 @@ lazy_static! {
     static ref CLIENT: Arc<Agent> = Arc::new(Agent::new());
 }
 
-pub(crate) fn fetch_response_provider(
-    fetch_request: &FetchRequest,
-) -> Box<dyn FetchResponse + Send> {
+// todo refactor to trait so we can create different impls with rules and such
+
+pub fn fetch_response_provider(fetch_request: &FetchRequest) -> Box<dyn FetchResponse + Send> {
     // throw a ureq client in a lazy_static
     //NOTE: we are not in the worker thread here but a random helper thread
 

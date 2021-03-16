@@ -12,9 +12,9 @@ quickjs_runtime provides a full fledged javascript runtime which includes:
 * [x] Proxy classes implemented in rust
 
 The quickjs_runtime provides interfaces for the fetch api and module loading, GreenCopperRuntime provides implementations for them
-* [ ] FileSystemModuleLoader
-* [ ] HTTPModuleLoader
-* [ ] HTTPFetch
+* [x] FileSystemModuleLoader
+* [x] HTTPModuleLoader
+* [x] HTTPFetch
 
 The following features are optionally added by specifying them in your Cargo.toml.
 * [ ] DB
@@ -26,7 +26,7 @@ The following features are optionally added by specifying them in your Cargo.tom
     * [ ] [HTTP Client](docs/com/HTTP.md)
     * [ ] [Socket Client](docs/com/SOCKET.md)
 * [ ] IO
-    * [ ] [GPIO](docs/io/GPIO.md) (Work in progress)
+    * [x] [GPIO](docs/io/GPIO.md) (Work in progress)
     * [ ] [FileIO](docs/io/FS.md)
     * [ ] USB access
     * [ ] camera control
