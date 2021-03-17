@@ -152,3 +152,15 @@ impl PinSet {
         }
     }
 }
+
+impl Default for PinSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for PinSetHandle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
