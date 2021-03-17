@@ -10,8 +10,7 @@ thread_local! {
 }
 
 pub struct PinSetHandle {
-    // todo rewrite these pub's to getters or methods
-    pub event_queue: Arc<SingleThreadedEventQueue>,
+    event_queue: Arc<SingleThreadedEventQueue>,
     // this indicator is passed to the worker thread and may be altered to modify the pwm signal
     pub pwm_stop_sender: Option<std::sync::mpsc::Sender<bool>>,
 }
