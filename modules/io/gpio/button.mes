@@ -1,0 +1,15 @@
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+import {PinSet} from 'greco://gpio';
+
+export class Button {
+    constructor(pinSet) {
+        this.pinSet = pinSet;
+    }
+
+    /**
+    * init a new Button
+    */
+    static async init(chip = '/dev/gpiochip0', pinNum) {
+        throw Error("NYI");
+    }
+}

@@ -1,0 +1,70 @@
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/GreenCopperRuntime/main/modules/utils/assertions.mes';
+import {HttpClient} from 'greco://http';
+
+export class Client {
+    constructor(version = "1.0"){
+        this._httpClient = new HttpClient();
+        this._version = version;
+    }
+    static nextId() {
+        this.id = (this.id || this.id = 1) + 1;
+        return this.id;
+    }
+    call(method, params) {
+
+        assert.is_string(this._url, "no url set for this JsonRpcClient");
+        assert.is_string(method, "no method set for this call");
+
+        let id = Client.next_id();
+
+        let payload;
+        // see https://en.wikipedia.org/wiki/JSON-RPC
+        switch (this._version) {
+            case "1.1":
+                assert.is_array(params, "no properties set for this call or not an array");
+                payload = {version: "1.1", method, params, id};
+            break;
+            case "2.0":
+                assert.is_object(params, "no properties set for this call or not an object");
+                payload = {version: "2.0", method, params, id};
+            break;
+            default: // 1.0
+                assert.is_array(params, "no properties set for this call or not an array");
+                payload = {method, params, id};
+            break;
+        }
+
+        let req = this._httpClient.request("POST", this._url);
+        req.setHeader('Content-Type', 'application/json');
+
+        console.debug("JSON_RPC: payload: %s", JSON.stringify(payload));
+
+        return req.send(payload).then((response) => {
+            return response.json();
+        }).then((jsonRes) => {
+            console.debug("JSON-RPC: jsonRes = %s", JSON.stringify(jsonRes));
+
+            // err looks like this
+            // {"error": {"message": "XML_RPC privileges are required to perform this operation. You don't have the required permissions.", "code": 403, "name": "JSONRPCError"}, "result": null, "id": 1}
+
+            if (jsonRes.error) {
+                throw Error("["+jsonRes.error.name+" : code:"+jsonRes.error.code+"] " + jsonRes.error.message);
+            } else {
+                return jsonRes.result;
+            }
+
+        });
+
+    }
+    setCredentials(user, pass) {
+        assert.is_string(user, "user needs to be a String");
+        assert.is_string(pass, "pass needs to be a String");
+        this._httpClient.basicAuth(user, pass);
+        return this;
+    }
+    setUrl(url) {
+        assert.is_string(url, "url needs to be a String");
+        this._url = url;
+        return this;
+    }
+};

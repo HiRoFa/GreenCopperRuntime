@@ -3,11 +3,11 @@ use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::quickjsruntime::ScriptModuleLoader;
 use std::fs;
 use std::ops::Add;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use url::Url;
 
 pub struct FileSystemModuleLoader {
-    base_path: &'static str,
+    base_path: PathBuf,
 }
 
 fn last_index_of(haystack: &str, needle: &str) -> Option<usize> {
@@ -87,33 +87,37 @@ fn normalize_path(ref_path: &str, name: &str) -> Result<String, EsError> {
 
 impl FileSystemModuleLoader {
     pub fn new(base_path: &'static str) -> Self {
-        Self { base_path }
+        log::trace!("FileSystemModuleLoader::new {}", base_path);
+        Self {
+            base_path: Path::new(base_path).canonicalize().expect("path not found"),
+        }
     }
 
-    fn get_real_fs_path(&self, abs_file_path: &str) -> String {
-        assert!(abs_file_path.starts_with("file://"));
-        format!("{}/{}", self.base_path, &abs_file_path[7..])
+    fn get_real_fs_path(&self, abs_file_path: &str) -> PathBuf {
+        assert!(abs_file_path.starts_with("file:///"));
+        self.base_path.join(Path::new(&abs_file_path[8..]))
     }
 
-    fn read_file(&self, filename: &str) -> std::io::Result<String> {
+    fn read_file(&self, filename: &str) -> Result<String, String> {
+        trace!("FileSystemModuleLoader::read_file -> {}", filename);
+
         let path = self.get_real_fs_path(filename);
-        assert!(self.is_allowed(filename));
-        trace!("FileSystemModuleLoader::read_file -> {}", &path);
+        if !path.exists() {
+            return Err(format!("File not found: {}", filename));
+        }
+        let path = path.canonicalize().unwrap();
+        if !path.starts_with(&self.base_path) {
+            return Err(format!("File not allowed: {}", filename));
+        }
 
         fs::read_to_string(path)
+            .map_err(|e| format!("failed to read: {}, caused by: {}", filename, e))
     }
 
     fn file_exists(&self, filename: &str) -> bool {
+        trace!("FileSystemModuleLoader::file_exists -> {}", filename);
         let path = self.get_real_fs_path(filename);
-        trace!("FileSystemModuleLoader::file_exists -> {}", &path);
-        Path::new(path.as_str()).exists()
-    }
-
-    fn is_allowed(&self, filename: &str) -> bool {
-        assert!(!filename.contains("/../"));
-        let path = self.get_real_fs_path(filename);
-        trace!("FileSystemModuleLoader::is_allowed -> {}", &path);
-        path.starts_with(self.base_path)
+        path.exists() && path.canonicalize().unwrap().starts_with(&self.base_path)
     }
 }
 
@@ -136,7 +140,7 @@ impl ScriptModuleLoader for FileSystemModuleLoader {
 
         match normalize_path(ref_path, path) {
             Ok(normalized) => {
-                if self.is_allowed(normalized.as_str()) && self.file_exists(normalized.as_str()) {
+                if self.file_exists(normalized.as_str()) {
                     Some(normalized)
                 } else {
                     None
@@ -307,6 +311,7 @@ mod tests {
         last_index_of, normalize_path, FileSystemModuleLoader, HttpModuleLoader,
     };
     use quickjs_runtime::quickjsruntime::ScriptModuleLoader;
+    use std::path::Path;
 
     #[test]
     fn test_last_index_of() {
@@ -373,7 +378,7 @@ mod tests {
         assert!(loader
             .normalize_path("http://github.com/example.js", "module.mjs")
             .is_none());
-        // disalow domain
+        // disallow domain
         assert!(loader
             .normalize_path("https://other.github.com/example.js", "module.mjs")
             .is_none());
@@ -400,9 +405,14 @@ mod tests {
 
     #[test]
     fn test_fs() {
-        let loader = FileSystemModuleLoader::new("./scripts");
+        let loader = FileSystemModuleLoader::new("./modules");
+        let path = Path::new("./modules").canonicalize().unwrap();
+        println!("path = {:?}", path);
         assert!(loader
-            .normalize_path("file:///test.js", "test.mjs")
+            .normalize_path("file:///test.es", "utils/assertions.mes")
+            .is_some());
+        assert!(loader
+            .normalize_path("file:///test.es", "utils/notfound.mes")
             .is_none());
     }
 }

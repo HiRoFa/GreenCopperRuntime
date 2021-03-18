@@ -1,0 +1,67 @@
+import {Client as JsonRpcClient} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/com/jsonrpc.mes';
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+
+export class Client {
+    constructor(url, user, pass){
+
+        this._jsonRpcClient = new JsonRpcClient()
+            .setUrl(url)
+            .setCredentials(user, pass);
+
+    }
+
+    call(method, params) {
+        return this._jsonRpcClient.call(method, params);
+    }
+
+    /**
+    * query tickets based on a filter object
+    * @example
+    * let ticketsProm = tracClient.queryTickets({milestone: "4.0.10", owner: "Harry"});
+    * @returns Promise<Array<Number>>
+    **/
+    queryTickets(filter, max = 100, page = 1) {
+
+        assert.is_object(filter, "filter should be an object");
+        assert.is_number(max, "max should be a number");
+        assert.is_number(page, "page should be a number");
+
+        filter = {...filter, max, page};
+
+        let qstr = [];
+        for (let id in filter) {
+            qstr.push(id + "=" + encodeURIComponent(filter[id]));
+        }
+        return this.call("ticket.query", [qstr.join("&")]);
+    }
+
+    /**
+    * get a Ticket based on an ID
+    * @returns Promise<Ticket>
+    **/
+    getTicket(id) {
+
+        assert.is_number(id, "id should be a number");
+
+        return this.call("ticket.get", [id]).then((result) => {
+            return new Ticket(result);
+        });
+
+    }
+};
+
+export class Ticket {
+    constructor(data){
+        // data = [id, time_created, time_changed, attributes]
+        this._data = data;
+    }
+
+    get summary() {
+        return this._data[3]["summary"];
+    }
+
+    get id() {
+        return this._data[0];
+    }
+
+}

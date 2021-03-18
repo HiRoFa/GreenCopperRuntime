@@ -1,0 +1,175 @@
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+import {PinSet} from 'greco://gpio';
+
+// todo init with a StepperDriver class, (FourPinStepperDriver(a, b, c, d), ThreePinStepperDriver(enable, dir, pulse), VirtualStepperDriver)
+
+export class StepperDriver {
+    constructor() {
+
+    }
+    async init() {
+
+    }
+    async step(sequenceCount = 1, forward = true) {
+
+    }
+}
+
+export class FourPinGPIOStepperDriver extends StepperDriver {
+    // todo sequence and delay should be setter/getter instead of something you pass to step method
+    constructor(chip = '/dev/gpiochip0', pinNum0, pinNum1, pinNum2, pinNum3, sequencesPerRevolution = 509.4716) {
+        super();
+    }
+    async init() {
+
+    }
+    async step(sequenceCount = 1, forward = true) {
+
+    }
+}
+
+export class ThreePinGPIOStepperDriver extend StepperDriver {
+    constructor(chip = '/dev/gpiochip0', pinNumEnable, pinNumPulse, pinNumDirection, sequencesPerRevolution = 509.4716) {
+        super();
+    }
+    async init() {
+
+    }
+    async step(sequenceCount = 1, forward = true) {
+
+    }
+}
+
+export class VirtualStepperDriver extends StepperDriver {
+
+}
+
+export class Stepper {
+    constructor(pinSet, sequencesPerRevolution) {
+        this.pinSet = pinSet;
+        this.sequencesPerRevolution = sequencesPerRevolution;
+        this.setZero();
+    }
+
+    /**
+    * init a new Stepper
+    */
+    static async init(chip = '/dev/gpiochip0', pinNum0, pinNum1, pinNum2, pinNum3, sequencesPerRevolution = 509.4716) {
+
+        assert.is_string(chip, "chip should be a string like '/dev/gpiochip0'");
+        assert.is_number(pinNum0, "pinNum0 should be a number");
+        assert.is_number(pinNum1, "pinNum1 should be a number");
+        assert.is_number(pinNum2, "pinNum2 should be a number");
+        assert.is_number(pinNum3, "pinNum3 should be a number");
+
+        let pinSet = new PinSet();
+        let instance = new this(pinSet, sequencesPerRevolution);
+
+        await instance.pinSet.init(chip, 'out', [pinNum0, pinNum1, pinNum2, pinNum3]);
+
+        return instance;
+
+    }
+
+    /**
+    * set the current position as the "zero" position
+    **/
+    setZero() {
+        this.numSequenceForwarded = 0;
+    }
+
+    /**
+    * return to the "zero" position
+    **/
+    async zero() {
+        if (this.numSequenceForwarded >= 0) {
+            return this.step(this.numSequenceForwarded, false);
+        } else {
+            return this.step(-this.numSequenceForwarded, true);
+        }
+    }
+
+    /**
+    * move the motor
+    * @param sequenceCount <Number> the number of sequences to run (a single sequence is 4 steps)
+    * @param forward <Boolean> true for forward false for backward movement
+    * @param stepDelay <Number> the number of milliseconds to wait between each step
+    * @param sequence <Number> Stepper.SINGLE_STEP, Stepper.DOUBLE_STEP or Stepper.HALF_STEP
+    */
+    async step(sequenceCount = 1, forward = true, stepDelay = 2, sequence = 1) {
+
+        assert.is_number(sequenceCount, "sequenceCount should be a positive number");
+        assert.is_true(sequenceCount >= 0, "sequenceCount should be a positive number");
+
+        assert.is_boolean(forward, "forward should be boolean");
+
+        assert.is_number(stepDelay, "stepDelay should be a positive number");
+        assert.is_true(stepDelay >= 0, "stepDelay should be a positive number");
+
+        assert.is_true(sequence === 0 || sequence === 1 || sequence === 2, "sequence should be one of Stepper.SINGLE_STEP, Stepper.DOUBLE_STEP or Stepper.HALF_STEP");
+
+        let s;
+        switch (sequence) {
+            case Stepper.SINGLE_STEP:
+                s = forward?Stepper.SEQUENCE_SINGLE_FORWARD:Stepper.SEQUENCE_SINGLE_BACKWARD;
+                break;
+            case Stepper.DOUBLE_STEP:
+                s = forward?Stepper.SEQUENCE_DOUBLE_FORWARD:Stepper.SEQUENCE_DOUBLE_BACKWARD;
+                break;
+            case Stepper.HALF_STEP:
+                s = forward?Stepper.SEQUENCE_HALF_FORWARD:Stepper.SEQUENCE_HALF_BACKWARD;
+                break;
+        }
+        return this.pinSet.sequence(s, stepDelay, Math.round(sequenceCount))
+        .then((res) => {
+            this.numSequenceForwarded += forward?sequenceCount:-sequenceCount;
+            return res;
+        });
+    }
+
+    /**
+    * move the motor
+    * @param revolutions <Number> the number of revolutions to make (a single sequence is 4 or 8 steps depending on the sequence)
+    * @param forward <Boolean> true for forward false for backward movement
+    * @param stepDelay <Number> the number of milliseconds to wait between each step
+    * @param sequence <Number> Stepper.SINGLE_STEP, Stepper.DOUBLE_STEP or Stepper.HALF_STEP
+    */
+    async rotate(revolutions = 1, forward = true, stepDelay = 2, sequence = 1) {
+
+        assert.is_number(revolutions, "revolutions should be a positive number");
+        assert.is_true(revolutions >= 0, "revolutions should be a positive number");
+
+        let sequenceCount = this.sequencesPerRevolution * revolutions;
+        return this.step(sequenceCount, forward, stepDelay, sequence);
+    }
+
+    /**
+    * move the motor a number of degrees
+    * @param degrees <Number> the number of degrees to move (use a negative number to move backwards)
+    * @param stepDelay <Number> the number of milliseconds to wait between each step
+    * @param sequence <Number> Stepper.SINGLE_STEP, Stepper.DOUBLE_STEP or Stepper.HALF_STEP
+    */
+    async rotateDegrees(degrees = 180, stepDelay = 2, sequence = 1) {
+
+        assert.is_number(degrees, "degrees should be a number");
+
+        let sequenceCount = (this.sequencesPerRevolution / 360) * degrees;
+        let forward = true;
+        if (sequenceCount < 0) {
+            forward = false;
+            sequenceCount = -sequenceCount;
+        }
+        return this.step(sequenceCount, forward, stepDelay, sequence);
+    }
+}
+
+Stepper.SINGLE_STEP = 0;
+Stepper.DOUBLE_STEP = 1;
+Stepper.HALF_STEP = 2;
+
+Stepper.SEQUENCE_SINGLE_FORWARD = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
+Stepper.SEQUENCE_DOUBLE_FORWARD = [[1, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 1], [1, 0, 0, 1]];
+Stepper.SEQUENCE_HALF_FORWARD = [[1, 0, 0, 0], [1, 1, 0, 0], [0, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 1, 1], [0, 0, 0, 1], [1, 0, 0, 1]];
+Stepper.SEQUENCE_SINGLE_BACKWARD = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]];
+Stepper.SEQUENCE_DOUBLE_BACKWARD = [[1, 0, 0, 1], [0, 0, 1, 1], [0, 1, 1, 0], [1, 1, 0, 0]];
+Stepper.SEQUENCE_HALF_BACKWARD = [[1, 0, 0, 1], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 0], [0, 1, 1, 0], [0, 1, 0, 0], [1, 1, 0, 0], [1, 0, 0, 0]];
