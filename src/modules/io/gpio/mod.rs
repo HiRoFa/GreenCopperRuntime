@@ -6,7 +6,7 @@
 //! ```javascript
 //! async function test_gpio() {
 //!     // load the module
-//!     let gpio_mod = import('greco://gpio');
+//!     let gpio_mod = await import('greco://gpio');
 //!     // create a new PinSet
 //!     let pin_set = new gpio_mod.PinSet();
 //!     // init a single pin
