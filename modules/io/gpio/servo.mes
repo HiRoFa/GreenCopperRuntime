@@ -4,6 +4,10 @@ import {PinSet} from 'greco://gpio';
 // todo ServoDrivers
 // ServoDriver (SoftPwmDriver, PwmDriver, I2C?, AbstractDriverBoardDriver, PCA9685ServoDriver extends AbstractDriverBoardDriver, VirtualServoDriver
 
+/**
+* @class ServoModel
+* this class defines the parameters of a certain model servo
+**/
 export class ServoModel {
     /**
     * Construct a new ServoModel
@@ -146,24 +150,45 @@ export class SoftPwmDriver extends ServoDriver {
     }
 }
 
+/**
+* @class Servo
+* @description represents an abstract Servo motor which can be positioned
+**/
 export class Servo {
+
+    /**
+    * @constructor
+    * @param {ServoDriver} driver the driver to use for this Servo
+    */
     constructor(driver) {
         assert.is_instance_of(driver, ServoDriver, "driver should be an instance of ServoDriver");
         this.driver = driver;
     }
 
+    /**
+    * init the servo (or most of the time, it's driver)
+    */
     async init() {
         await this.driver.init();
     }
 
+    /**
+    * position the Servo in its most left position
+    */
     async left() {
         await this.driver.left();
     }
 
+    /**
+    * position the Servo in its most right position
+    */
     async right() {
         await this.driver.right();
     }
 
+    /**
+    * position the Servo in its neutral position
+    */
     async neutral() {
         await this.driver.neutral();
     }
@@ -176,6 +201,9 @@ export class Servo {
          await this.driver.angle(degrees);
     }
 
+    /**
+    * turn of the pwm signal (this will NOT reposition the servo to its neutral position)
+    */
     async off(){
         await this.driver.off();
     }
