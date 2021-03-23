@@ -133,15 +133,15 @@ export class SoftPwmDriver {
     }
 
     async left() {
-        await this.softPwm(this.frequency, this.servoModel.fullLeftDutyCycle);
+        await this.softPwm(this.servoModel.frequency, this.servoModel.fullLeftDutyCycle);
     }
 
     async right() {
-        await this.softPwm(this.frequency, this.servoModel.fullRightDutyCycle);
+        await this.softPwm(this.servoModel.frequency, this.servoModel.fullRightDutyCycle);
     }
 
     async neutral() {
-        await this.softPwm(this.frequency, this.servoModel.neutralDutyCycle);
+        await this.softPwm(this.servoModel.frequency, this.servoModel.neutralDutyCycle);
     }
 
     /**
