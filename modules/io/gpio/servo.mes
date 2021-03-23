@@ -104,7 +104,7 @@ export class SoftPwmDriver {
 
         console.log("SoftPwmDriver.constructor / 4");
 
-        //assert.is_instance_of(servoModel, ServoModel, "servoModel should be an instance of ServoModel");
+        assert.is_instance_of(servoModel, ServoModel, "servoModel should be an instance of ServoModel");
 
         console.log("SoftPwmDriver.constructor / 5");
 
@@ -168,7 +168,7 @@ export class Servo {
     * @param {ServoDriver} driver the driver to use for this Servo
     */
     constructor(driver) {
-        assert.is_instance_of(driver, ServoDriver, "driver should be an instance of ServoDriver");
+        //assert.is_instance_of(driver, ServoDriver, "driver should be an instance of ServoDriver");
         this.driver = driver;
     }
 
