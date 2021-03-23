@@ -52,7 +52,7 @@ export class Servo {
     * @param {Number} rangeDegrees the number of degrees the servo can rotate, defaults to 180
     * @param {Number} maxRangeMotionSeconds the number of seconds it takes the servo to move from full left to full right position, this is used to calculate when motion is actually done
     */
-    static async init(chip = '/dev/gpiochip0', pinNum = 18, frequency = 50, fullLeftDutyCycle = 5, neutralDutyCycle = 7.5, fullRightDutyCycle = 10, rangeDegrees = 180, maxRangeMotionSeconds = 0.5) {
+    static async init(chip = '/dev/gpiochip0', pinNum = 18, frequency = 50, fullLeftDutyCycle = 5, neutralDutyCycle = 7.5, fullRightDutyCycle = 10, rangeDegrees = 180, maxRangeMotionSeconds = 0.35) {
 
         let pinSet = new PinSet();
         let instance = new this(pinSet, frequency, fullLeftDutyCycle, neutralDutyCycle, fullRightDutyCycle, rangeDegrees, maxRangeMotionSeconds);
