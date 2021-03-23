@@ -1,10 +1,10 @@
 import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
 import {PinSet} from 'greco://gpio';
 
-// todo Servo should be initialized with a ServoDriver
+// todo ServoDrivers
 // ServoDriver (SoftPwmDriver, PwmDriver, I2C?, AbstractDriverBoardDriver, PCA9685ServoDriver extends AbstractDriverBoardDriver, VirtualServoDriver
 
-export class ServoModel() {
+export class ServoModel {
     /**
     * Construct a new ServoModel
     * @param {Number} frequency the frequency on which the servo operates in Hz, defaults to 50
