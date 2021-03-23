@@ -1,0 +1,13 @@
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+
+export class Utils {
+
+    static "with"(obj) {
+        // todo
+    }
+
+    static awaitAll(...args) {
+        return Promise.all(args.flat());
+    }
+
+}
