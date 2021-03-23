@@ -97,18 +97,26 @@ export class SoftPwmDriver extends ServoDriver {
     */
     constructor(chip = '/dev/gpiochip0', pinNum = 18, servoModel) {
 
+        console.log("SoftPwmDriver.constructor");
+
         assert.is_string(chip, "chip should be a String like \"/dev/gpiochip0\"");
         assert.is_number(pinNum, "pinNum should be a positive Number");
         assert.is_gt(pinNum, -1, "pinNum should be a positive Number");
 
+        console.log("SoftPwmDriver.constructor / 4");
+
         assert.is_instance_of(servoModel, ServoModel, "servoModel should be an instance of ServoModel");
+
+        console.log("SoftPwmDriver.constructor / 5");
 
         this.servoModel = servoModel;
 
         this.chip = chip;
         this.pinNum = pinNum;
 
+        console.log("SoftPwmDriver.constructor / 6");
         this.pinSet = new PinSet();
+        console.log("SoftPwmDriver.constructor / 7");
     }
 
     async init() {
