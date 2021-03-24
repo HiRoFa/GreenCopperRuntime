@@ -10,7 +10,7 @@ edition = "2018"
 
 default = ["all"]
 
-all = ["io", "db", "com"]
+all = ["io", "db", "com", "require"]
 
 io = ["gpio", "fileio"]
 gpio = ["gpio-cdev"]
@@ -21,6 +21,8 @@ mysql = ["mysql_lib"]
 
 com = ["http"]
 http = ["ureq"]
+
+require = []
 
 [dependencies]
 

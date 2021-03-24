@@ -4,6 +4,7 @@ use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 #[macro_use]
 extern crate lazy_static;
 
+mod features;
 #[cfg(any(feature = "all", feature = "com", feature = "http"))]
 pub mod fetch;
 
@@ -14,6 +15,7 @@ pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     let mut rt_builder = EsRuntimeBuilder::new();
 
     rt_builder = modules::init(rt_builder);
+    rt_builder = features::init(rt_builder);
 
     rt_builder
 }
