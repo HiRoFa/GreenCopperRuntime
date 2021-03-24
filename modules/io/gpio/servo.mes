@@ -87,7 +87,7 @@ export class ServoDriver {
     }
 }
 
-export class SoftPwmDriver {
+export class SoftPwmDriver extends ServoDriver {
 
     /**
     * init a new SoftPwmDriver
@@ -96,7 +96,7 @@ export class SoftPwmDriver {
     * @param {ServoModel} servoModel
     */
     constructor(chip = '/dev/gpiochip0', pinNum = 18, servoModel) {
-
+        super();
         assert.is_string(chip, "chip should be a String like \"/dev/gpiochip0\"");
         assert.is_number(pinNum, "pinNum should be a positive Number");
         assert.is_gt(pinNum, -1, "pinNum should be a positive Number");
@@ -162,7 +162,7 @@ export class Servo {
     * @param {ServoDriver} driver the driver to use for this Servo
     */
     constructor(driver) {
-        //assert.is_instance_of(driver, ServoDriver, "driver should be an instance of ServoDriver");
+        assert.is_instance_of(driver, ServoDriver, "driver should be an instance of ServoDriver");
         this.driver = driver;
     }
 
