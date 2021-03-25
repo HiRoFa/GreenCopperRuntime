@@ -4,7 +4,7 @@ use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 #[macro_use]
 extern crate lazy_static;
 
-mod features;
+pub mod features;
 #[cfg(any(feature = "all", feature = "com", feature = "http"))]
 pub mod fetch;
 
