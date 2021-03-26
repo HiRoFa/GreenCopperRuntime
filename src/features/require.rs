@@ -50,15 +50,21 @@ unsafe extern "C" fn require(
                 .ok()
                 .expect("to_string failed");
 
-            let cur_path = get_script_or_module_name(context)
+            let mut cur_path = get_script_or_module_name(context)
                 .ok()
                 .unwrap_or_else(|| "file:///node_modules/foo.js".to_string());
 
-            // todo if the path is file:///something. do i replace it with file:///node_modules/foo.js?
             // * if name does not start with / or ./ or ../ then use node_modules ref_path (if ref_path is file:///??)
-            // todo 2, where do i cache these? a shutdown hook on a QuickjsContext would be nice to clear my own caches
+            // todo , where do i cache these? a shutdown hook on a QuickjsContext would be nice to clear my own caches
             // see https://nodejs.org/en/knowledge/getting_started/what_is_require
-            // * todo support for directories, and then index.js or package.json?
+            // * todo 2 support for directories, and then index.js or package.json?
+
+            // hmm if a module is loaded from https://somegit.somesite.com/scripts/kewlStuff.js and that does a require.. do we look in node_modules on disk?
+            if cur_path.starts_with("file:///") {
+                if !(name.starts_with("./") || name.starts_with("../") || name.starts_with("/")) {
+                    curPath = "file:///node_modules/foo.js".to_string();
+                }
+            }
 
             if let Some(module_script) =
                 q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str())
