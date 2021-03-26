@@ -10,7 +10,9 @@ use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::quickjs_utils::functions::new_native_function_q;
 use quickjs_runtime::quickjs_utils::objects::set_property2_q;
-use quickjs_runtime::quickjs_utils::{get_global_q, parse_args, primitives};
+use quickjs_runtime::quickjs_utils::{
+    get_global_q, get_script_or_module_name, parse_args, primitives,
+};
 use quickjs_runtime::quickjsruntime::QuickJsRuntime;
 
 pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
@@ -48,12 +50,21 @@ unsafe extern "C" fn require(
                 .ok()
                 .expect("to_string failed");
 
-            // todo instead of node_modules get current path using JS_GetScriptOrModuleName
+            let cur_path = get_script_or_module_name(context)
+                .ok()
+                .unwrap_or_else(|| "file:///node_modules/foo.js".to_string());
+
+            // todo if the path is file:///something. do i replace it with file:///node_modules/foo.js?
+            // * if name does not start with / or ./ or ../ then use node_modules ref_path (if ref_path is file:///??)
+            // todo 2, where do i cache these? a shutdown hook on a QuickjsContext would be nice to clear my own caches
+            // see https://nodejs.org/en/knowledge/getting_started/what_is_require
+            // * todo support for directories, and then index.js or package.json?
+
             if let Some(module_script) =
-                q_js_rt.load_module_script_opt("file:///node_modules/foo.js", name.as_str())
+                q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str())
             {
                 let wrapped_function_code = format!(
-                    "function(){{let exports = {{}};{{\n{}\n}} return exports;}};",
+                    "function(){{const module = {{exports:{{}}}};let exports = module.exports;{{\n{}\n}} return module.exports;}};",
                     module_script.as_str()
                 );
 
