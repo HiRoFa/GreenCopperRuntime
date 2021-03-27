@@ -60,7 +60,9 @@ unsafe extern "C" fn require(
             // * todo 2 support for directories, and then index.js or package.json?
 
             // hmm if a module is loaded from https://somegit.somesite.com/scripts/kewlStuff.js and that does a require.. do we look in node_modules on disk?
-            if cur_path.starts_with("file:///") && !(name.starts_with("./") || name.starts_with("../") || name.starts_with("/")) {
+            if cur_path.starts_with("file:///")
+                && !(name.starts_with("./") || name.starts_with("../") || name.starts_with("/"))
+            {
                 cur_path = "file:///node_modules/foo.js".to_string();
             }
 
