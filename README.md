@@ -38,5 +38,7 @@ The following features are optionally added by specifying them in your Cargo.tom
     * [ ] Caching
       * [ ] LocalCaching
       * [ ] Memcached
+* [ ] CommonJS modules support ([docs](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/features/require/))
+ 
 
 [GreenCopperCmd](https://github.com/HiRoFa/GreenCopperCmd) is a commandline utility which you can use to test/play with GreenCopperRuntime 
