@@ -62,7 +62,7 @@ unsafe extern "C" fn require(
             // hmm if a module is loaded from https://somegit.somesite.com/scripts/kewlStuff.js and that does a require.. do we look in node_modules on disk?
             if cur_path.starts_with("file:///") {
                 if !(name.starts_with("./") || name.starts_with("../") || name.starts_with("/")) {
-                    curPath = "file:///node_modules/foo.js".to_string();
+                    cur_path = "file:///node_modules/foo.js".to_string();
                 }
             }
 
