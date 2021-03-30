@@ -3,6 +3,9 @@
 //! this module may be loaded in an EsRuntime initialized by green_copper_runtime::new_greco_runtime() by loading 'greco://gpio'
 //!
 //! # Example
+//!
+//! * Blink an Led
+//!
 //! ```javascript
 //! async function test_gpio() {
 //!     // load the module
@@ -20,7 +23,29 @@
 //!     console.error("GPIO test failed: %s", "" + ex);
 //! });
 //! ```
-
+//!
+//! * Listen for button press
+//!
+//! ```javascript
+//! async function test_gpio() {
+//!     // load the module
+//!     let gpio_mod = await import('greco://gpio');
+//!     // create a new PinSet
+//!     let pin_set = new gpio_mod.PinSet();
+//!     // init two pins to listen to
+//!     await pin_set.init('/dev/gpiochip0', 'in', [12, 13]);
+//!     // add an event listener
+//!     pin_set.addEventListener('statechange', (pinStateChangedEvent) => {
+//!         let newStates = pinStateChangedEvent.states;
+//!         console.log("Pin states were changed to %s and %s", newStates[0], newStates[1]);
+//!     });
+//! }
+//! test_gpio().then(() => {
+//!     console.log("done testing GPIO");
+//! }).catch((ex) => {
+//!     console.error("GPIO test failed: %s", "" + ex);
+//! });
+//! ```
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
@@ -75,6 +100,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
     let pin_set_proxy_class = Proxy::new()
                 .namespace(vec!["esses", "io", "gpio"])
                 .name("PinSet")
+                .event_target()
                 .constructor(|_q_ctx, instance_id, _args| {
                     let pin_set_handle = PinSetHandle::new();
                     PIN_SET_HANDLES.with(|rc| {
