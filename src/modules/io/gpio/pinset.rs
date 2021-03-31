@@ -84,8 +84,15 @@ impl PinSet {
                 .map_err(|e| format!("{}", e))?;
 
             let _ = EsRuntime::add_helper_task_async(async move {
-                let mut async_event_handle =
-                    AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e))?;
+                let async_event_handle_res =
+                    AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e));
+                let mut async_event_handle = match async_event_handle_res {
+                    Ok(handle) => handle,
+                    Err(e) => {
+                        log::error!("AsyncLineEventHandle init faile: {}", e.as_str());
+                        panic!("AsyncLineEventHandle init faile: {}", e.as_str());
+                    }
+                };
                 while let Some(evt) = async_event_handle.next().await {
                     let evt_res = evt.map_err(|e| format!("{}", e));
                     match evt_res {
