@@ -92,8 +92,8 @@ impl PinSet {
                 let mut async_event_handle = match async_event_handle_res {
                     Ok(handle) => handle,
                     Err(e) => {
-                        log::error!("AsyncLineEventHandle init faile: {}", e.as_str());
-                        panic!("AsyncLineEventHandle init faile: {}", e.as_str());
+                        log::error!("AsyncLineEventHandle init failed: {}", e.as_str());
+                        panic!("AsyncLineEventHandle init failed: {}", e.as_str());
                     }
                 };
                 while let Some(evt) = async_event_handle.next().await {
@@ -218,6 +218,12 @@ impl PinSet {
                 }
             }
         }
+    }
+}
+
+impl Drop for PinSet {
+    fn drop(&mut self) {
+        log::info!("Drop.drop for PinSet");
     }
 }
 
