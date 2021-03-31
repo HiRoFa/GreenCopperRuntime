@@ -18,7 +18,7 @@ The quickjs_runtime provides interfaces for the fetch api and module loading, Gr
 
 The following features are optionally added by specifying them in your Cargo.toml.
 * [ ] DB
-    * [ ] Mysql / TiDb
+    * [x] [Mysql / TiDb](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/db/mysql) (Work in progress)
     * [ ] Couchbase
     * [ ] Cassandra
     * [ ] Redis
