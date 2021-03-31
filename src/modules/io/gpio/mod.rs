@@ -47,20 +47,24 @@
 //! });
 //! ```
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
+use gpio_cdev::EventType;
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::esvalue::{
     EsNullValue, EsPromise, EsValueConvertible, EsValueFacade, ES_NULL,
 };
 use quickjs_runtime::quickjs_utils;
+use quickjs_runtime::quickjs_utils::objects::create_object_q;
 use quickjs_runtime::quickjs_utils::{arrays, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
-use quickjs_runtime::quickjsruntime::NativeModuleLoader;
-use quickjs_runtime::reflection::Proxy;
+use quickjs_runtime::quickjsruntime::{NativeModuleLoader, QuickJsRuntime};
+use quickjs_runtime::reflection::eventtarget::dispatch_event;
+use quickjs_runtime::reflection::{get_proxy, Proxy};
 use quickjs_runtime::valueref::JSValueRef;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
+use std::sync::Arc;
 
 pub mod pinset;
 
@@ -140,29 +144,58 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                         pins.push(primitives::to_i32(&pin_ref)? as u32);
                     }
 
-                    wrap_prom(q_ctx, instance_id, move |pin_set| {
-                        // in gio eventqueue thread here
-                        pin_set.init(chip_name.as_str(), pin_mode, pins.as_slice()).map_err(|err| {err.to_es_value_facade()})?;
+                    QuickJsRuntime::do_with(|q_js_rt| {
 
-                        match pin_mode {
-                            PinMode::IN => {
-                                log::info!("init pinset proxy event handler");
-                                match pin_set.set_event_handler(|pin, evt| {
-                                    log::info!("called: pinset proxy event handler for pin {} e:{:?}", pin, evt);
-                                }) {
-                                    Ok(_) => {
-                                        log::info!("init pinset proxy event handler > ok");
-                                    }
-                                    Err(e) => {
-                                        log::info!("init pinset proxy event handler > fail: {}", e);
-                                    }
-                                };
+                        let es_rt_ref = q_js_rt.get_rt_ref().unwrap();
+                        let es_rt_weak = Arc::downgrade(&es_rt_ref);
+                        let context_id = q_ctx.id.clone();
+                        let pinset_instance_id = *instance_id;
+
+                        wrap_prom(q_ctx, instance_id, move |pin_set| {
+                            // in gio eventqueue thread here
+                            pin_set.init(chip_name.as_str(), pin_mode, pins.as_slice()).map_err(|err| {err.to_es_value_facade()})?;
+
+                            match pin_mode {
+                                PinMode::IN => {
+                                    log::trace!("init pinset proxy event handler");
+                                    match pin_set.set_event_handler(move |pin, evt| {
+                                        log::debug!("called: pinset proxy event handler for pin {} e:{:?}", pin, evt);
+                                        let context_id = context_id.clone();
+
+                                        if let Some(es_rt_ref) = es_rt_weak.upgrade() {
+                                            es_rt_ref.add_to_event_queue_void(move |q_js_rt| {
+                                                // in q_js_rt event queue here
+                                                let q_ctx = q_js_rt.get_context(context_id.as_str());
+                                                let proxy = get_proxy(q_ctx, "PinSet").unwrap();
+                                                // todo evt should be instance of PinSetEvent proxy
+                                                let evt_obj = create_object_q(q_ctx).ok().unwrap();
+                                                match evt.event_type() {
+                                                    EventType::RisingEdge => {
+                                                        let _ = dispatch_event(q_ctx, &proxy, pinset_instance_id, "rising", evt_obj);
+                                                    }
+                                                    EventType::FallingEdge => {
+                                                        let _ = dispatch_event(q_ctx, &proxy, pinset_instance_id, "falling", evt_obj);
+                                                    }
+                                                }
+                                            });
+                                        }
+
+                                    }) {
+                                        Ok(_) => {
+                                            log::trace!("init PinSet proxy event handler > ok");
+                                        }
+                                        Err(e) => {
+                                            log::error!("init PinSet proxy event handler > fail: {}", e);
+                                        }
+                                    };
+                                }
+                                PinMode::OUT => {}
                             }
-                            PinMode::OUT => {}
-                        }
 
-                        Ok(EsNullValue{}.to_es_value_facade())
+                            Ok(EsNullValue{}.to_es_value_facade())
+                        })
                     })
+
                 })
                 .method("setState", |q_ctx, instance_id, args| {
                     // return prom

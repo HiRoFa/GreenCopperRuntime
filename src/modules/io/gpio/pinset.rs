@@ -90,7 +90,7 @@ impl PinSet {
             let handler_arc = handler_arc.clone();
 
             let _ = self.input_task_manager.add_task_async(async move {
-                log::info!("PinSet running async helper");
+                log::trace!("PinSet running async helper");
                 let async_event_handle_res =
                     AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e));
                 let mut async_event_handle = match async_event_handle_res {
@@ -104,11 +104,11 @@ impl PinSet {
                     let evt_res = evt.map_err(|e| format!("{}", e));
                     match evt_res {
                         Ok(evt) => {
-                            log::info!("GPIO Event @{} : {:?}", pin, evt);
+                            log::trace!("GPIO Event @{} : {:?}", pin, evt);
                             handler_arc(pin, evt);
                         }
                         Err(e) => {
-                            log::info!("GPIO Err: {:?}", e);
+                            log::trace!("GPIO Err: {:?}", e);
                         }
                     }
                 }
