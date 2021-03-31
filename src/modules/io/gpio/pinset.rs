@@ -1,5 +1,7 @@
 use futures::stream::StreamExt;
-use gpio_cdev::{AsyncLineEventHandle, Chip, EventRequestFlags, LineHandle, LineRequestFlags};
+use gpio_cdev::{
+    AsyncLineEventHandle, Chip, EventRequestFlags, Line, LineHandle, LineRequestFlags,
+};
 use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::utils::single_threaded_event_queue::SingleThreadedEventQueue;
 use std::cell::RefCell;
@@ -44,7 +46,8 @@ impl PinSetHandle {
 }
 
 pub struct PinSet {
-    handles: Vec<LineHandle>,
+    output_handles: Vec<LineHandle>,
+    lines: Vec<Line>,
     event_handler: Option<Arc<dyn Fn()>>,
 }
 
@@ -58,7 +61,8 @@ pub enum PinMode {
 impl PinSet {
     pub fn new() -> Self {
         Self {
-            handles: vec![],
+            output_handles: vec![],
+            lines: vec![],
             event_handler: None,
         }
     }
@@ -70,9 +74,8 @@ impl PinSet {
         self.event_handler = Some(Arc::new(handler));
         // start listener, for every pin?
         // stop current listener?
-        for handle in &self.handles {
-            let event_handle = handle
-                .line()
+        for line in &self.lines {
+            let event_handle = line
                 .events(
                     LineRequestFlags::INPUT,
                     EventRequestFlags::BOTH_EDGES,
@@ -112,29 +115,24 @@ impl PinSet {
             },
             pins.len()
         );
-        let mut handles = vec![];
         // chip_name = "/dev/gpiochip0"
         let mut chip = Chip::new(chip_name).map_err(|e| format!("{}", e))?;
 
         for x in pins {
             let line = chip.get_line(*x).map_err(|e| format!("{}", e))?;
 
-            let handle = match mode {
+            match mode {
                 PinMode::IN => {
-                    let handle = line
-                        .request(LineRequestFlags::INPUT, 0, "PinSet_read-input")
-                        .map_err(|e| format!("{}", e))?;
-
-                    handle
+                    self.lines.push(line);
                 }
-                PinMode::OUT => line
-                    .request(LineRequestFlags::OUTPUT, 0, "PinSet_set-output")
-                    .map_err(|e| format!("{}", e))?,
+                PinMode::OUT => {
+                    let handle = line
+                        .request(LineRequestFlags::OUTPUT, 0, "PinSet_set-output")
+                        .map_err(|e| format!("{}", e))?;
+                    self.output_handles.push(handle)
+                }
             };
-
-            handles.push(handle);
         }
-        self.handles = handles;
         Ok(())
     }
     pub fn set_state(&self, states: &[u8]) -> Result<(), String> {
@@ -147,20 +145,20 @@ impl PinSet {
     pub fn set_state_index(&self, pin_idx: usize, state: u8) -> Result<(), String> {
         log::trace!("PinSet.set_state_index: idx: {}, state: {}", pin_idx, state);
 
-        let handle = &self.handles[pin_idx];
+        let handle = &self.output_handles[pin_idx];
         handle.set_value(state).map_err(|e| format!("{}", e))?;
 
         Ok(())
     }
     pub fn get_state(&self) -> Result<Vec<u8>, String> {
         let mut ret = vec![];
-        for handle in &self.handles {
+        for handle in &self.output_handles {
             ret.push(handle.get_value().map_err(|ex| format!("{}", ex))?);
         }
         Ok(ret)
     }
     pub fn get_state_index(&self, index: usize) -> Result<u8, String> {
-        Ok(self.handles[index]
+        Ok(self.output_handles[index]
             .get_value()
             .map_err(|ex| format!("{}", ex))?)
     }
