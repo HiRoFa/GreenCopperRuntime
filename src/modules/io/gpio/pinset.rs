@@ -82,9 +82,10 @@ impl PinSet {
                     "PinSet_read-input",
                 )
                 .map_err(|e| format!("{}", e))?;
-            let mut async_event_handle =
-                AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e))?;
+
             let _ = EsRuntime::add_helper_task_async(async move {
+                let mut async_event_handle =
+                    AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e))?;
                 while let Some(evt) = async_event_handle.next().await {
                     let evt_res = evt.map_err(|e| format!("{}", e));
                     match evt_res {
