@@ -1,4 +1,6 @@
-use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
+use futures::stream::StreamExt;
+use gpio_cdev::{AsyncLineEventHandle, Chip, EventRequestFlags, LineHandle, LineRequestFlags};
+use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::utils::single_threaded_event_queue::SingleThreadedEventQueue;
 use std::cell::RefCell;
 use std::ops::Sub;
@@ -43,8 +45,10 @@ impl PinSetHandle {
 
 pub struct PinSet {
     handles: Vec<LineHandle>,
+    event_handler: Option<Arc<dyn Fn()>>,
 }
 
+#[derive(Clone, Copy)]
 pub enum PinMode {
     IN,
     OUT,
@@ -53,7 +57,46 @@ pub enum PinMode {
 #[allow(dead_code)]
 impl PinSet {
     pub fn new() -> Self {
-        Self { handles: vec![] }
+        Self {
+            handles: vec![],
+            event_handler: None,
+        }
+    }
+    pub fn set_event_handler<H>(&mut self, handler: H) -> Result<(), String>
+    where
+        H: Fn() + 'static,
+    {
+        log::info!("init gpio evt handler");
+        self.event_handler = Some(Arc::new(handler));
+        // start listener, for every pin?
+        // stop current listener?
+        for handle in &self.handles {
+            let event_handle = handle
+                .line()
+                .events(
+                    LineRequestFlags::INPUT,
+                    EventRequestFlags::BOTH_EDGES,
+                    "PinSet_read-input",
+                )
+                .map_err(|e| format!("{}", e))?;
+            let mut async_event_handle =
+                AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e))?;
+            let _ = EsRuntime::add_helper_task_async(async move {
+                while let Some(evt) = async_event_handle.next().await {
+                    let evt_res = evt.map_err(|e| format!("{}", e));
+                    match evt_res {
+                        Ok(evt) => {
+                            log::info!("GPIO Event: {:?}", evt);
+                        }
+                        Err(e) => {
+                            log::info!("GPIO Err: {:?}", e);
+                        }
+                    }
+                }
+                log::info!("end async while");
+            });
+        }
+        Ok(())
     }
     pub fn init(&mut self, chip_name: &str, mode: PinMode, pins: &[u32]) -> Result<(), String> {
         let mut handles = vec![];
@@ -64,9 +107,13 @@ impl PinSet {
             let line = chip.get_line(*x).map_err(|e| format!("{}", e))?;
 
             let handle = match mode {
-                PinMode::IN => line
-                    .request(LineRequestFlags::INPUT, 0, "PinSet_read-input")
-                    .map_err(|e| format!("{}", e))?,
+                PinMode::IN => {
+                    let handle = line
+                        .request(LineRequestFlags::INPUT, 0, "PinSet_read-input")
+                        .map_err(|e| format!("{}", e))?;
+
+                    handle
+                }
                 PinMode::OUT => line
                     .request(LineRequestFlags::OUTPUT, 0, "PinSet_set-output")
                     .map_err(|e| format!("{}", e))?,

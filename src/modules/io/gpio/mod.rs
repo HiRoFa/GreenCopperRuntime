@@ -144,6 +144,23 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                         // in gio eventqueue thread here
                         pin_set.init(chip_name.as_str(), pin_mode, pins.as_slice()).map_err(|err| {err.to_es_value_facade()})?;
 
+                        match pin_mode {
+                            PinMode::IN => {
+                                log::info!("init pinset proxy event handler");
+                                match pin_set.set_event_handler(|| {
+                                    log::info!("called: pinset proxy event handler");
+                                }) {
+                                    Ok(_) => {
+                                        log::info!("init pinset proxy event handler > ok");
+                                    }
+                                    Err(e) => {
+                                        log::info!("init pinset proxy event handler > fail: {}", e);
+                                    }
+                                };
+                            }
+                            PinMode::OUT => {}
+                        }
+
                         Ok(EsNullValue{}.to_es_value_facade())
                     })
                 })
