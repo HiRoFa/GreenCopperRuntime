@@ -66,7 +66,7 @@ impl PinSet {
     where
         H: Fn() + 'static,
     {
-        log::info!("init gpio evt handler");
+        log::debug!("init PinSet evt handler");
         self.event_handler = Some(Arc::new(handler));
         // start listener, for every pin?
         // stop current listener?
@@ -99,6 +99,19 @@ impl PinSet {
         Ok(())
     }
     pub fn init(&mut self, chip_name: &str, mode: PinMode, pins: &[u32]) -> Result<(), String> {
+        log::debug!(
+            "PinSet.init c:{} m:{:?} p:{}",
+            chip_name,
+            match mode {
+                PinMode::IN => {
+                    "in"
+                }
+                PinMode::OUT => {
+                    "out"
+                }
+            },
+            pins.len()
+        );
         let mut handles = vec![];
         // chip_name = "/dev/gpiochip0"
         let mut chip = Chip::new(chip_name).map_err(|e| format!("{}", e))?;
