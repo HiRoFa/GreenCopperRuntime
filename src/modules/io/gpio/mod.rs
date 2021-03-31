@@ -35,9 +35,11 @@
 //!     // init two pins to listen to
 //!     await pin_set.init('/dev/gpiochip0', 'in', [12, 13]);
 //!     // add an event listener
-//!     pin_set.addEventListener('statechange', (pinStateChangedEvent) => {
-//!         let newStates = pinStateChangedEvent.states;
-//!         console.log("Pin states were changed to %s and %s", newStates[0], newStates[1]);
+//!     pin_set.addEventListener('rising', (evt) => {
+//!         console.log("Pin state went to rising for %s", evt.pin);
+//!     });
+//!     pin_set.addEventListener('falling', (evt) => {
+//!         console.log("Pin state went to falling for %s", evt.pin);//!     
 //!     });
 //! }
 //! test_gpio().then(() => {
@@ -54,7 +56,8 @@ use quickjs_runtime::esvalue::{
     EsNullValue, EsPromise, EsValueConvertible, EsValueFacade, ES_NULL,
 };
 use quickjs_runtime::quickjs_utils;
-use quickjs_runtime::quickjs_utils::objects::create_object_q;
+use quickjs_runtime::quickjs_utils::objects::{create_object_q, set_property_q};
+use quickjs_runtime::quickjs_utils::primitives::from_i32;
 use quickjs_runtime::quickjs_utils::{arrays, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::quickjsruntime::{NativeModuleLoader, QuickJsRuntime};
@@ -169,6 +172,8 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                                                 let proxy = get_proxy(q_ctx, "greco.io.gpio.PinSet").unwrap();
                                                 // todo evt should be instance of PinSetEvent proxy
                                                 let evt_obj = create_object_q(q_ctx).ok().unwrap();
+                                                let pin_ref = from_i32(pin as i32);
+                                                set_property_q(q_ctx, &evt_obj, "pin", &pin_ref).ok().expect("could not set pin prop");
                                                 match evt.event_type() {
                                                     EventType::RisingEdge => {
                                                         let _ = dispatch_event(q_ctx, &proxy, pinset_instance_id, "rising", evt_obj);

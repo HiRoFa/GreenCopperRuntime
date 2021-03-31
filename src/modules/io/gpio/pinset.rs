@@ -228,7 +228,7 @@ impl PinSet {
 
 impl Drop for PinSet {
     fn drop(&mut self) {
-        log::info!("Drop.drop for PinSet");
+        log::trace!("Drop.drop for PinSet");
     }
 }
 
@@ -246,7 +246,7 @@ impl Default for PinSetHandle {
 
 impl Drop for PinSetHandle {
     fn drop(&mut self) {
-        log::info!("Drop.drop for PinSetHandle");
+        log::trace!("Drop.drop for PinSetHandle");
         self.event_queue.shutdown();
     }
 }
