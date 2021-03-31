@@ -12,9 +12,9 @@ default = ["all"]
 
 all = ["io", "db", "com", "require"]
 
-io = ["gpio", "fileio"]
+io = ["gpio", "fs"]
 gpio = ["gpio-cdev", "futures"]
-fileio = []
+fs = []
 
 db = ["mysql"]
 mysql = ["mysql_lib"]

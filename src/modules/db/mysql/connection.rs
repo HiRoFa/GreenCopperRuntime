@@ -17,7 +17,7 @@ pub(crate) struct MysqlConnection {
 }
 
 impl MysqlConnection {
-    pub fn new(q_ctx: &QuickJsContext, args: &Vec<JSValueRef>) -> Result<Self, EsError> {
+    pub fn new(q_ctx: &QuickJsContext, args: &[JSValueRef]) -> Result<Self, EsError> {
         // todo, actually parse args
         //url, port, user, pass, dbSchema
 
