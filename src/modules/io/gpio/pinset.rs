@@ -84,6 +84,7 @@ impl PinSet {
                 .map_err(|e| format!("{}", e))?;
 
             let _ = EsRuntime::add_helper_task_async(async move {
+                log::info!("PinSet running async helper");
                 let async_event_handle_res =
                     AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e));
                 let mut async_event_handle = match async_event_handle_res {
