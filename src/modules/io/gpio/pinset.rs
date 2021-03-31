@@ -2,8 +2,8 @@ use futures::stream::StreamExt;
 use gpio_cdev::{
     AsyncLineEventHandle, Chip, EventRequestFlags, Line, LineHandle, LineRequestFlags,
 };
-use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::utils::single_threaded_event_queue::SingleThreadedEventQueue;
+use quickjs_runtime::utils::task_manager::TaskManager;
 use std::cell::RefCell;
 use std::ops::Sub;
 use std::sync::Arc;
@@ -49,6 +49,7 @@ pub struct PinSet {
     output_handles: Vec<LineHandle>,
     lines: Vec<Line>,
     event_handler: Option<Arc<dyn Fn()>>,
+    input_task_manager: TaskManager,
 }
 
 #[derive(Clone, Copy)]
@@ -64,6 +65,7 @@ impl PinSet {
             output_handles: vec![],
             lines: vec![],
             event_handler: None,
+            input_task_manager: TaskManager::new(2),
         }
     }
     pub fn set_event_handler<H>(&mut self, handler: H) -> Result<(), String>
@@ -85,7 +87,7 @@ impl PinSet {
                 )
                 .map_err(|e| format!("{}", e))?;
 
-            let _ = EsRuntime::add_helper_task_async(async move {
+            let _ = self.input_task_manager.add_task_async(async move {
                 log::info!("PinSet running async helper");
                 let async_event_handle_res =
                     AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e));
