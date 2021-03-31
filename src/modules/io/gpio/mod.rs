@@ -102,7 +102,7 @@ where
 
 fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
     let pin_set_proxy_class = Proxy::new()
-                .namespace(vec!["esses", "io", "gpio"])
+                .namespace(vec!["greco", "io", "gpio"])
                 .name("PinSet")
                 .event_target()
                 .constructor(|_q_ctx, instance_id, _args| {
@@ -166,7 +166,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                                             es_rt_ref.add_to_event_queue_void(move |q_js_rt| {
                                                 // in q_js_rt event queue here
                                                 let q_ctx = q_js_rt.get_context(context_id.as_str());
-                                                let proxy = get_proxy(q_ctx, "PinSet").unwrap();
+                                                let proxy = get_proxy(q_ctx, "greco.io.gpio.PinSet").unwrap();
                                                 // todo evt should be instance of PinSetEvent proxy
                                                 let evt_obj = create_object_q(q_ctx).ok().unwrap();
                                                 match evt.event_type() {
