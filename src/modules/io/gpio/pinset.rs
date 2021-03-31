@@ -1,6 +1,6 @@
 use futures::stream::StreamExt;
 use gpio_cdev::{
-    AsyncLineEventHandle, Chip, EventRequestFlags, Line, LineHandle, LineRequestFlags,
+    AsyncLineEventHandle, Chip, EventRequestFlags, Line, LineEvent, LineHandle, LineRequestFlags,
 };
 use quickjs_runtime::utils::single_threaded_event_queue::SingleThreadedEventQueue;
 use quickjs_runtime::utils::task_manager::TaskManager;
@@ -48,7 +48,6 @@ impl PinSetHandle {
 pub struct PinSet {
     output_handles: Vec<LineHandle>,
     lines: Vec<Line>,
-    event_handler: Option<Arc<dyn Fn()>>,
     input_task_manager: TaskManager,
 }
 
@@ -64,18 +63,19 @@ impl PinSet {
         Self {
             output_handles: vec![],
             lines: vec![],
-            event_handler: None,
             input_task_manager: TaskManager::new(2),
         }
     }
     pub fn set_event_handler<H>(&mut self, handler: H) -> Result<(), String>
     where
-        H: Fn() + 'static,
+        H: Fn(u32, LineEvent) + Sync + Send + 'static,
     {
         log::debug!("init PinSet evt handler");
-        self.event_handler = Some(Arc::new(handler));
+        // self.event_handler = Some(Arc::new(handler));
         // start listener, for every pin?
         // stop current listener?
+        let handler_arc = Arc::new(handler);
+
         for line in &self.lines {
             let pin = line.offset();
 
@@ -86,6 +86,8 @@ impl PinSet {
                     "PinSet_read-input",
                 )
                 .map_err(|e| format!("{}", e))?;
+
+            let handler_arc = handler_arc.clone();
 
             let _ = self.input_task_manager.add_task_async(async move {
                 log::info!("PinSet running async helper");
@@ -103,6 +105,7 @@ impl PinSet {
                     match evt_res {
                         Ok(evt) => {
                             log::info!("GPIO Event @{} : {:?}", pin, evt);
+                            handler_arc(pin, evt);
                         }
                         Err(e) => {
                             log::info!("GPIO Err: {:?}", e);

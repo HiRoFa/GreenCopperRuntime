@@ -147,8 +147,8 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                         match pin_mode {
                             PinMode::IN => {
                                 log::info!("init pinset proxy event handler");
-                                match pin_set.set_event_handler(|| {
-                                    log::info!("called: pinset proxy event handler");
+                                match pin_set.set_event_handler(|pin, evt| {
+                                    log::info!("called: pinset proxy event handler for pin {} e:{:?}", pin, evt);
                                 }) {
                                     Ok(_) => {
                                         log::info!("init pinset proxy event handler > ok");
