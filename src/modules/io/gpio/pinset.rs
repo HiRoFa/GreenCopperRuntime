@@ -75,6 +75,8 @@ impl PinSet {
         // start listener, for every pin?
         // stop current listener?
         for line in &self.lines {
+            let pin = line.offset();
+
             let event_handle = line
                 .events(
                     LineRequestFlags::INPUT,
@@ -98,7 +100,7 @@ impl PinSet {
                     let evt_res = evt.map_err(|e| format!("{}", e));
                     match evt_res {
                         Ok(evt) => {
-                            log::info!("GPIO Event: {:?}", evt);
+                            log::info!("GPIO Event @{} : {:?}", pin, evt);
                         }
                         Err(e) => {
                             log::info!("GPIO Err: {:?}", e);
