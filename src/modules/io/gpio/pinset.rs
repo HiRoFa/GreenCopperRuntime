@@ -238,3 +238,10 @@ impl Default for PinSetHandle {
         Self::new()
     }
 }
+
+impl Drop for PinSetHandle {
+    fn drop(&mut self) {
+        log::info!("Drop.drop for PinSetHandle");
+        self.event_queue.shutdown();
+    }
+}
