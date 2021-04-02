@@ -51,14 +51,20 @@
 
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::esvalue::EsValueFacade;
-use quickjs_runtime::quickjs_utils::functions::new_function_q;
-use quickjs_runtime::quickjs_utils::new_null_ref;
+use quickjs_runtime::esvalue::{EsFunction, EsValueConvertible, EsValueFacade};
 use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::quickjsruntime::NativeModuleLoader;
 use quickjs_runtime::valueref::JSValueRef;
 
-pub(crate) fn _read_string(_path: &str) -> String {
+pub(crate) fn read_string(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn delete(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn touch(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
     unimplemented!()
 }
 
@@ -71,7 +77,9 @@ pub(crate) fn _read_string(_path: &str) -> String {
 ///    await fs.write('./test.txt', 'hello world');
 /// }
 /// ```
-pub(crate) fn _write(_path: &str, _value: EsValueFacade) {}
+pub(crate) fn write(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
 
 pub struct FsModuleLoader {}
 
@@ -98,22 +106,21 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
 }
 
 fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
-    let write_func = new_function_q(
-        q_ctx,
-        "write",
-        |_q_ctx, _this_ref, _args| Ok(new_null_ref()),
-        2,
-    )?;
-
-    let read_string_func = new_function_q(
-        q_ctx,
-        "readString",
-        |_q_ctx, _this_ref, _args| Ok(new_null_ref()),
-        2,
-    )?;
+    let write_func = EsFunction::new("write", write, true);
+    let touch_func = EsFunction::new("touch", write, true);
+    let delete_func = EsFunction::new("delete", write, true);
+    let read_string_func = EsFunction::new("readString", read_string, true);
 
     Ok(vec![
-        ("write", write_func),
-        ("readString", read_string_func),
+        ("write", write_func.to_es_value_facade().as_js_value(q_ctx)?),
+        ("touch", touch_func.to_es_value_facade().as_js_value(q_ctx)?),
+        (
+            "delete",
+            delete_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
+        (
+            "readString",
+            read_string_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
     ])
 }
