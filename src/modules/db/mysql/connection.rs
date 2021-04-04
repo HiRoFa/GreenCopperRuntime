@@ -65,6 +65,8 @@ impl MysqlConnection {
             let arr: Vec<Value> = if params.is_array() {
                 params
                     .get_array()
+                    .ok()
+                    .expect("to array failed")
                     .iter()
                     .map(|esvf| {
                         if esvf.is_string() {
