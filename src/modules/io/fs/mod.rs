@@ -107,8 +107,8 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
 
 fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
     let write_func = EsFunction::new("write", write, true);
-    let touch_func = EsFunction::new("touch", write, true);
-    let delete_func = EsFunction::new("delete", write, true);
+    let touch_func = EsFunction::new("touch", touch, true);
+    let delete_func = EsFunction::new("delete", delete, true);
     let read_string_func = EsFunction::new("readString", read_string, true);
 
     Ok(vec![
