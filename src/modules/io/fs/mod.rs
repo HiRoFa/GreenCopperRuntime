@@ -11,25 +11,22 @@
 //! ```rust
 //! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 //! use quickjs_runtime::esscript::EsScript;
+//! use quickjs_runtime::esvalue::EsValueFacade;
 //! let rt = crate::green_copper_runtime::new_greco_rt_builder().build();
-//! let prom_esvf = rt.eval_sync(EsScript::new("test_fs.es", "\
-//! (async function test() {\
+//! rt.eval_sync(EsScript::new("init_fs.es", "async function test_write() {\
 //!     let fs_mod = await import('greco://fs');\
-//!     await fs_mod.write('./test.txt', 'hello from greco fs');\
-//! }\
-//! test())\
-//! ")).ok().expect("write script failed");
+//!     await fs_mod.write('./test.txt', 'hello from greco fs');
+//! }\n"));
+//! let prom_esvf = rt.call_function_sync(vec![], "test_write", vec![]).ok().expect("write function invocation failed");
 //! // wait for promise to be done
 //! let done = prom_esvf.get_promise_result_sync();
 //! assert!(done.is_ok());
 //! // do read test
-//! let prom_esvf = rt.eval_sync(EsScript::new("test_fs_read.es", "\
-//! (async function test_read() {\
+//! rt.eval_sync(EsScript::new("init_fs.es", "async function test_read() {\
 //!     let fs_mod = await import('greco://fs');\
-//!     return await fs_mod.readString('./test.txt');\
-//! }\
-//! test_read())\
-//! ")).ok().expect("read script failed");
+//!     return await fs_mod.readString('./test.txt');
+//! }\n"));
+//! let prom_esvf = rt.call_function_sync(vec![], "test_read", vec![]).ok().expect("read invocation failed");
 //! // wait for promise to be done
 //! let done = prom_esvf.get_promise_result_sync();
 //! assert!(done.is_ok());
@@ -59,7 +56,7 @@ use std::fs;
 
 pub(crate) fn read_string(args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
     if args.len() != 1 || !args[0].is_string() {
-        Err(format!("readString requires one argument: (String)"))
+        Err("readString requires one argument: (String)".to_string())
     } else {
         let path = args[0].get_str();
 
@@ -89,10 +86,14 @@ pub(crate) fn touch(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> 
 /// ```
 pub(crate) fn write(args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
     if args.len() != 2 || !args[0].is_string() {
-        Err(format!("write requires two arguments: (String, obj)"))
+        Err("write requires two arguments: (String, obj)".to_string())
     } else {
         let path = args[0].get_str();
-        let content = args[1].stringify().map_err(|e| format!("{}", e))?;
+        let content = if args[1].is_string() {
+            args[1].get_str().to_string()
+        } else {
+            args[1].stringify().map_err(|e| format!("{}", e))?
+        };
 
         match fs::write(path, content) {
             Ok(_) => Ok(ES_NULL.to_es_value_facade()),
@@ -143,4 +144,68 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
             read_string_func.to_es_value_facade().as_js_value(q_ctx)?,
         ),
     ])
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::new_greco_rt_builder;
+    use backtrace::Backtrace;
+    use log::LevelFilter;
+    use std::panic;
+
+    #[test]
+    fn test_fs() {
+        use quickjs_runtime::esscript::EsScript;
+
+        panic::set_hook(Box::new(|panic_info| {
+            let backtrace = Backtrace::new();
+            log::error!(
+                "thread panic occurred: {}\nbacktrace: {:?}",
+                panic_info,
+                backtrace
+            );
+        }));
+
+        simple_logging::log_to_file("grecort.log", LevelFilter::max())
+            .ok()
+            .expect("could not init logger");
+
+        let rt = new_greco_rt_builder().build();
+        rt.eval_sync(EsScript::new(
+            "init_fs.es",
+            "async function test_write() {\
+     let fs_mod = await import('greco://fs');\
+     await fs_mod.write('./test.txt', 'hello from greco fs');
+ }\n",
+        ))
+        .ok()
+        .expect("init write script failed");
+        let prom_esvf = rt
+            .call_function_sync(vec![], "test_write", vec![])
+            .ok()
+            .expect("write function invocation failed");
+        // wait for promise to be done
+        let done = prom_esvf.get_promise_result_sync();
+        assert!(done.is_ok());
+        // do read test
+        rt.eval_sync(EsScript::new(
+            "init_fs.es",
+            "async function test_read() {\
+     let fs_mod = await import('greco://fs');\
+     return await fs_mod.readString('./test.txt');
+ }\n",
+        ))
+        .ok()
+        .expect("init write script failed");
+        let prom_esvf = rt
+            .call_function_sync(vec![], "test_read", vec![])
+            .ok()
+            .expect("read invocation failed");
+        // wait for promise to be done
+        let done = prom_esvf.get_promise_result_sync();
+        assert!(done.is_ok());
+        let done_esvf = done.ok().unwrap();
+        let s = done_esvf.get_str();
+        assert_eq!(s, "hello from greco fs");
+    }
 }

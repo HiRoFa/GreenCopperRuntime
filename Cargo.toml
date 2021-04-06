@@ -39,7 +39,7 @@ log = "0.4.8"
 simple-logging = "2.0.2"
 rand = "0.7.0"
 num_cpus = "1.0"
-
+backtrace = "0.3.56"
 url = "2.2.1"
 
 ureq = {version = "1.*", features=["cookies", "json", "charset", "tls", "socks-proxy"], optional = true}

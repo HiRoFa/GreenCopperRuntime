@@ -135,7 +135,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     // todo check arg values... i really need to make an arg assertion util
                     let chip_name = primitives::to_string_q(q_ctx, &args[0])?;
                     let mode = primitives::to_string_q(q_ctx, &args[1])?;
-                    let pin_mode = if mode.eq("in") {PinMode::IN} else {PinMode::OUT};
+                    let pin_mode = if mode.eq("in") {PinMode::In } else {PinMode::Out };
 
                     let mut pins = vec![];
                     let ct = arrays::get_length_q(q_ctx, &args[2])?;
@@ -159,7 +159,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                             pin_set.init(chip_name.as_str(), pin_mode, pins.as_slice()).map_err(|err| {err.to_es_value_facade()})?;
 
                             match pin_mode {
-                                PinMode::IN => {
+                                PinMode::In => {
                                     log::trace!("init pinset proxy event handler");
                                     match pin_set.set_event_handler(move |pin, evt| {
                                         log::debug!("called: pinset proxy event handler for pin {} e:{:?}", pin, evt);
@@ -194,7 +194,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                                         }
                                     };
                                 }
-                                PinMode::OUT => {}
+                                PinMode::Out => {}
                             }
 
                             Ok(EsNullValue{}.to_es_value_facade())

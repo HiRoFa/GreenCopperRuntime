@@ -53,8 +53,8 @@ pub struct PinSet {
 
 #[derive(Clone, Copy)]
 pub enum PinMode {
-    IN,
-    OUT,
+    In,
+    Out,
 }
 
 #[allow(dead_code)]
@@ -122,10 +122,10 @@ impl PinSet {
             "PinSet.init c:{} m:{:?} p:{}",
             chip_name,
             match mode {
-                PinMode::IN => {
+                PinMode::In => {
                     "in"
                 }
-                PinMode::OUT => {
+                PinMode::Out => {
                     "out"
                 }
             },
@@ -138,10 +138,10 @@ impl PinSet {
             let line = chip.get_line(*x).map_err(|e| format!("{}", e))?;
 
             match mode {
-                PinMode::IN => {
+                PinMode::In => {
                     self.lines.push(line);
                 }
-                PinMode::OUT => {
+                PinMode::Out => {
                     let handle = line
                         .request(LineRequestFlags::OUTPUT, 0, "PinSet_set-output")
                         .map_err(|e| format!("{}", e))?;
@@ -174,9 +174,9 @@ impl PinSet {
         Ok(ret)
     }
     pub fn get_state_index(&self, index: usize) -> Result<u8, String> {
-        Ok(self.output_handles[index]
+        self.output_handles[index]
             .get_value()
-            .map_err(|ex| format!("{}", ex))?)
+            .map_err(|ex| format!("{}", ex))
     }
     pub fn sequence(
         &self,
