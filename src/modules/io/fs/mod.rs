@@ -51,13 +51,23 @@
 
 use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::esvalue::{EsFunction, EsValueConvertible, EsValueFacade};
+use quickjs_runtime::esvalue::{EsFunction, EsValueConvertible, EsValueFacade, ES_NULL};
 use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::quickjsruntime::NativeModuleLoader;
 use quickjs_runtime::valueref::JSValueRef;
+use std::fs;
 
-pub(crate) fn read_string(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
-    unimplemented!()
+pub(crate) fn read_string(args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    if args.len() != 1 || !args[0].is_string() {
+        Err(format!("readString requires one argument: (String)"))
+    } else {
+        let path = args[0].get_str();
+
+        match fs::read_to_string(path) {
+            Ok(s) => Ok(s.to_es_value_facade()),
+            Err(e) => Err(format!("{}", e)),
+        }
+    }
 }
 
 pub(crate) fn delete(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
@@ -77,8 +87,18 @@ pub(crate) fn touch(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> 
 ///    await fs.write('./test.txt', 'hello world');
 /// }
 /// ```
-pub(crate) fn write(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
-    unimplemented!()
+pub(crate) fn write(args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    if args.len() != 2 || !args[0].is_string() {
+        Err(format!("write requires two arguments: (String, obj)"))
+    } else {
+        let path = args[0].get_str();
+        let content = args[1].stringify().map_err(|e| format!("{}", e))?;
+
+        match fs::write(path, content) {
+            Ok(_) => Ok(ES_NULL.to_es_value_facade()),
+            Err(e) => Err(format!("{}", e)),
+        }
+    }
 }
 
 pub struct FsModuleLoader {}
