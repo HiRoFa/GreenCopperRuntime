@@ -30,11 +30,11 @@ pub mod tests {
 
     #[test]
     fn test1() {
-        let rt = init_rt();
+        let rt = init_test_greco_rt();
         drop(rt);
     }
 
-    fn init_rt() -> Arc<EsRuntime> {
+    pub fn init_test_greco_rt() -> Arc<EsRuntime> {
         simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
             .ok()
             .unwrap();
