@@ -37,13 +37,19 @@
 //!
 //! # Methods
 //!
-//! ## readString
-//!
-//! ## write
-//!
-//! ## delete
-//!
-//! ## touch
+//! ##append
+//! ##copy
+//! ##createSymlink
+//! ##createDirs
+//! ##getMetadata
+//! ##getSymlinkMetadata
+//! ##list
+//! ##readString
+//! ##removeDir
+//! ##removeFile
+//! ##rename
+//! ##touch
+//! ##write
 //!
 
 use quickjs_runtime::eserror::EsError;
@@ -67,7 +73,52 @@ pub(crate) fn read_string(args: Vec<EsValueFacade>) -> Result<EsValueFacade, Str
     }
 }
 
-pub(crate) fn delete(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+pub(crate) fn remove_file(args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    if args.len() != 1 || !args[0].is_string() {
+        Err("removeFile requires one argument: (String)".to_string())
+    } else {
+        let path = args[0].get_str();
+
+        match fs::remove_file(path) {
+            Ok(_) => Ok(ES_NULL.to_es_value_facade()),
+            Err(e) => Err(format!("{}", e)),
+        }
+    }
+}
+
+pub(crate) fn append(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn copy(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn create_symlink(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn create_dirs(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn get_metadata(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn get_symlink_metadata(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn list(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn remove_dir(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
+    unimplemented!()
+}
+
+pub(crate) fn rename(_args: Vec<EsValueFacade>) -> Result<EsValueFacade, String> {
     unimplemented!()
 }
 
@@ -110,7 +161,21 @@ impl NativeModuleLoader for FsModuleLoader {
     }
 
     fn get_module_export_names(&self, _q_ctx: &QuickJsContext, _module_name: &str) -> Vec<&str> {
-        vec!["readString", "write", "delete", "touch"]
+        vec![
+            "append",
+            "copy",
+            "createSymlink",
+            "createDirs",
+            "getMetadata",
+            "getSymlinkMetadata",
+            "list",
+            "readString",
+            "removeDir",
+            "removeFile",
+            "rename",
+            "touch",
+            "write",
+        ]
     }
 
     fn get_module_exports(
@@ -127,17 +192,61 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
 }
 
 fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
+    let copy_func = EsFunction::new("copy", copy, true);
     let write_func = EsFunction::new("write", write, true);
+    let append_func = EsFunction::new("append", append, true);
+    let create_symlink_func = EsFunction::new("createSymlink", create_symlink, true);
+    let create_dirs_func = EsFunction::new("createDirs", create_dirs, true);
+    let get_metadata_func = EsFunction::new("getMetadata", get_metadata, true);
+    let get_symlink_metadata_func =
+        EsFunction::new("getSymlinkMetadata", get_symlink_metadata, true);
+    let list_func = EsFunction::new("list", list, true);
+    let remove_dir_func = EsFunction::new("removeDir", remove_dir, true);
+    let rename_func = EsFunction::new("rename", rename, true);
     let touch_func = EsFunction::new("touch", touch, true);
-    let delete_func = EsFunction::new("delete", delete, true);
+    let remove_file_func = EsFunction::new("removeFile", remove_file, true);
     let read_string_func = EsFunction::new("readString", read_string, true);
 
     Ok(vec![
         ("write", write_func.to_es_value_facade().as_js_value(q_ctx)?),
+        (
+            "getSymlinkMetadata",
+            get_symlink_metadata_func
+                .to_es_value_facade()
+                .as_js_value(q_ctx)?,
+        ),
+        ("copy", copy_func.to_es_value_facade().as_js_value(q_ctx)?),
+        (
+            "append",
+            append_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
+        (
+            "createSymlink",
+            create_symlink_func
+                .to_es_value_facade()
+                .as_js_value(q_ctx)?,
+        ),
+        (
+            "createDirs",
+            create_dirs_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
+        (
+            "getMetadata",
+            get_metadata_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
+        ("list", list_func.to_es_value_facade().as_js_value(q_ctx)?),
+        (
+            "removeDir",
+            remove_dir_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
+        (
+            "rename",
+            rename_func.to_es_value_facade().as_js_value(q_ctx)?,
+        ),
         ("touch", touch_func.to_es_value_facade().as_js_value(q_ctx)?),
         (
-            "delete",
-            delete_func.to_es_value_facade().as_js_value(q_ctx)?,
+            "removeFile",
+            remove_file_func.to_es_value_facade().as_js_value(q_ctx)?,
         ),
         (
             "readString",
