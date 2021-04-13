@@ -20,7 +20,7 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder.runtime_init_hook(|rt: &EsRuntime| {
         // todo, impl with native function.. like now
 
-        rt.add_to_event_queue_sync(|q_js_rt| {
+        rt.exe_rt_task_in_event_loop(|q_js_rt| {
             q_js_rt.add_context_init_hook(|_q_js_rt, q_ctx| {
                 let global = get_global_q(q_ctx);
                 let require_func =
@@ -55,7 +55,7 @@ unsafe extern "C" fn require(
                 .unwrap_or_else(|| "file:///node_modules/foo.js".to_string());
 
             // * if name does not start with / or ./ or ../ then use node_modules ref_path (if ref_path is file:///??)
-            // todo , where do i cache these? a shutdown hook on a QuickjsContext would be nice to clear my own caches
+            // todo , where do i cache these? a shutdown hook on a QuickJsContext would be nice to clear my own caches
             // see https://nodejs.org/en/knowledge/getting_started/what_is_require
             // * todo 2 support for directories, and then index.js or package.json?
 

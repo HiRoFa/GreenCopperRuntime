@@ -135,7 +135,7 @@ pub(crate) fn init_http_request_proxy(
 
                         response_ref
                     },
-                    &es_rt,
+                    es_rt,
                 )
             } else {
                 Ok(quickjs_utils::new_null_ref())

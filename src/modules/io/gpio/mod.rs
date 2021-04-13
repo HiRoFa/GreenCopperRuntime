@@ -166,7 +166,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                                         let context_id = context_id.clone();
 
                                         if let Some(es_rt_ref) = es_rt_weak.upgrade() {
-                                            es_rt_ref.add_to_event_queue_void(move |q_js_rt| {
+                                            es_rt_ref.add_rt_task_to_event_loop_void(move |q_js_rt| {
                                                 // in q_js_rt event queue here
                                                 let q_ctx = q_js_rt.get_context(context_id.as_str());
                                                 let proxy = get_proxy(q_ctx, "greco.io.gpio.PinSet").unwrap();

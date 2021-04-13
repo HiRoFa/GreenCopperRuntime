@@ -2,8 +2,8 @@ use futures::stream::StreamExt;
 use gpio_cdev::{
     AsyncLineEventHandle, Chip, EventRequestFlags, Line, LineEvent, LineHandle, LineRequestFlags,
 };
-use quickjs_runtime::utils::single_threaded_event_queue::SingleThreadedEventQueue;
-use quickjs_runtime::utils::task_manager::TaskManager;
+use hirofa_utils::eventloop::EventLoop;
+use hirofa_utils::task_manager::TaskManager;
 use std::cell::RefCell;
 use std::ops::Sub;
 use std::sync::Arc;
@@ -14,7 +14,7 @@ thread_local! {
 }
 
 pub struct PinSetHandle {
-    event_queue: Arc<SingleThreadedEventQueue>,
+    event_loop: EventLoop,
     // this indicator is passed to the worker thread and may be altered to modify the pwm signal
     pub pwm_stop_sender: Option<std::sync::mpsc::Sender<bool>>,
 }
@@ -22,12 +22,12 @@ pub struct PinSetHandle {
 impl PinSetHandle {
     pub fn new() -> Self {
         Self {
-            event_queue: SingleThreadedEventQueue::new(),
+            event_loop: EventLoop::new(),
             pwm_stop_sender: None,
         }
     }
     pub fn do_with<C: FnOnce(&PinSet) + Send + 'static>(&self, consumer: C) {
-        self.event_queue.add_task(|| {
+        self.event_loop.add_void(|| {
             PIN_SET.with(|rc| {
                 let ps = &*rc.borrow();
                 consumer(ps)
@@ -36,7 +36,7 @@ impl PinSetHandle {
     }
 
     pub fn do_with_mut<C: FnOnce(&mut PinSet) + Send + 'static>(&self, consumer: C) {
-        self.event_queue.add_task(|| {
+        self.event_loop.add_void(|| {
             PIN_SET.with(|rc| {
                 let ps = &mut *rc.borrow_mut();
                 consumer(ps)
@@ -247,6 +247,5 @@ impl Default for PinSetHandle {
 impl Drop for PinSetHandle {
     fn drop(&mut self) {
         log::trace!("Drop.drop for PinSetHandle");
-        self.event_queue.shutdown();
     }
 }
