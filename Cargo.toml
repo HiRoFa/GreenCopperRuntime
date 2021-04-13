@@ -3,6 +3,7 @@ name = "green_copper_runtime"
 version = "0.0.1"
 authors = ["info@hirofa.com"]
 edition = "2018"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,12 +29,11 @@ commonjs = []
 
 
 [dependencies]
-quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime' }
-#quickjs_runtime = "0.2.1"
+quickjs_runtime = "0.4"
 #quickjs_runtime = { path = '../quickjs_es_runtime'}
 libquickjs-sys = "0.9.0"
 #libquickjs-sys = {git= "https://github.com/HiRoFa/quickjs-rs"}
-hirofa_utils = {git="https://github.com/HiRoFa/utils"}
+hirofa_utils = "0.1"
 libc = "0.2"
 lazy_static = "1.4.0"
 log = "0.4.8"
