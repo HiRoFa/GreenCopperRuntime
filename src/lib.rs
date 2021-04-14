@@ -10,12 +10,14 @@ pub mod fetch;
 
 pub mod moduleloaders;
 pub mod modules;
+pub mod preprocessors;
 
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     let mut rt_builder = EsRuntimeBuilder::new();
 
     rt_builder = modules::init(rt_builder);
     rt_builder = features::init(rt_builder);
+    rt_builder = preprocessors::init(rt_builder);
 
     rt_builder
 }
