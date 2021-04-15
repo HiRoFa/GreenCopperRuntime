@@ -7,15 +7,15 @@
 //!
 //! ```
 
-use crate::preprocessors::ifdef::IfDefPreProcessor;
+use crate::preprocessors::cpp::CppPreProcessor;
 use crate::preprocessors::macros::MacrosPreProcessor;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
-pub mod ifdef;
+pub mod cpp;
 pub mod macros;
 
 pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder
         .script_pre_processor(MacrosPreProcessor::new())
-        .script_pre_processor(IfDefPreProcessor::new().default_extensions())
+        .script_pre_processor(CppPreProcessor::new().default_extensions())
 }
