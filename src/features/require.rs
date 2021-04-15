@@ -66,11 +66,13 @@ unsafe extern "C" fn require(
                 cur_path = "file:///node_modules/foo.js".to_string();
             }
 
+            log::debug!("require: {} -> {}", cur_path, name);
+
             if let Some(module_script) =
                 q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str())
             {
                 let wrapped_function_code = format!(
-                    "function(){{const module = {{exports:{{}}}};let exports = module.exports;{{\n{}\n}} return module.exports;}};",
+                    "const module = {{exports:{{}}}};let exports = module.exports;{{\n{}\n}} return module.exports;",
                     module_script.as_str()
                 );
 
@@ -99,6 +101,7 @@ unsafe extern "C" fn require(
                     Err(e) => q_ctx.report_ex(format!("Module parsing failed: {}", e).as_str()),
                 }
             } else {
+                log::error!("module not found: {} -> {}", cur_path, name);
                 q_ctx.report_ex("module not found")
             }
             // wip

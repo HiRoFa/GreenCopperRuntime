@@ -1,3 +1,4 @@
+use crate::moduleloaders::{FileSystemModuleLoader, HttpModuleLoader};
 use crate::new_greco_rt_builder2;
 use quickjs_runtime::esruntime::{EsRuntime, ScriptPreProcessor};
 use quickjs_runtime::esscript::EsScript;
@@ -7,7 +8,12 @@ use quickjs_runtime::quickjs_utils::objects::get_property_q;
 use std::sync::Arc;
 
 lazy_static! {
-    static ref UTIL_RT: Arc<EsRuntime> = new_greco_rt_builder2(false, true, true).build();
+    static ref UTIL_RT: Arc<EsRuntime> = new_greco_rt_builder2(false, true, true)
+        .script_module_loader(Box::new(
+            HttpModuleLoader::new().validate_content_type(false)
+        ))
+        .script_module_loader(Box::new(FileSystemModuleLoader::new("./")))
+        .build();
 }
 
 pub struct CppPreProcessor {
@@ -65,20 +71,19 @@ impl ScriptPreProcessor for CppPreProcessor {
                 q_ctx
                     .eval(EsScript::new(
                         "CppPreProcessor.not_es",
-                        "this.CppPreProcessor = {process: function(src, ...vars){\
-                        let compiler = require('https://raw.githubusercontent.com/ParksProjets/C-Preprocessor/master/lib/compiler.js');\
-                        let options = {constants: {DEBUG: true}}; /* todo replace with vars */\
-                        return new Promise((resolve, reject) => {\
-                             compiler.compile(src, options, (err, result) => {\
-                                 if result {\
-                                    resolve(result);\
-                                 } else {\
-                                    reject(err);\
-                                 }\
-                             });\
-                        });\
-                        
-                    }};",
+                        "this.CppPreProcessor = {process: function(src, vars){\n\
+                            let compiler = require('https://raw.githubusercontent.com/ParksProjets/C-Preprocessor/master/lib/compiler.js');\n\
+                            let options = {constants: {DEBUG: true}};\n\
+                            return new Promise((resolve, reject) => {\n\
+                                 compiler.compile(src, options, (err, result) => {\n\
+                                     if (result) {\n\
+                                        resolve(result);\n\
+                                     } else {\n\
+                                        reject(err);\n\
+                                     }\n\
+                                 });\n\
+                            });\n\
+                        }};",
                     ))
                     .ok()
                     .expect("CppPreProcessor init script failed");
@@ -88,10 +93,13 @@ impl ScriptPreProcessor for CppPreProcessor {
         });
 
         let src = script.get_code().to_string().to_es_value_facade();
-        let proc_res_prom = rt
-            .call_function_sync(vec!["CppPreProcessor"], "process", vec![src])
-            .ok()
-            .expect("proc func failed");
+        let proc_res_prom =
+            match rt.call_function_sync(vec!["CppPreProcessor"], "process", vec![src]) {
+                Ok(res) => res,
+                Err(err) => {
+                    panic!("process call failed: {}", err);
+                }
+            };
 
         let proc_res = proc_res_prom.get_promise_result_sync();
         let new_code = proc_res.ok().expect("prom did not resolve");
