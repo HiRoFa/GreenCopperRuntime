@@ -117,7 +117,18 @@ mod tests {
     #[test]
     fn test_ifdef() {
         let rt = init_test_greco_rt();
-        let res = rt.eval_sync(EsScript::new("test.es", "(123);"));
+        let res = rt.eval_sync(EsScript::new(
+            "test.es",
+            "((function(){\n\
+        #if 'DEBUG' == 'false'\n\
+            return 111;\n\
+        #elif 'DEBUG' == 'true'\n\
+            return 123;\n\
+        #else\n\
+            return 222;\n\
+        #endif\n\
+        })());",
+        ));
         let num = match res {
             Ok(e) => e,
             Err(err) => {
