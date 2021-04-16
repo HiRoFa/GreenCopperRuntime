@@ -15,3 +15,9 @@ impl ScriptPreProcessor for MacrosPreProcessor {
         Ok(script)
     }
 }
+
+impl Default for MacrosPreProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}

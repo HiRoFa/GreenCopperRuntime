@@ -121,8 +121,7 @@ impl FileSystemModuleLoader {
     }
 }
 
-// todo dit hoort hier helemaal niet
-const DEFAULT_EXTENSIONS: &'static [&'static str] = &["js", "mjs", "ts", "mts", "es", "mes"];
+const DEFAULT_EXTENSIONS: &[&str] = &["js", "mjs", "ts", "mts", "es", "mes"];
 
 impl ScriptModuleLoader for FileSystemModuleLoader {
     fn normalize_path(&self, ref_path: &str, path: &str) -> Option<String> {

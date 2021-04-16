@@ -22,6 +22,12 @@ pub struct CppPreProcessor {
     extensions: Vec<&'static str>,
 }
 
+impl Default for CppPreProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CppPreProcessor {
     pub fn new() -> Self {
         Self {

@@ -63,9 +63,7 @@ pub(crate) fn init_http_response_proxy(
             // todo, should return a promise, at which point things will suck because the response in in an thread local in the wrong thread.,....
             // so box in Arc in the hashmap and move a clone of that arc to the producer thread?
             let text_content_opt = with_http_response(obj_id, |response_wrapper| {
-                if response_wrapper.delegate.is_none() {
-                    return None;
-                }
+                response_wrapper.delegate.as_ref()?; // this returns None if delegate is none
                 let ureq_response: ureq::Response =
                     replace(&mut response_wrapper.delegate, None).unwrap();
 
@@ -85,9 +83,7 @@ pub(crate) fn init_http_response_proxy(
             "text",
             |q_ctx, obj_id| {
                 let text_content_opt = with_http_response(obj_id, |response_wrapper| {
-                    if response_wrapper.delegate.is_none() {
-                        return None;
-                    }
+                    response_wrapper.delegate.as_ref()?;
                     let ureq_response: ureq::Response =
                         replace(&mut response_wrapper.delegate, None).unwrap();
 

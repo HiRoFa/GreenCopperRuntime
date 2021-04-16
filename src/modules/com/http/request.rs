@@ -84,7 +84,7 @@ pub(crate) fn init_http_request_proxy(
             trace!("Request::send");
 
             // first arg can be object or string or byte[](UInt8Array)
-            let content_opt: Option<String> = if args.len() > 0 {
+            let content_opt: Option<String> = if !args.is_empty() {
                 let arg = &args[0];
                 let s = if arg.is_object() {
                     let val_ref = json::stringify_q(q_ctx, arg, None).ok().unwrap();
@@ -119,21 +119,18 @@ pub(crate) fn init_http_request_proxy(
                         } else {
                             Err(response
                                 .into_string()
-                                .ok()
                                 .expect("could not get response error as string"))
                         }
                     },
                     |q_ctx, response_obj| {
                         // put res in autoidmap and return new proxy instance here
 
-                        let response_ref = response::reg_instance(
+                        response::reg_instance(
                             q_ctx,
                             UreqResponseWrapper {
                                 delegate: Some(response_obj),
                             },
-                        );
-
-                        response_ref
+                        )
                     },
                     es_rt,
                 )

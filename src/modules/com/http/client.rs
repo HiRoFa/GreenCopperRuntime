@@ -125,9 +125,10 @@ pub(crate) fn init_http_client_proxy(
         })
         .method("request", |q_ctx, http_client_obj_id, args| {
             if args.len() != 2 {
-                return Err(EsError::new_string(format!(
+                return Err(EsError::new_string(
                     "request method requires 2 string arguments: a request method and a path"
-                )));
+                        .to_string(),
+                ));
             }
 
             trace!("Client::request");
@@ -153,14 +154,12 @@ pub(crate) fn init_http_client_proxy(
                 return Err(EsError::new_string(format!("invalid method: {}", method)));
             }
 
-            let req_obj_ref = with_http_client(http_client_obj_id, |client| {
+            with_http_client(http_client_obj_id, |client| {
                 let mut request_obj = client.request(method.as_str(), path.as_str());
                 request_obj.timeout(Duration::from_secs(10));
                 request_obj.timeout_connect(5000);
                 request::reg_instance(q_ctx, request_obj)
-            });
-
-            req_obj_ref
+            })
         })
         .install(q_ctx, false)
 }
