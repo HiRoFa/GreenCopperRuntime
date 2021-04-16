@@ -1,3 +1,4 @@
+use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntime::ScriptPreProcessor;
 use quickjs_runtime::esscript::EsScript;
 
@@ -10,7 +11,7 @@ impl MacrosPreProcessor {
 }
 
 impl ScriptPreProcessor for MacrosPreProcessor {
-    fn process(&self, script: EsScript) -> EsScript {
-        script
+    fn process(&self, script: EsScript) -> Result<EsScript, EsError> {
+        Ok(script)
     }
 }

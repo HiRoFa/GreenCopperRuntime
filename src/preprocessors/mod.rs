@@ -16,6 +16,6 @@ pub mod macros;
 
 pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder
-    //.script_pre_processor(MacrosPreProcessor::new())
-    //.script_pre_processor(CppPreProcessor::new().default_extensions())
+        .script_pre_processor(MacrosPreProcessor::new())
+        .script_pre_processor(CppPreProcessor::new().default_extensions())
 }

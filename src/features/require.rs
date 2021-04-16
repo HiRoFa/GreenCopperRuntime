@@ -8,6 +8,7 @@
 use libquickjs_sys as q;
 use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use quickjs_runtime::esscript::EsScript;
 use quickjs_runtime::quickjs_utils::functions::new_native_function_q;
 use quickjs_runtime::quickjs_utils::objects::set_property2_q;
 use quickjs_runtime::quickjs_utils::{
@@ -56,14 +57,16 @@ unsafe extern "C" fn require(
 
             // * if name does not start with / or ./ or ../ then use node_modules ref_path (if ref_path is file:///??)
             // todo , where do i cache these? a shutdown hook on a QuickJsContext would be nice to clear my own caches
+            // much rather have a q_ctx.cache_region("").cache(id, obj)
+
             // see https://nodejs.org/en/knowledge/getting_started/what_is_require
             // * todo 2 support for directories, and then index.js or package.json?
 
             // hmm if a module is loaded from https://somegit.somesite.com/scripts/kewlStuff.js and that does a require.. do we look in node_modules on disk?
-            if cur_path.starts_with("file:///")
+            if !name.contains("://")
                 && !(name.starts_with("./") || name.starts_with("../") || name.starts_with('/'))
             {
-                cur_path = "file:///node_modules/foo.js".to_string();
+                cur_path = format!("file:///node_modules/{}/foo.js", name);
             }
 
             log::debug!("require: {} -> {}", cur_path, name);
@@ -71,40 +74,35 @@ unsafe extern "C" fn require(
             if let Some(module_script) =
                 q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str())
             {
-                let wrapped_function_code = format!(
-                    "const module = {{exports:{{}}}};let exports = module.exports;{{\n{}\n}} return module.exports;",
-                    module_script.as_str()
-                );
+                // todo need to wrap as ES6 module so ScriptOrModuleName is sound for children
+                log::debug!("found module script at {}", module_script.get_path());
 
-                let func_res = quickjs_runtime::quickjs_utils::functions::parse_function(
-                    q_ctx.context,
-                    false,
-                    "require_wrapper",
-                    wrapped_function_code.as_str(),
-                    vec![],
+                let wrapped_eval_code = format!(
+                    "(function(){{const module = {{exports:{{}}}};let exports = module.exports;{{{}\n}}; return(module.exports);}}())",
+                    module_script.get_code()
                 );
-                match func_res {
-                    Ok(func) => {
-                        let exe_res = quickjs_runtime::quickjs_utils::functions::call_function_q(
-                            q_ctx,
-                            &func,
-                            vec![],
-                            None,
-                        );
-                        match exe_res {
-                            Ok(export_obj) => export_obj.clone_value_incr_rc(),
-                            Err(e) => {
-                                q_ctx.report_ex(format!("Module invocation failed: {}", e).as_str())
-                            }
-                        }
+                let eval_res = q_ctx.eval(EsScript::new(
+                    module_script.get_path(),
+                    wrapped_eval_code.as_str(),
+                ));
+                match eval_res {
+                    Ok(export_obj) => {
+                        assert!(!export_obj.is_null_or_undefined());
+                        export_obj.clone_value_incr_rc()
                     }
-                    Err(e) => q_ctx.report_ex(format!("Module parsing failed: {}", e).as_str()),
+                    Err(e) => q_ctx.report_ex(format!("Module invocation failed: {}", e).as_str()),
                 }
             } else {
                 log::error!("module not found: {} -> {}", cur_path, name);
-                q_ctx.report_ex("module not found")
+                q_ctx.report_ex(format!("module not found: {} -> {}", cur_path, name).as_str())
             }
-            // wip
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_eval() {}
 }
