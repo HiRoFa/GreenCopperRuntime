@@ -1,6 +1,6 @@
 [package]
 name = "green_copper_runtime"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["info@hirofa.com"]
 edition = "2018"
 license = "MIT"
@@ -43,6 +43,7 @@ rand = "0.7.0"
 num_cpus = "1.0"
 backtrace = "0.3.56"
 url = "2.2.1"
+gpp = "0.6"
 
 ureq = {version = "1.*", features=["cookies", "json", "charset", "tls", "socks-proxy"], optional = true}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}

@@ -121,8 +121,6 @@ impl FileSystemModuleLoader {
     }
 }
 
-const DEFAULT_EXTENSIONS: &[&str] = &["js", "mjs", "ts", "mts", "es", "mes"];
-
 impl ScriptModuleLoader for FileSystemModuleLoader {
     fn normalize_path(&self, ref_path: &str, path: &str) -> Option<String> {
         // the ref path will always be an absolute path, so no need to parse . or ..
@@ -145,13 +143,6 @@ impl ScriptModuleLoader for FileSystemModuleLoader {
                 if self.file_exists(normalized.as_str()) {
                     Some(normalized)
                 } else {
-                    for ext in DEFAULT_EXTENSIONS {
-                        // see if file exists with extension
-                        let test = format!("{}.{}", normalized, ext);
-                        if self.file_exists(test.as_str()) {
-                            return Some(test);
-                        }
-                    }
                     None
                 }
             }

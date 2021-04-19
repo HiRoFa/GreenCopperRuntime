@@ -12,6 +12,8 @@ pub mod moduleloaders;
 pub mod modules;
 pub mod preprocessors;
 
+pub mod faas;
+
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     new_greco_rt_builder2(true, true, true)
 }

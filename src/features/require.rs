@@ -35,6 +35,8 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     })
 }
 
+const DEFAULT_EXTENSIONS: &[&str] = &["js", "mjs", "ts", "mts"];
+
 unsafe extern "C" fn require(
     context: *mut q::JSContext,
     _this_val: q::JSValue,
@@ -60,7 +62,7 @@ unsafe extern "C" fn require(
             // much rather have a q_ctx.cache_region("").cache(id, obj)
 
             // see https://nodejs.org/en/knowledge/getting_started/what_is_require
-            // * todo 2 support for directories, and then index.js or package.json?
+            // * todo 2 support for directories, and then greco_jspreproc.js or package.json?
 
             // hmm if a module is loaded from https://somegit.somesite.com/scripts/kewlStuff.js and that does a require.. do we look in node_modules on disk?
             if !(name.contains("://")
@@ -73,9 +75,40 @@ unsafe extern "C" fn require(
 
             log::debug!("require: {} -> {}", cur_path, name);
 
-            if let Some(module_script) =
-                q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str())
-            {
+            let module_script_opt = (|| {
+                let opt = q_js_rt.load_module_script_opt(cur_path.as_str(), name.as_str());
+                if opt.is_some() {
+                    return opt;
+                }
+                for ext in DEFAULT_EXTENSIONS {
+                    let opt = q_js_rt.load_module_script_opt(
+                        cur_path.as_str(),
+                        format!("{}.{}", name.as_str(), ext).as_str(),
+                    );
+                    if opt.is_some() {
+                        return opt;
+                    }
+                }
+
+                // see if index.js exists
+                let mut base_name = name.clone();
+                if let Some(rpos) = base_name.rfind("/") {
+                    let _ = base_name.split_off(rpos + 1);
+                } else {
+                    base_name = "".to_string();
+                }
+                let opt = q_js_rt.load_module_script_opt(
+                    cur_path.as_str(),
+                    format!("{}{}", base_name, "index.js").as_str(),
+                );
+                if opt.is_some() {
+                    return opt;
+                }
+
+                None
+            })();
+
+            if let Some(module_script) = module_script_opt {
                 // todo need to wrap as ES6 module so ScriptOrModuleName is sound for children
                 log::debug!("found module script at {}", module_script.get_path());
 
