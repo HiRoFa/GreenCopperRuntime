@@ -92,7 +92,7 @@ unsafe extern "C" fn require(
 
                 // see if index.js exists
                 let mut base_name = name.clone();
-                if let Some(rpos) = base_name.rfind("/") {
+                if let Some(rpos) = base_name.rfind('/') {
                     let _ = base_name.split_off(rpos + 1);
                 } else {
                     base_name = "".to_string();
