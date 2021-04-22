@@ -1,3 +1,22 @@
+//! cpp style preprocessor
+//!
+//! this can be used to define c-like preprocessing instructions in javascript
+//! ```javascript
+//!     function do_stuff(input) {
+//!         #ifdef $GRECO_DEBUG
+//!         if (input.includes('booh')) {
+//!             throw Error('input should not include booh');
+//!         }
+//!         #endif
+//!         console.log('got input %s', input);
+//!     }
+//! ```
+//!
+//! it used the gpp crate and docs on how it works are here https://docs.rs/gpp/0.6.0/gpp
+//!
+//! by default GreenCopperRuntime conditionally sets the $GRECO_DEBUG, $GRECO_TEST and $GRECO_RELEASE vars
+//!
+
 use crate::moduleloaders::{FileSystemModuleLoader, HttpModuleLoader};
 use crate::new_greco_rt_builder2;
 use gpp::{process_str, Context};
@@ -68,15 +87,18 @@ impl ScriptPreProcessor for CppPreProcessor {
 
         #[cfg(debug_assertions)]
         {
-            ctx.macros.insert("DEBUG".to_string(), "true".to_string());
+            ctx.macros
+                .insert("$GRECO_DEBUG".to_string(), "true".to_string());
         }
         #[cfg(test)]
         {
-            ctx.macros.insert("TEST".to_string(), "true".to_string());
+            ctx.macros
+                .insert("$GRECO_TEST".to_string(), "true".to_string());
         }
         #[cfg(not(any(debug_assertions, test)))]
         {
-            ctx.macros.insert("RELEASE".to_string(), "true".to_string());
+            ctx.macros
+                .insert("$GRECO_RELEASE".to_string(), "true".to_string());
         }
 
         let res = process_str(src, &mut ctx).map_err(|e| EsError::new_string(format!("{}", e)))?;
@@ -99,7 +121,7 @@ mod tests {
             "((function(){\n\
         #ifdef HELLO\n\
             return 111;\n\
-        #elifdef DEBUG\n\
+        #elifdef $GRECO_DEBUG\n\
             return 123;\n\
         #else\n\
             return 222;\n\
