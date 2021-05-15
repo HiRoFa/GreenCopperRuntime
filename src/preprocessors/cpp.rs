@@ -17,22 +17,10 @@
 //! by default GreenCopperRuntime conditionally sets the $GRECO_DEBUG, $GRECO_TEST and $GRECO_RELEASE vars
 //!
 
-use crate::moduleloaders::{FileSystemModuleLoader, HttpModuleLoader};
-use crate::new_greco_rt_builder2;
 use gpp::{process_str, Context};
 use quickjs_runtime::eserror::EsError;
-use quickjs_runtime::esruntime::{EsRuntime, ScriptPreProcessor};
+use quickjs_runtime::esruntime::ScriptPreProcessor;
 use quickjs_runtime::esscript::EsScript;
-use std::sync::Arc;
-
-lazy_static! {
-    static ref UTIL_RT: Arc<EsRuntime> = new_greco_rt_builder2(false, true, true)
-        .script_module_loader(Box::new(
-            HttpModuleLoader::new().validate_content_type(false)
-        ))
-        .script_module_loader(Box::new(FileSystemModuleLoader::new("./")))
-        .build();
-}
 
 pub struct CppPreProcessor {
     defs: Vec<&'static str>,
