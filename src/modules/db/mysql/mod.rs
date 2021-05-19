@@ -62,7 +62,7 @@
 //!
 
 use crate::modules::db::mysql::connection::MysqlConnection;
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::esvalue::EsValueFacade;
 use quickjs_runtime::quickjs_utils;
@@ -131,7 +131,7 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder.native_module_loader(Box::new(MysqlModuleLoader {}))
 }
 
-fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
+fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {
     let myql_connection_proxy_class = Proxy::new()
         .namespace(vec!["greco", "db", "mysql"])
         .name("Connection")
@@ -147,7 +147,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() != 3 {
-                Err(EsError::new_str("query requires 3 arguments (query: String, params: Array, rowConsumer: Function)"))
+                Err(JsError::new_str("query requires 3 arguments (query: String, params: Array, rowConsumer: Function)"))
             } else {
                 // todo
 

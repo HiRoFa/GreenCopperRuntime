@@ -1,4 +1,4 @@
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::quickjs_utils::{json, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::reflection;
@@ -35,7 +35,7 @@ where
 pub(crate) fn reg_instance(
     q_ctx: &QuickJsContext,
     response_obj: HttpResponseType,
-) -> Result<JSValueRef, EsError> {
+) -> Result<JSValueRef, JsError> {
     let resp_proxy = reflection::get_proxy(q_ctx, "greco.com.http.Response")
         .expect("could not find greco.com.http.Response proxy");
 
@@ -55,7 +55,7 @@ pub(crate) fn reg_instance(
 pub(crate) fn init_http_response_proxy(
     q_ctx: &QuickJsContext,
     namespace: Vec<&'static str>,
-) -> Result<JSValueRef, EsError> {
+) -> Result<JSValueRef, JsError> {
     Proxy::new()
         .name("Response")
         .namespace(namespace)
@@ -76,7 +76,7 @@ pub(crate) fn init_http_response_proxy(
             if let Some(text_content) = text_content_opt {
                 json::parse_q(q_ctx, text_content.as_str())
             } else {
-                Err(EsError::new_str("response was already consumed"))
+                Err(JsError::new_str("response was already consumed"))
             }
         })
         .getter_setter(
@@ -96,7 +96,7 @@ pub(crate) fn init_http_response_proxy(
                 if let Some(text_content) = text_content_opt {
                     primitives::from_string_q(q_ctx, text_content.as_str())
                 } else {
-                    Err(EsError::new_str("response was already consumed"))
+                    Err(JsError::new_str("response was already consumed"))
                 }
             },
             |_q_js_rt, _obj_id, _v| Ok(()),

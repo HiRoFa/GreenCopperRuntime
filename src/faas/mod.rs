@@ -1,4 +1,4 @@
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esvalue::EsValueFacade;
 use std::future::Future;
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ impl GreenCopperFaas {
         _function_id: &str,
         _function_specs: Vec<String>,
         _args: Vec<EsValueFacade>,
-    ) -> Option<Box<dyn Future<Output = Result<EsValueFacade, EsError>>>> {
+    ) -> Option<Box<dyn Future<Output = Result<EsValueFacade, JsError>>>> {
         unimplemented!()
     }
 }
@@ -35,6 +35,6 @@ pub fn run(
     _function_id: &str,
     _function_specs: Vec<String>,
     _args: Vec<EsValueFacade>,
-) -> Option<Box<dyn Future<Output = Result<EsValueFacade, EsError>>>> {
+) -> Option<Box<dyn Future<Output = Result<EsValueFacade, JsError>>>> {
     unimplemented!()
 }

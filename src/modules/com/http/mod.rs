@@ -42,7 +42,7 @@
 //! ```
 //!
 
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::quickjsruntime::NativeModuleLoader;
@@ -76,7 +76,7 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder.native_module_loader(Box::new(HttpModuleLoader {}))
 }
 
-fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
+fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {
     let namespace = vec!["greco", "com", "http"];
     let http_client_proxy_class = client::init_http_client_proxy(q_ctx, namespace.clone())?;
     let http_request_proxy_class = request::init_http_request_proxy(q_ctx, namespace.clone())?;

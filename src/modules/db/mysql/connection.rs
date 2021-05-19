@@ -1,7 +1,7 @@
+use hirofa_utils::js_utils::JsError;
 use mysql_lib::from_value;
 use mysql_lib::prelude::Queryable;
 use mysql_lib::Value;
-use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esvalue::{EsNullValue, EsPromise, EsValueConvertible, EsValueFacade};
 use quickjs_runtime::quickjs_utils::primitives;
 use quickjs_runtime::quickjscontext::QuickJsContext;
@@ -17,7 +17,7 @@ pub(crate) struct MysqlConnection {
 }
 
 impl MysqlConnection {
-    pub fn new(q_ctx: &QuickJsContext, args: &[JSValueRef]) -> Result<Self, EsError> {
+    pub fn new(q_ctx: &QuickJsContext, args: &[JSValueRef]) -> Result<Self, JsError> {
         // todo, actually parse args
         //url, port, user, pass, dbSchema
 
@@ -29,7 +29,7 @@ impl MysqlConnection {
 
         let con_str = format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db);
         let pool =
-            mysql_lib::Pool::new(con_str).map_err(|e| EsError::new_string(format!("{}", e)))?;
+            mysql_lib::Pool::new(con_str).map_err(|e| JsError::new_string(format!("{}", e)))?;
 
         Ok(Self {
             _user: user,
@@ -45,7 +45,7 @@ impl MysqlConnection {
         query: &str,
         params: EsValueFacade,
         row_consumer: EsValueFacade,
-    ) -> Result<EsValueFacade, EsError> {
+    ) -> Result<EsValueFacade, JsError> {
         // start a tx, qry, close tx
         //
         // takes three args, qry, params, consumer

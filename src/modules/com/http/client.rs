@@ -1,6 +1,6 @@
 use crate::modules::com::http::request;
+use hirofa_utils::js_utils::JsError;
 use log::trace;
-use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::quickjs_utils;
 use quickjs_runtime::quickjs_utils::primitives;
 use quickjs_runtime::quickjscontext::QuickJsContext;
@@ -34,7 +34,7 @@ where
 pub(crate) fn init_http_client_proxy(
     q_ctx: &QuickJsContext,
     namespace: Vec<&'static str>,
-) -> Result<JSValueRef, EsError> {
+) -> Result<JSValueRef, JsError> {
     Proxy::new()
         .name("Client")
         .namespace(namespace)
@@ -63,7 +63,7 @@ pub(crate) fn init_http_client_proxy(
                 // do something with client
 
                 if args.len() != 2 {
-                    return Err(EsError::new_string(format!(
+                    return Err(JsError::new_string(format!(
                         "basicAuth requires 2 arguments, got {}",
                         args.len()
                     )));
@@ -73,12 +73,12 @@ pub(crate) fn init_http_client_proxy(
                 let pass_arg = &args[1];
 
                 if !user_arg.is_string() {
-                    return Err(EsError::new_str(
+                    return Err(JsError::new_str(
                         "basicAuth requires a String as first argument",
                     ));
                 }
                 if !pass_arg.is_string() {
-                    return Err(EsError::new_str(
+                    return Err(JsError::new_str(
                         "basicAuth requires a String as second argument",
                     ));
                 }
@@ -96,7 +96,7 @@ pub(crate) fn init_http_client_proxy(
                 // do something with client
 
                 if args.len() != 2 {
-                    return Err(EsError::new_string(format!(
+                    return Err(JsError::new_string(format!(
                         "setHeader requires 2 arguments, got {}",
                         args.len()
                     )));
@@ -106,12 +106,12 @@ pub(crate) fn init_http_client_proxy(
                 let value_arg = &args[1];
 
                 if !header_arg.is_string() {
-                    return Err(EsError::new_str(
+                    return Err(JsError::new_str(
                         "setHeader requires a String as first argument",
                     ));
                 }
                 if !value_arg.is_string() {
-                    return Err(EsError::new_str(
+                    return Err(JsError::new_str(
                         "setHeader requires a String as second argument",
                     ));
                 }
@@ -125,7 +125,7 @@ pub(crate) fn init_http_client_proxy(
         })
         .method("request", |q_ctx, http_client_obj_id, args| {
             if args.len() != 2 {
-                return Err(EsError::new_string(
+                return Err(JsError::new_string(
                     "request method requires 2 string arguments: a request method and a path"
                         .to_string(),
                 ));
@@ -137,10 +137,10 @@ pub(crate) fn init_http_client_proxy(
             let method_val = &args[0];
 
             if !path_val.is_string() {
-                return Err(EsError::new_str("path argument should be a string"));
+                return Err(JsError::new_str("path argument should be a string"));
             }
             if !method_val.is_string() {
-                return Err(EsError::new_str("method argument should be a string"));
+                return Err(JsError::new_str("method argument should be a string"));
             }
 
             let method = primitives::to_string_q(q_ctx, method_val)?;
@@ -151,7 +151,7 @@ pub(crate) fn init_http_client_proxy(
                 "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "PATCH",
             ];
             if !methods.contains(&method.as_str()) {
-                return Err(EsError::new_string(format!("invalid method: {}", method)));
+                return Err(JsError::new_string(format!("invalid method: {}", method)));
             }
 
             with_http_client(http_client_obj_id, |client| {

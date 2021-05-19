@@ -50,7 +50,7 @@
 //! ```
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
 use gpio_cdev::EventType;
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::esvalue::{
     EsNullValue, EsPromise, EsValueConvertible, EsValueFacade, ES_NULL,
@@ -79,7 +79,7 @@ fn wrap_prom<R>(
     q_ctx: &QuickJsContext,
     instance_id: &usize,
     runner: R,
-) -> Result<JSValueRef, EsError>
+) -> Result<JSValueRef, JsError>
 where
     R: FnOnce(&mut PinSet) -> Result<EsValueFacade, EsValueFacade> + Send + 'static,
 {
@@ -103,7 +103,7 @@ where
     })
 }
 
-fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
+fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {
     let pin_set_proxy_class = Proxy::new()
                 .namespace(vec!["greco", "io", "gpio"])
                 .name("PinSet")
@@ -120,16 +120,16 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     // init pins, return prom, reject on fail
 
                     if args.len() < 3 {
-                        return Err(EsError::new_str("PinSet.init requires 3 args"));
+                        return Err(JsError::new_str("PinSet.init requires 3 args"));
                     }
                     if !args[0].is_string() {
-                        return Err(EsError::new_str("PinSet.init first arg should be a String (name of gpio chip e.g. /dev/gpiochip0)"));
+                        return Err(JsError::new_str("PinSet.init first arg should be a String (name of gpio chip e.g. /dev/gpiochip0)"));
                     }
                     if !args[1].is_string() {
-                        return Err(EsError::new_str("PinSet.init second arg should be either 'in' or 'out' (for input or output mode)"));
+                        return Err(JsError::new_str("PinSet.init second arg should be either 'in' or 'out' (for input or output mode)"));
                     }
                     if !args[2].is_object() || !arrays::is_array_q(q_ctx, &args[2]) {
-                        return Err(EsError::new_str("PinSet.init third arg should be an array of pin numbers"));
+                        return Err(JsError::new_str("PinSet.init third arg should be an array of pin numbers"));
                     }
 
                     // todo check arg values... i really need to make an arg assertion util
@@ -142,7 +142,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     for x in 0..ct {
                         let pin_ref = arrays::get_element_q(q_ctx, &args[2], x)?;
                         if !pin_ref.is_i32() {
-                            return Err(EsError::new_str("pins array should be an array of Numbers"));
+                            return Err(JsError::new_str("pins array should be an array of Numbers"));
                         }
                         pins.push(primitives::to_i32(&pin_ref)? as u32);
                     }
@@ -206,10 +206,10 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     // return prom
 
                     if args.len() != 1 {
-                        return Err(EsError::new_str("setState expects a single Array<Number> arg."));
+                        return Err(JsError::new_str("setState expects a single Array<Number> arg."));
                     }
                     if !args[0].is_object() || !arrays::is_array_q(q_ctx, &args[0]) {
-                        return Err(EsError::new_str("setState expects a single Array<Number> arg."));
+                        return Err(JsError::new_str("setState expects a single Array<Number> arg."));
                     }
 
                     let mut states = vec![];
@@ -217,7 +217,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     for x in 0..ct {
                         let state_ref = arrays::get_element_q(q_ctx, &args[0], x)?;
                         if !state_ref.is_i32() {
-                            return Err(EsError::new_str("states array should be an array of Numbers"));
+                            return Err(JsError::new_str("states array should be an array of Numbers"));
                         }
                         states.push(primitives::to_i32(&state_ref)? as u8);
                     }
@@ -238,16 +238,16 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     // return prom
 
                     if args.len() != 3 {
-                        return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                        return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
                     if !args[0].is_object() || !arrays::is_array_q(q_ctx, &args[0]) {
-                        return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                        return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
                     if !args[1].is_i32() {
-                        return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                        return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
                     if !args[2].is_i32() {
-                        return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                        return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
 
                     let mut steps: Vec<Vec<u8>> = vec![];
@@ -255,14 +255,14 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                     for x in 0..arrays::get_length_q(q_ctx, &args[0])? {
                         let step_arr = arrays::get_element_q(q_ctx, &args[0], x)?;
                         if !step_arr.is_object() || !arrays::is_array_q(q_ctx, &step_arr) {
-                            return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                            return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                         }
                         let mut step_vec = vec![];
 
                         for y in 0..arrays::get_length_q(q_ctx, &step_arr)? {
                             let v_ref = arrays::get_element_q(q_ctx, &step_arr, y)?;
                             if !v_ref.is_i32() {
-                                return Err(EsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
+                                return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                             }
                             let v = primitives::to_i32(&v_ref)?;
                             step_vec.push(v as u8);
@@ -283,7 +283,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                 .method("softPwm", |q_ctx, instance_id, args| {
 
                     if args.len() != 2 || !args[0].is_i32() || !(args[1].is_i32() || args[1].is_f64()) {
-                        return Err(EsError::new_str("softPwm expects 2 args, (duration: Number, dutyCycle: Number) both in ms"));
+                        return Err(JsError::new_str("softPwm expects 2 args, (duration: Number, dutyCycle: Number) both in ms"));
                     }
 
                     // todo read args

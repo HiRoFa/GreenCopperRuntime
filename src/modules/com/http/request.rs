@@ -1,7 +1,7 @@
 use crate::modules::com::http::response;
 use crate::modules::com::http::response::UreqResponseWrapper;
+use hirofa_utils::js_utils::JsError;
 use log::trace;
-use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::esruntime_utils::promises;
 use quickjs_runtime::quickjs_utils::{functions, json, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
@@ -35,7 +35,7 @@ where
 pub(crate) fn reg_instance(
     q_ctx: &QuickJsContext,
     request_obj: HttpRequestType,
-) -> Result<JSValueRef, EsError> {
+) -> Result<JSValueRef, JsError> {
     let req_proxy = reflection::get_proxy(q_ctx, "greco.com.http.Request")
         .expect("could not find greco.com.http.Request proxy");
 
@@ -55,19 +55,19 @@ pub(crate) fn reg_instance(
 pub(crate) fn init_http_request_proxy(
     q_ctx: &QuickJsContext,
     namespace: Vec<&'static str>,
-) -> Result<JSValueRef, EsError> {
+) -> Result<JSValueRef, JsError> {
     Proxy::new()
         .name("Request")
         .namespace(namespace)
         .method("setHeader", |q_ctx, obj_id, args| {
             if args.len() != 2 {
-                return Err(EsError::new_str("setHeader requires two string arguments"));
+                return Err(JsError::new_str("setHeader requires two string arguments"));
             }
             let name_arg = &args[0];
             let value_arg = &args[1];
 
             if !value_arg.is_string() || !name_arg.is_string() {
-                return Err(EsError::new_str("setHeader requires two string arguments"));
+                return Err(JsError::new_str("setHeader requires two string arguments"));
             }
 
             let name_str = primitives::to_string_q(q_ctx, name_arg)?;

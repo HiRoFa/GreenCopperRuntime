@@ -10,10 +10,10 @@
 //!
 //! ```rust
 //! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-//! use quickjs_runtime::esscript::EsScript;
 //! use quickjs_runtime::esvalue::EsValueFacade;
+//! use hirofa_utils::js_utils::Script;
 //! let rt = crate::green_copper_runtime::new_greco_rt_builder().build();
-//! rt.eval_sync(EsScript::new("init_fs.es", "async function test_write() {\
+//! rt.eval_sync(Script::new("init_fs.es", "async function test_write() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     await fs_mod.write('./test.txt', 'hello from greco fs');
 //! }\n"));
@@ -22,7 +22,7 @@
 //! let done = prom_esvf.get_promise_result_sync();
 //! assert!(done.is_ok());
 //! // do read test
-//! rt.eval_sync(EsScript::new("init_fs.es", "async function test_read() {\
+//! rt.eval_sync(Script::new("init_fs.es", "async function test_read() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     return await fs_mod.readString('./test.txt');
 //! }\n"));
@@ -52,7 +52,7 @@
 //! ##write
 //!
 
-use quickjs_runtime::eserror::EsError;
+use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 use quickjs_runtime::esvalue::{EsFunction, EsValueConvertible, EsValueFacade, ES_NULL};
 use quickjs_runtime::quickjscontext::QuickJsContext;
@@ -191,7 +191,7 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     builder.native_module_loader(Box::new(FsModuleLoader {}))
 }
 
-fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, EsError> {
+fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {
     let copy_func = EsFunction::new("copy", copy, true);
     let write_func = EsFunction::new("write", write, true);
     let append_func = EsFunction::new("append", append, true);

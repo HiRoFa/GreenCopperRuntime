@@ -1,5 +1,5 @@
+use hirofa_utils::js_utils::JsError;
 use log::trace;
-use quickjs_runtime::eserror::EsError;
 use quickjs_runtime::quickjsruntime::ScriptModuleLoader;
 use std::fs;
 use std::ops::Add;
@@ -25,7 +25,7 @@ fn last_index_of(haystack: &str, needle: &str) -> Option<usize> {
     None
 }
 
-fn normalize_path(ref_path: &str, name: &str) -> Result<String, EsError> {
+fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
     // todo support:
     // name starting with /
     // name starting or containing ../ or starting with ./
@@ -39,7 +39,7 @@ fn normalize_path(ref_path: &str, name: &str) -> Result<String, EsError> {
     };
 
     let url = Url::parse(ref_path.as_str())
-        .map_err(|e| EsError::new_string(format!("failed to parse Url: {}", e)))?;
+        .map_err(|e| JsError::new_string(format!("failed to parse Url: {}", e)))?;
     let path = if let Some(stripped) = name.strip_prefix('/') {
         stripped.to_string()
     } else {

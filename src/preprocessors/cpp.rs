@@ -19,7 +19,6 @@
 
 use gpp::{process_str, Context};
 use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
-use quickjs_runtime::eserror::EsError;
 
 pub struct CppPreProcessor {
     defs: Vec<&'static str>,
@@ -88,7 +87,7 @@ impl ScriptPreProcessor for CppPreProcessor {
                 .insert("$GRECO_RELEASE".to_string(), "true".to_string());
         }
 
-        let res = process_str(src, &mut ctx).map_err(|e| EsError::new_string(format!("{}", e)))?;
+        let res = process_str(src, &mut ctx).map_err(|e| JsError::new_string(format!("{}", e)))?;
 
         script.set_code(res);
         Ok(())
