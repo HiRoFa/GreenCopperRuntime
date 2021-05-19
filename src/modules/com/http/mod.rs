@@ -93,13 +93,13 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
 pub mod tests {
 
     use crate::tests::init_test_greco_rt;
-    use quickjs_runtime::esscript::EsScript;
+    use hirofa_utils::js_utils::Script;
 
     #[test]
     fn test_http_client() {
         let rt = init_test_greco_rt();
         let _ = rt
-            .eval_sync(EsScript::new(
+            .eval_sync(Script::new(
                 "test_http_client1.es",
                 "\
             this.test_http_client = async function() {\
@@ -144,7 +144,7 @@ pub mod tests {
     fn test_http_client_post() {
         let rt = init_test_greco_rt();
         let _ = rt
-            .eval_sync(EsScript::new(
+            .eval_sync(Script::new(
                 "test_http_client1.es",
                 "\
             this.test_http_client = async function() {\

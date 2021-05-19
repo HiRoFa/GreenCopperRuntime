@@ -1,6 +1,4 @@
-use quickjs_runtime::eserror::EsError;
-use quickjs_runtime::esruntime::ScriptPreProcessor;
-use quickjs_runtime::esscript::EsScript;
+use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
 
 pub struct MacrosPreProcessor {}
 
@@ -11,8 +9,8 @@ impl MacrosPreProcessor {
 }
 
 impl ScriptPreProcessor for MacrosPreProcessor {
-    fn process(&self, script: EsScript) -> Result<EsScript, EsError> {
-        Ok(script)
+    fn process(&self, _script: &mut Script) -> Result<(), JsError> {
+        Ok(())
     }
 }
 

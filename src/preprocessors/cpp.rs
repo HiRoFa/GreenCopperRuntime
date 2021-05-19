@@ -18,9 +18,8 @@
 //!
 
 use gpp::{process_str, Context};
+use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
 use quickjs_runtime::eserror::EsError;
-use quickjs_runtime::esruntime::ScriptPreProcessor;
-use quickjs_runtime::esscript::EsScript;
 
 pub struct CppPreProcessor {
     defs: Vec<&'static str>,
@@ -62,9 +61,9 @@ impl CppPreProcessor {
 }
 
 impl ScriptPreProcessor for CppPreProcessor {
-    fn process(&self, mut script: EsScript) -> Result<EsScript, EsError> {
+    fn process(&self, script: &mut Script) -> Result<(), JsError> {
         if "CppPreProcessor.not_es".eq(script.get_path()) {
-            return Ok(script);
+            return Ok(());
         }
 
         log::debug!("CppPreProcessor > {}", script.get_path());
@@ -92,19 +91,19 @@ impl ScriptPreProcessor for CppPreProcessor {
         let res = process_str(src, &mut ctx).map_err(|e| EsError::new_string(format!("{}", e)))?;
 
         script.set_code(res);
-        Ok(script)
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::tests::init_test_greco_rt;
-    use quickjs_runtime::esscript::EsScript;
+    use hirofa_utils::js_utils::Script;
 
     #[test]
     fn test_ifdef() {
         let rt = init_test_greco_rt();
-        let res = rt.eval_sync(EsScript::new(
+        let res = rt.eval_sync(Script::new(
             "test.es",
             "((function(){\n\
         #ifdef HELLO\n\

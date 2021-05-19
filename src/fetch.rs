@@ -70,14 +70,14 @@ impl FetchResponse for FetchResponseStruct {
 mod tests {
     use crate::fetch::fetch_response_provider;
     use crate::new_greco_rt_builder;
-    use quickjs_runtime::esscript::EsScript;
+    use hirofa_utils::js_utils::Script;
 
     #[test]
     fn test_fetch() {
         let rt = new_greco_rt_builder()
             .fetch_response_provider(fetch_response_provider)
             .build();
-        let res = rt.eval_sync(EsScript::new(
+        let res = rt.eval_sync(Script::new(
             "test_fetch.es",
             "(fetch('https://httpbin.org/get').then((res) => {return(res.json()).then((json) => {return ('got stuff ' + JSON.stringify(json));});}));",
         ));

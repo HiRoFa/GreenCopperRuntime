@@ -5,10 +5,10 @@
 //! It uses the available ScriptModuleLoader instances in QuickJSRuntime
 //!
 
+use hirofa_utils::js_utils::Script;
 use libquickjs_sys as q;
 use quickjs_runtime::esruntime::EsRuntime;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::esscript::EsScript;
 use quickjs_runtime::quickjs_utils::functions::new_native_function_q;
 use quickjs_runtime::quickjs_utils::objects::set_property2_q;
 use quickjs_runtime::quickjs_utils::{
@@ -116,7 +116,7 @@ unsafe extern "C" fn require(
                     "(function(){{const module = {{exports:{{}}}};let exports = module.exports;{{{}\n}}; return(module.exports);}}())",
                     module_script.get_code()
                 );
-                let eval_res = q_ctx.eval(EsScript::new(
+                let eval_res = q_ctx.eval(Script::new(
                     module_script.get_path(),
                     wrapped_eval_code.as_str(),
                 ));

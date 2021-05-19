@@ -259,13 +259,12 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
 pub mod tests {
     use crate::new_greco_rt_builder;
     use backtrace::Backtrace;
+    use hirofa_utils::js_utils::Script;
     use log::LevelFilter;
     use std::panic;
 
     #[test]
     fn test_fs() {
-        use quickjs_runtime::esscript::EsScript;
-
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
             log::error!(
@@ -280,7 +279,7 @@ pub mod tests {
             .expect("could not init logger");
 
         let rt = new_greco_rt_builder().build();
-        rt.eval_sync(EsScript::new(
+        rt.eval_sync(Script::new(
             "init_fs.es",
             "async function test_write() {\
      let fs_mod = await import('greco://fs');\
@@ -297,7 +296,7 @@ pub mod tests {
         let done = prom_esvf.get_promise_result_sync();
         assert!(done.is_ok());
         // do read test
-        rt.eval_sync(EsScript::new(
+        rt.eval_sync(Script::new(
             "init_fs.es",
             "async function test_read() {\
      let fs_mod = await import('greco://fs');\
