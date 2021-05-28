@@ -25,6 +25,7 @@ GreenCopperRuntime is a library for which provides as JavaScript runtime (based 
 using [quickjs_runtime](https://github.com/HiRoFa/quickjs_es_runtime) 's preprocessing capabilities GreenCopperRuntime provides implementations for:
 * [x] cpp style preprocessing (e.g. use #ifdef $GRECO_DEBUG in code) ([DOCS](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/preprocessors/cpp))
 * [ ] macro's generate script before eval 
+* [x] Typescript support is currently implemented as a separate optional project [typescript_utils](https://github.com/HiRoFa/typescript_utils) 
 
 The following features are optionally added by specifying them in your Cargo.toml.
 * [ ] db
