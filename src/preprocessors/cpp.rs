@@ -90,9 +90,9 @@ impl CppPreProcessor {
     }
 
     pub fn env_vars(mut self) -> Self {
-        println!("adding env vars");
+        log::debug!("adding env vars");
         for (key, value) in env::vars() {
-            println!("adding env var {} = {}", key, value);
+            log::debug!("adding env var {} = {}", key, value);
             self = self.def(key.as_str(), value.as_str());
         }
         self
