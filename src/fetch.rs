@@ -55,10 +55,7 @@ impl FetchResponse for FetchResponseStruct {
     }
 
     fn get_header(&self, name: &str) -> Option<&str> {
-        match self.headers.get(name) {
-            None => None,
-            Some(header) => Some(header.as_str()),
-        }
+        self.headers.get(name).map(|e| e.as_str())
     }
 
     fn read(&mut self) -> Option<Vec<u8>> {
