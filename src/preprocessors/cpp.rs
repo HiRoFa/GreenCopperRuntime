@@ -14,14 +14,33 @@
 //!
 //! it used the gpp crate and docs on how it works are here https://docs.rs/gpp/0.6.0/gpp
 //!
-//! by default GreenCopperRuntime conditionally sets the $GRECO_DEBUG, $GRECO_TEST and $GRECO_RELEASE vars
+//! by default GreenCopperRuntime conditionally sets the $GRECO_DEBUG, $GRECO_TEST and $GRECO_RELEASE
+//! you can also add all current env_vars so in script you can use ```let path = "$PATH";```;
+//!
+//! # Example
+//! ```rust
+//! use green_copper_runtime::preprocessors::cpp::CppPreProcessor;
+//! use green_copper_runtime::new_greco_rt_builder;
+//! use hirofa_utils::js_utils::Script;
+//! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+//!
+//! let cpp = CppPreProcessor::new().default_extensions().env_vars();
+//! let rt = EsRuntimeBuilder::new().script_pre_processor(cpp).build();
+//!
+//! let path = rt.eval_sync(Script::new("test.js", "let p = '$PATH'; p")).ok().expect("script failed");
+//! assert!(!path.get_str().is_empty());
+//! assert_ne!(path.get_str(), "$PATH");
+//!
+//! ```
 //!
 
 use gpp::{process_str, Context};
 use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
+use std::cell::RefCell;
+use std::env;
 
 pub struct CppPreProcessor {
-    defs: Vec<&'static str>,
+    ctx: RefCell<Context>,
     extensions: Vec<&'static str>,
 }
 
@@ -33,14 +52,35 @@ impl Default for CppPreProcessor {
 
 impl CppPreProcessor {
     pub fn new() -> Self {
-        Self {
-            defs: vec![],
+        let mut ret = Self {
+            ctx: RefCell::new(Context::new()),
             extensions: vec![],
+        };
+
+        #[cfg(debug_assertions)]
+        {
+            ret = ret.def("GRECO_DEBUG", "true");
         }
+        #[cfg(test)]
+        {
+            ret = ret.def("GRECO_TEST", "true");
+        }
+        #[cfg(not(any(debug_assertions, test)))]
+        {
+            ret = ret.def("GRECO_RELEASE", "true");
+        }
+
+        ret
     }
     /// add a def
-    pub fn def(mut self, var: &'static str) -> Self {
-        self.defs.push(var);
+    pub fn def(self, key: &str, value: &str) -> Self {
+        {
+            let ctx = &mut *self.ctx.borrow_mut();
+
+            ctx.macros
+                .insert(format!("${{{}}}", key), value.to_string());
+            ctx.macros.insert(format!("${}", key), value.to_string());
+        }
         self
     }
     /// add a supported extension e.g. js/mjs/ts/mts/es/mes
@@ -48,6 +88,16 @@ impl CppPreProcessor {
         self.extensions.push(ext);
         self
     }
+
+    pub fn env_vars(mut self) -> Self {
+        println!("adding env vars");
+        for (key, value) in env::vars() {
+            println!("adding env var {} = {}", key, value);
+            self = self.def(key.as_str(), value.as_str());
+        }
+        self
+    }
+
     /// add default extensions : js/mjs/ts/mts/es/mes
     pub fn default_extensions(self) -> Self {
         self.extension("es")
@@ -69,25 +119,8 @@ impl ScriptPreProcessor for CppPreProcessor {
 
         let src = script.get_code();
 
-        let mut ctx = Context::new();
-
-        #[cfg(debug_assertions)]
-        {
-            ctx.macros
-                .insert("$GRECO_DEBUG".to_string(), "true".to_string());
-        }
-        #[cfg(test)]
-        {
-            ctx.macros
-                .insert("$GRECO_TEST".to_string(), "true".to_string());
-        }
-        #[cfg(not(any(debug_assertions, test)))]
-        {
-            ctx.macros
-                .insert("$GRECO_RELEASE".to_string(), "true".to_string());
-        }
-
-        let res = process_str(src, &mut ctx).map_err(|e| JsError::new_string(format!("{}", e)))?;
+        let res = process_str(src, &mut *self.ctx.borrow_mut())
+            .map_err(|e| JsError::new_string(format!("{}", e)))?;
 
         script.set_code(res);
         Ok(())
@@ -121,5 +154,25 @@ mod tests {
             }
         };
         assert_eq!(num.get_i32(), 123);
+    }
+
+    #[test]
+    fn test_vars() {
+        let rt = init_test_greco_rt();
+        let res = rt.eval_sync(Script::new(
+            "test.es",
+            "((function(){\n\
+        return('p=${PATH}');\n\
+        })());",
+        ));
+        let val = match res {
+            Ok(e) => e,
+            Err(err) => {
+                panic!("{}", err);
+            }
+        };
+        println!("{}", val.get_str());
+        assert_ne!(val.get_str(), "${PATH}");
+        assert!(!val.get_str().is_empty());
     }
 }
