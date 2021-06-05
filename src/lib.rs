@@ -7,7 +7,6 @@ extern crate lazy_static;
 pub mod features;
 #[cfg(any(feature = "all", feature = "com", feature = "http"))]
 pub mod fetch;
-
 pub mod moduleloaders;
 pub mod modules;
 pub mod preprocessors;

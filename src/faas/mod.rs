@@ -7,6 +7,7 @@ use std::time::Duration;
 pub struct GreenCopperFaas {}
 
 // todo, can we share modules between contexts? or do we need to have one context with all modules..
+// todo move to grecoserver
 // modules are not GCed in quickjs, we'll to actively kill runtimes every now and then if so
 // todo create a feature for this so it can be called from JS (should even be able to start a faas service for StarLight from quickjs and such
 
