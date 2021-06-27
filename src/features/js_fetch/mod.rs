@@ -18,7 +18,7 @@ where
     C: JsContextAdapter,
 {
     ctx.js_install_function(
-        vec![],
+        &[],
         "fetch2",
         |js_ctx, _this_obj, _args| {
             //
