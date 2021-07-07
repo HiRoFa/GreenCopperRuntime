@@ -1,6 +1,6 @@
 //! runtime agnostic fetch implementation
 
-use hirofa_utils::js_utils::adapters::JsContextAdapter;
+use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
@@ -15,7 +15,7 @@ pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
 
 pub fn impl_for<C>(ctx: &C) -> Result<(), JsError>
 where
-    C: JsContextAdapter,
+    C: JsRealmAdapter,
 {
     ctx.js_install_function(
         &[],
