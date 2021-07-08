@@ -9,7 +9,7 @@ license = "MIT"
 
 [features]
 
-default = ["all", "engine_quickjs"]
+default = ["all", "engine_quickjs", "engine_starlight"]
 
 engine_quickjs = ["quickjs_runtime", "libquickjs-sys"]
 

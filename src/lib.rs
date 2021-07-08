@@ -102,6 +102,23 @@ pub mod tests {
 
     #[test]
     fn test_abstract() {
+        panic::set_hook(Box::new(|panic_info| {
+            let backtrace = Backtrace::new();
+            println!(
+                "thread panic occurred: {}\nbacktrace: {:?}",
+                panic_info, backtrace
+            );
+            log::error!(
+                "thread panic occurred: {}\nbacktrace: {:?}",
+                panic_info,
+                backtrace
+            );
+        }));
+
+        simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
+            .ok()
+            .unwrap();
+
         #[cfg(feature = "quickjs_runtime")]
         {
             println!("testing quickjs");
