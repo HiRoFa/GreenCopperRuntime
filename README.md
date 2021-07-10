@@ -2,6 +2,10 @@
 
 **Just to get thing clear straight away, this is a very much work in progress project, nothing is definitive, it might never become definitive**
 
+# Roadmap / The plan
+
+// wip
+
 GreenCopperRuntime is a library for which provides as JavaScript runtime (based on the [quickjs_runtime](https://github.com/HiRoFa/quickjs_es_runtime) project) with additional features.
 
 [GreenCopperCmd](https://github.com/HiRoFa/GreenCopperCmd) is a commandline utility which you can use to test/play with GreenCopperRuntime
