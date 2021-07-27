@@ -55,9 +55,7 @@ pub mod tests {
 
     use backtrace::Backtrace;
     use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-    use hirofa_utils::js_utils::facades::{
-        JsRuntimeBuilder, JsRuntimeFacade, JsValueFacade, JsValueType,
-    };
+    use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueFacade, JsValueType};
     use log::LevelFilter;
     use quickjs_runtime::esruntime::EsRuntime;
     use std::panic;
