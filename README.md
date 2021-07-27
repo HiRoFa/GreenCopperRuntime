@@ -91,20 +91,28 @@ These jobs run in a single thread per runtime and provide access to the Adapters
 
 ### Example 
 ```rust
-async fn example(rt: &JSRuntimeFacade) -> i32 {
-   // add a job for the main realm (None as realm_name)
-   rt.js_loop_realm(None, |_rt_adapter, realm_adapter| {
-       let script = Script::new("example.js", "7 + 13");
-       let value_adapter = realm_adapter.eval(script).ok().expect("script failed");
-       // convert value_adapter to value_facade because value_adapter is not Send
-       realm_adapter.to_js_value_facade(value_adapter)
-   }).await
+use quickjs_runtime::esruntime::EsRuntime;
+use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use hirofa_utils::js_utils::Script;
+use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueFacade};
+use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter};
+use quickjs_runtime::quickjscontext::QuickJsContext;
+
+async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
+    // add a job for the main realm (None as realm_name)
+    rt.js_loop_realm(None, |_rt_adapter, realm_adapter: QuickJsContext| {
+        let script = Script::new("example.js", "7 + 13");
+        let value_adapter= realm_adapter.js_eval(script).ok().expect("script failed");
+        // convert value_adapter to value_facade because value_adapter is not Send
+        realm_adapter.to_js_value_facade(&value_adapter)
+    }).await
 }
-pub fn main() {
-   // start a new runtime
-   let rt = QuickjsRuntimeBuilder::new().build();
-   let val = block_on(example(&rt));
-   assert_eq!(val.js_get_i32(), 20);
+
+ fn main() {
+    // start a new runtime
+    let rt = EsRuntimeBuilder::new().build();
+    let val = block_on(example(&*rt));
+    assert_eq!(val.js_as_i32(), 20);
 }
 
 ```
