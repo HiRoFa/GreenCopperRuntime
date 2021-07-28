@@ -100,7 +100,7 @@ use quickjs_runtime::quickjscontext::QuickJsContext;
 
 async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
     // add a job for the main realm (None as realm_name)
-    rt.js_loop_realm(None, |_rt_adapter, realm_adapter: QuickJsContext| {
+    rt.js_loop_realm(None, |_rt_adapter, realm_adapter| {
         let script = Script::new("example.js", "7 + 13");
         let value_adapter= realm_adapter.js_eval(script).ok().expect("script failed");
         // convert value_adapter to value_facade because value_adapter is not Send
