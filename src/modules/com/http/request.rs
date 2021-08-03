@@ -5,7 +5,6 @@ use log::trace;
 use quickjs_runtime::esruntime_utils::promises;
 use quickjs_runtime::quickjs_utils::{functions, json, primitives};
 use quickjs_runtime::quickjscontext::QuickJsContext;
-use quickjs_runtime::quickjsruntime::QuickJsRuntime;
 use quickjs_runtime::reflection::Proxy;
 use quickjs_runtime::valueref::JSValueRef;
 use quickjs_runtime::{quickjs_utils, reflection};
@@ -100,43 +99,36 @@ pub(crate) fn init_http_request_proxy(
 
             let mut req_clone = with_http_request(obj_id, |req| req.build());
 
-            let es_rt_ref = QuickJsRuntime::do_with(|q_js_rt| q_js_rt.get_rt_ref());
+            promises::new_resolving_promise(
+                q_ctx,
+                move || {
+                    // producer, make request here and return result
 
-            if let Some(es_rt) = es_rt_ref {
-                promises::new_resolving_promise(
-                    q_ctx,
-                    move || {
-                        // producer, make request here and return result
+                    let response = if let Some(content) = content_opt {
+                        req_clone.send_string(content.as_str())
+                    } else {
+                        req_clone.call()
+                    };
 
-                        let response = if let Some(content) = content_opt {
-                            req_clone.send_string(content.as_str())
-                        } else {
-                            req_clone.call()
-                        };
+                    if response.ok() {
+                        Ok(response)
+                    } else {
+                        Err(response
+                            .into_string()
+                            .expect("could not get response error as string"))
+                    }
+                },
+                |q_ctx, response_obj| {
+                    // put res in autoidmap and return new proxy instance here
 
-                        if response.ok() {
-                            Ok(response)
-                        } else {
-                            Err(response
-                                .into_string()
-                                .expect("could not get response error as string"))
-                        }
-                    },
-                    |q_ctx, response_obj| {
-                        // put res in autoidmap and return new proxy instance here
-
-                        response::reg_instance(
-                            q_ctx,
-                            UreqResponseWrapper {
-                                delegate: Some(response_obj),
-                            },
-                        )
-                    },
-                    es_rt,
-                )
-            } else {
-                Ok(quickjs_utils::new_null_ref())
-            }
+                    response::reg_instance(
+                        q_ctx,
+                        UreqResponseWrapper {
+                            delegate: Some(response_obj),
+                        },
+                    )
+                },
+            )
         })
         .install(q_ctx, false)
 }

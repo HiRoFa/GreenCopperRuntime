@@ -1,5 +1,6 @@
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
+pub mod js_console;
 pub mod js_fetch;
 #[cfg(feature = "commonjs")]
 pub mod require;

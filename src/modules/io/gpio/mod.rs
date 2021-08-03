@@ -149,8 +149,8 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
 
                     QuickJsRuntime::do_with(|q_js_rt| {
 
-                        let es_rt_ref = q_js_rt.get_rt_ref().unwrap();
-                        let es_rt_weak = Arc::downgrade(&es_rt_ref);
+                        let es_rti_ref = q_js_rt.get_rti_ref().unwrap();
+                        let es_rti_weak = Arc::downgrade(&es_rti_ref);
                         let context_id = q_ctx.id.clone();
                         let pinset_instance_id = *instance_id;
 
@@ -165,7 +165,7 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
                                         log::debug!("called: pinset proxy event handler for pin {} e:{:?}", pin, evt);
                                         let context_id = context_id.clone();
 
-                                        if let Some(es_rt_ref) = es_rt_weak.upgrade() {
+                                        if let Some(es_rt_ref) = es_rti_weak.upgrade() {
                                             es_rt_ref.add_rt_task_to_event_loop_void(move |q_js_rt| {
                                                 // in q_js_rt event queue here
                                                 let q_ctx = q_js_rt.get_context(context_id.as_str());

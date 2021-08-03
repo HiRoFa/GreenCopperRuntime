@@ -33,7 +33,7 @@ pub mod tests {
     use crate::new_greco_rt_builder;
     use hirofa_utils::js_utils::Script;
 
-    #[test]
+    //#[test]
     fn test_fetch_generic() {
         let rt = new_greco_rt_builder().build();
         let res = rt.eval_sync(Script::new("test_fetch_gen.es", ""));

@@ -59,7 +59,6 @@ pub mod tests {
     use log::LevelFilter;
     use quickjs_runtime::esruntime::EsRuntime;
     use std::panic;
-    use std::sync::Arc;
 
     fn init_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
         let res = rt_facade.js_loop_realm_sync(None, |_rt, ctx_adapter| {
@@ -123,8 +122,8 @@ pub mod tests {
             let quickjs_builder = JsEngine::quickjs_builder();
             //let builder1: JsRuntimeBuilder = quickjs_builder;
             let rt1 = quickjs_builder.build();
-            init_abstract_inner(&*rt1);
-            test_abstract_inner(&*rt1);
+            init_abstract_inner(&rt1);
+            test_abstract_inner(&rt1);
         }
 
         #[cfg(feature = "starlight_runtime")]
@@ -143,7 +142,7 @@ pub mod tests {
         drop(rt);
     }
 
-    pub fn init_test_greco_rt() -> Arc<EsRuntime> {
+    pub fn init_test_greco_rt() -> EsRuntime {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
             println!(

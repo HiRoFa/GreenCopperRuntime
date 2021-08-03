@@ -110,8 +110,8 @@ async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
 
  fn main() {
     // start a new runtime
-    let rt = EsRuntimeBuilder::new().build();
-    let val = block_on(example(&*rt));
+    let rt = green_copper_runtime::JsEngine::quickjs_builder().build();
+    let val = block_on(example(&rt));
     assert_eq!(val.js_as_i32(), 20);
 }
 
