@@ -8,7 +8,8 @@ pub mod require;
 pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     #[cfg(feature = "commonjs")]
     let builder = require::init(builder);
-    let builder = js_fetch::init(builder);
+    let mut builder = js_fetch::init(builder);
+    js_console::init(&mut builder);
 
     builder
 }

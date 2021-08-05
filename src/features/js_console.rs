@@ -46,9 +46,15 @@
 //! ```[00:00:00.012] (7f44e7d24700) INFO   the quick brown fox jumped over 32 fences with a accuracy of 0.51```
 
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
+use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacade};
 use hirofa_utils::js_utils::JsError;
 use log::LevelFilter;
 use std::str::FromStr;
+
+pub(crate) fn init<T: JsRuntimeBuilder>(builder: &mut T) -> &mut T {
+    builder.js_runtime_init_hook(|rt| rt.js_loop_sync(|rta| install_runtime(rta)));
+    builder
+}
 
 pub fn install_runtime<R: JsRuntimeAdapter>(runtime_adapter: &R) -> Result<(), JsError> {
     runtime_adapter.js_add_realm_init_hook(|_, realm| install_realm(realm))

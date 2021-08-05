@@ -27,7 +27,7 @@ impl JsEngine {
 }
 
 pub fn new_greco_rt<R: JsRuntimeBuilder>(builder: R) -> R::JsRuntimeFacadeType {
-    builder.build()
+    builder.js_build()
 }
 
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
