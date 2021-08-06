@@ -16,7 +16,7 @@ use quickjs_runtime::quickjs_utils::{
 };
 use quickjs_runtime::quickjsruntime::QuickJsRuntime;
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
+pub fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     // todo.. this should utilize the script module loaders in order to obtain the source, then use a 'require' function in js to do the actual loading..
     builder.runtime_init_hook(|rt: &EsRuntime| {
         // todo, impl with native function.. like now

@@ -4,6 +4,8 @@ use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use hirofa_utils::js_utils::JsError;
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
+pub mod spec;
+
 pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
     // todo abstract trait for builders
     builder.runtime_init_hook(|rt| {

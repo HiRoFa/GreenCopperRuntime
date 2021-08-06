@@ -12,8 +12,6 @@ pub mod moduleloaders;
 pub mod modules;
 pub mod preprocessors;
 
-pub mod faas;
-
 pub struct JsEngine {}
 impl JsEngine {
     #[cfg(feature = "quickjs_runtime")]
@@ -26,9 +24,9 @@ impl JsEngine {
     }
 }
 
-pub fn new_greco_rt<R: JsRuntimeBuilder>(builder: R) -> R::JsRuntimeFacadeType {
-    builder.js_build()
-}
+// todo, dit ombouwen, geen directe dep naar runtimes maar een JsRuntimeBuilder meegeven aan deze functie
+// danwel gewoon features beschikbaar maken met install functie die builder accepteerd
+// in quickjsruntimes kun je dan als test_dep een ref naar gc maken om console te installen in test rt
 
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     new_greco_rt_builder2(true, true, true)
