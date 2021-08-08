@@ -51,9 +51,8 @@ use hirofa_utils::js_utils::JsError;
 use log::LevelFilter;
 use std::str::FromStr;
 
-pub fn init<T: JsRuntimeBuilder>(builder: &mut T) -> &mut T {
+pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
     builder.js_runtime_init_hook(|rt| rt.js_loop_sync(|rta| install_runtime(rta)));
-    builder
 }
 
 pub fn install_runtime<R: JsRuntimeAdapter>(runtime_adapter: &R) -> Result<(), JsError> {
@@ -72,6 +71,7 @@ pub fn install_realm<R: JsRealmAdapter>(realm_adapter: &R) -> Result<(), JsError
 }
 
 fn console_log<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
@@ -87,6 +87,7 @@ fn console_log<R: JsRealmAdapter>(
 }
 
 fn console_info<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
@@ -102,6 +103,7 @@ fn console_info<R: JsRealmAdapter>(
 }
 
 fn console_error<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
@@ -117,6 +119,7 @@ fn console_error<R: JsRealmAdapter>(
 }
 
 fn console_warn<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
@@ -132,6 +135,7 @@ fn console_warn<R: JsRealmAdapter>(
 }
 
 fn console_debug<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
@@ -147,6 +151,7 @@ fn console_debug<R: JsRealmAdapter>(
 }
 
 fn console_trace<R: JsRealmAdapter>(
+    _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
     _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
     args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],

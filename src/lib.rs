@@ -1,37 +1,41 @@
 use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+#[cfg(feature = "quickjs")]
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate lazy_static;
 
+#[cfg(any(
+    feature = "all",
+    feature = "features",
+    feature = "console",
+    feature = "fetch"
+))]
 pub mod features;
-#[cfg(any(feature = "all", feature = "com", feature = "http"))]
+
+#[cfg(all(
+    feature = "quickjs",
+    any(feature = "all", feature = "com", feature = "http")
+))]
 pub mod fetch;
+
+#[cfg(feature = "quickjs")]
 pub mod moduleloaders;
+#[cfg(feature = "quickjs")]
 pub mod modules;
 pub mod preprocessors;
-
-pub struct JsEngine {}
-impl JsEngine {
-    #[cfg(feature = "quickjs_runtime")]
-    pub fn quickjs_builder() -> quickjs_runtime::esruntimebuilder::EsRuntimeBuilder {
-        quickjs_runtime::esruntimebuilder::EsRuntimeBuilder::new()
-    }
-    #[cfg(feature = "starlight_runtime")]
-    pub fn starlight_builder() -> impl JsRuntimeBuilder {
-        starlight_runtime::slruntimefacade::StarlightRuntimeBuilder::new()
-    }
-}
 
 // todo, dit ombouwen, geen directe dep naar runtimes maar een JsRuntimeBuilder meegeven aan deze functie
 // danwel gewoon features beschikbaar maken met install functie die builder accepteerd
 // in quickjsruntimes kun je dan als test_dep een ref naar gc maken om console te installen in test rt
 
+#[cfg(feature = "quickjs")]
 pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
     new_greco_rt_builder2(true, true, true)
 }
 
+#[cfg(feature = "quickjs")]
 pub fn new_greco_rt_builder2(preprocs: bool, features: bool, modules: bool) -> EsRuntimeBuilder {
     let mut rt_builder = EsRuntimeBuilder::new();
     if modules {
@@ -49,13 +53,14 @@ pub fn new_greco_rt_builder2(preprocs: bool, features: bool, modules: bool) -> E
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{new_greco_rt_builder, JsEngine};
 
     use backtrace::Backtrace;
     use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-    use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueFacade, JsValueType};
+    use hirofa_utils::js_utils::facades::{
+        JsRuntimeFacade, JsRuntimeFacadeInner, JsValueFacade, JsValueType,
+    };
     use log::LevelFilter;
-    use quickjs_runtime::esruntime::EsRuntime;
+    use quickjs_runtime::builder::QuickjsRuntimeBuilder;
     use std::panic;
 
     fn init_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
@@ -63,11 +68,11 @@ pub mod tests {
             ctx_adapter.js_install_closure(
                 &["com", "my_company"],
                 "testFunction",
-                |ctx, _this, args| {
+                |runtime, realm, _this, args| {
                     // return 1234
                     let arg1 = &args[0].js_to_i32();
                     let arg2 = &args[1].js_to_i32();
-                    ctx.js_i32_create(arg1 * arg2 * 3)
+                    realm.js_i32_create(arg1 * arg2 * 3)
                 },
                 2,
             )
@@ -140,7 +145,7 @@ pub mod tests {
         drop(rt);
     }
 
-    pub fn init_test_greco_rt() -> EsRuntime {
+    pub fn init_test_greco_rt() -> impl JsRuntimeFacade {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
             println!(
@@ -158,6 +163,6 @@ pub mod tests {
             .ok()
             .unwrap();
 
-        new_greco_rt_builder().build()
+        QuickjsRuntimeBuilder::new().build()
     }
 }

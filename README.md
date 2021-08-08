@@ -71,6 +71,7 @@ In your cargo.toml you can add the green_copper dependency and specify the runti
 
 ```toml
 green_copper_runtime =  { git = 'https://github.com/HiRoFa/GreenCopperRuntime', branch="main", features = ["engine_quickjs"]}
+quickjs_runtime = {git = 'https://github.com/HiRoFa/quickjs_es_runtime', branch="main"}
 ```
 
 ## Main api concepts
@@ -110,7 +111,7 @@ async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
 
  fn main() {
     // start a new runtime
-    let rt = green_copper_runtime::JsEngine::quickjs_builder().build();
+    let rt = EsRuntimeBuilder::new().build();
     let val = block_on(example(&rt));
     assert_eq!(val.js_as_i32(), 20);
 }

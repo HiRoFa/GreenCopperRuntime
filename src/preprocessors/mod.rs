@@ -9,13 +9,13 @@
 
 use crate::preprocessors::cpp::CppPreProcessor;
 use crate::preprocessors::macros::MacrosPreProcessor;
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 
 pub mod cpp;
 pub mod macros;
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
+pub(crate) fn init<T: JsRuntimeBuilder>(builder: &mut T) {
     builder
-        .script_pre_processor(MacrosPreProcessor::new())
-        .script_pre_processor(CppPreProcessor::new().default_extensions().env_vars())
+        .js_script_pre_processor(MacrosPreProcessor::new())
+        .js_script_pre_processor(CppPreProcessor::new().default_extensions().env_vars());
 }

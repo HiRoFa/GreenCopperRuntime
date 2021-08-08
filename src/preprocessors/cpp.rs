@@ -130,14 +130,18 @@ impl ScriptPreProcessor for CppPreProcessor {
 #[cfg(test)]
 mod tests {
     use crate::tests::init_test_greco_rt;
+    use futures::executor::block_on;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use hirofa_utils::js_utils::Script;
 
     #[test]
     fn test_ifdef() {
         let rt = init_test_greco_rt();
-        let res = rt.eval_sync(Script::new(
-            "test.es",
-            "((function(){\n\
+        let fut = rt.js_eval(
+            None,
+            Script::new(
+                "test.es",
+                "((function(){\n\
         #ifdef HELLO\n\
             return 111;\n\
         #elifdef $GRECO_DEBUG\n\
@@ -146,33 +150,39 @@ mod tests {
             return 222;\n\
         #endif\n\
         })());",
-        ));
+            ),
+        );
+        let res = block_on(fut);
         let num = match res {
             Ok(e) => e,
             Err(err) => {
                 panic!("{}", err);
             }
         };
-        assert_eq!(num.get_i32(), 123);
+        assert_eq!(num.js_as_i32(), 123);
     }
 
     #[test]
     fn test_vars() {
         let rt = init_test_greco_rt();
-        let res = rt.eval_sync(Script::new(
-            "test.es",
-            "((function(){\n\
+        let fut = rt.js_eval(
+            None,
+            Script::new(
+                "test.es",
+                "((function(){\n\
         return('p=${PATH}');\n\
         })());",
-        ));
+            ),
+        );
+        let res = block_on(fut);
         let val = match res {
             Ok(e) => e,
             Err(err) => {
                 panic!("{}", err);
             }
         };
-        println!("{}", val.get_str());
-        assert_ne!(val.get_str(), "${PATH}");
-        assert!(!val.get_str().is_empty());
+        println!("{}", val.js_as_str());
+        assert_ne!(val.js_as_str(), "${PATH}");
+        assert!(!val.js_as_str().is_empty());
     }
 }
