@@ -1,6 +1,6 @@
 //! runtime agnostic fetch implementation
 
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter};
+use hirofa_utils::js_utils::adapters::{JsPromiseAdapter, JsRealmAdapter, JsRuntimeAdapter};
 use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacade};
 use hirofa_utils::js_utils::JsError;
 
@@ -19,10 +19,15 @@ where
 {
     ctx.js_install_function(
         &[],
-        "fetch2",
-        |_js_rt, js_ctx, _this_obj, _args| {
+        "fetch",
+        |rt, realm, _this_obj, _args| {
             //
-            js_ctx.js_null_create()
+            let prom = realm.js_promise_create()?;
+
+            //prom.js_promise_resolve()
+            //prom.js_promise_reject()
+
+            Ok(prom.js_promise_get_value())
         },
         2,
     )
@@ -30,13 +35,20 @@ where
 
 #[cfg(test)]
 pub mod tests {
+    use crate::features::js_fetch::init;
     use hirofa_utils::js_utils::Script;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
     //#[test]
     fn _test_fetch_generic() {
-        let rt = QuickJsRuntimeBuilder::new().build();
-        let res = rt.eval_sync(Script::new("test_fetch_gen.es", ""));
+        let mut rtb = QuickJsRuntimeBuilder::new();
+        init(&mut rtb);
+        let rt = rtb.build();
+
+        let res = rt.eval_sync(Script::new(
+            "test_fetch_gen.es",
+            "fetch('https://httpbin.org/anything')",
+        ));
         match res {
             Ok(val) => {
                 assert!(val.is_promise());
