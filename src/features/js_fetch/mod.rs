@@ -9,7 +9,7 @@ pub mod spec;
 pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
     // todo abstract trait for builders
     builder.js_runtime_init_hook(|rt| {
-        rt.js_loop_sync(|rta| rta.js_add_realm_init_hook(|rt, realm| impl_for(realm)))
+        rt.js_loop_sync(|rta| rta.js_add_realm_init_hook(|_rt, realm| impl_for(realm)))
     });
 }
 
@@ -20,7 +20,7 @@ where
     ctx.js_install_function(
         &[],
         "fetch2",
-        |js_rt, js_ctx, _this_obj, _args| {
+        |_js_rt, js_ctx, _this_obj, _args| {
             //
             js_ctx.js_null_create()
         },
@@ -31,11 +31,11 @@ where
 #[cfg(test)]
 pub mod tests {
     use hirofa_utils::js_utils::Script;
-    use quickjs_runtime::builder::QuickjsRuntimeBuilder;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
     //#[test]
-    fn test_fetch_generic() {
-        let rt = QuickjsRuntimeBuilder::new().build();
+    fn _test_fetch_generic() {
+        let rt = QuickJsRuntimeBuilder::new().build();
         let res = rt.eval_sync(Script::new("test_fetch_gen.es", ""));
         match res {
             Ok(val) => {

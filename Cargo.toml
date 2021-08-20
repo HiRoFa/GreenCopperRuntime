@@ -9,7 +9,7 @@ license = "MIT"
 
 [features]
 
-default = ["all"]
+default = ["all", "quickjs_runtime"]
 
 all = ["io", "db", "com", "features"]
 

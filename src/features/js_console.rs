@@ -25,13 +25,13 @@
 //! * %f Outputs a floating-point value. Formatting is supported, for example  console.log("Foo %.2f", 1.1) will output the number to 2 decimal places: Foo 1.10
 //! # Example
 //! ```rust
-//! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 //! use hirofa_utils::js_utils::Script;
 //! use log::LevelFilter;
+//! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 //! simple_logging::log_to_file("console_test.log", LevelFilter::max())
 //!             .ok()
 //!             .expect("could not init logger");
-//! let rt = EsRuntimeBuilder::new().build();
+//! let rt = QuickJsRuntimeBuilder::new().build();
 //! rt.exe_rt_task_in_event_loop(|rta| {
 //!     crate::green_copper_runtime::features::js_console::install_runtime(rta);
 //! });
@@ -73,12 +73,9 @@ pub fn install_realm<R: JsRealmAdapter>(realm_adapter: &R) -> Result<(), JsError
 fn console_log<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Info {
         log::info!("{}", parse_line(realm_adapter, args));
     }
@@ -89,12 +86,9 @@ fn console_log<R: JsRealmAdapter>(
 fn console_info<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Info {
         log::info!("{}", parse_line(realm_adapter, args));
     }
@@ -105,12 +99,9 @@ fn console_info<R: JsRealmAdapter>(
 fn console_error<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Error {
         log::error!("{}", parse_line(realm_adapter, args));
     }
@@ -121,12 +112,9 @@ fn console_error<R: JsRealmAdapter>(
 fn console_warn<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Warn {
         log::warn!("{}", parse_line(realm_adapter, args));
     }
@@ -137,12 +125,9 @@ fn console_warn<R: JsRealmAdapter>(
 fn console_debug<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Debug {
         log::debug!("{}", parse_line(realm_adapter, args));
     }
@@ -153,12 +138,9 @@ fn console_debug<R: JsRealmAdapter>(
 fn console_trace<R: JsRealmAdapter>(
     _runtime_adapter: &R::JsRuntimeAdapterType,
     realm_adapter: &R,
-    _this_arg: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_arg: &R::JsValueAdapterType,
+    args: &[R::JsValueAdapterType],
+) -> Result<R::JsValueAdapterType, JsError> {
     if log::max_level() >= LevelFilter::Trace {
         log::trace!("{}", parse_line(realm_adapter, args));
     }
@@ -169,7 +151,7 @@ fn console_trace<R: JsRealmAdapter>(
 fn parse_field_value<R: JsRealmAdapter>(
     realm_adapter: &R,
     field: &str,
-    value: &<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
+    value: &R::JsValueAdapterType,
 ) -> String {
     // format ints
     // only support ,2 / .3 to declare the number of digits to display, e.g. $.3i turns 3 to 003
@@ -256,10 +238,7 @@ fn parse_field_value<R: JsRealmAdapter>(
     value.js_to_string().unwrap_or("".to_string())
 }
 
-fn parse_line<R: JsRealmAdapter>(
-    realm_adapter: &R,
-    args: &[<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> String {
+fn parse_line<R: JsRealmAdapter>(realm_adapter: &R, args: &[R::JsValueAdapterType]) -> String {
     if args.is_empty() {
         return "".to_string();
     }

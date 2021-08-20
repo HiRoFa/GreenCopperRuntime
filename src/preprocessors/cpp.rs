@@ -20,12 +20,11 @@
 //! # Example
 //! ```rust
 //! use green_copper_runtime::preprocessors::cpp::CppPreProcessor;
-//! use green_copper_runtime::new_greco_rt_builder;
 //! use hirofa_utils::js_utils::Script;
-//! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+//! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 //!
 //! let cpp = CppPreProcessor::new().default_extensions().env_vars();
-//! let rt = EsRuntimeBuilder::new().script_pre_processor(cpp).build();
+//! let rt = QuickJsRuntimeBuilder::new().script_pre_processor(cpp).build();
 //!
 //! let path = rt.eval_sync(Script::new("test.js", "let p = '$PATH'; p")).ok().expect("script failed");
 //! assert!(!path.get_str().is_empty());
@@ -131,6 +130,7 @@ impl ScriptPreProcessor for CppPreProcessor {
 mod tests {
     use crate::tests::init_test_greco_rt;
     use futures::executor::block_on;
+    use hirofa_utils::js_utils::facades::values::JsValueFacade;
     use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use hirofa_utils::js_utils::Script;
 
@@ -159,7 +159,11 @@ mod tests {
                 panic!("{}", err);
             }
         };
-        assert_eq!(num.js_as_i32(), 123);
+        if let JsValueFacade::I32 { val } = num {
+            assert_eq!(val, 123);
+        } else {
+            panic!("not an i32")
+        }
     }
 
     #[test]
@@ -181,8 +185,12 @@ mod tests {
                 panic!("{}", err);
             }
         };
-        println!("{}", val.js_as_str());
-        assert_ne!(val.js_as_str(), "${PATH}");
-        assert!(!val.js_as_str().is_empty());
+
+        if let JsValueFacade::String { val } = val {
+            assert_ne!(val.as_str(), "${PATH}");
+            assert!(!val.is_empty());
+        } else {
+            panic!("not a string")
+        }
     }
 }

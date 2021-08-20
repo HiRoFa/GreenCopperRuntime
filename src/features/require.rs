@@ -15,7 +15,7 @@ pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
         // todo, impl with native function.. like now
 
         rt.js_loop_sync(|js_rt| {
-            js_rt.js_add_realm_init_hook(|js_rt, realm| {
+            js_rt.js_add_realm_init_hook(|_js_rt, realm| {
                 //let global = get_global_q(q_ctx);
                 //let require_func =
                 //    new_native_function_q(q_ctx, "require", Some(require), 1, false)?;
@@ -33,12 +33,9 @@ const DEFAULT_EXTENSIONS: &[&str] = &["js", "mjs", "ts", "mts"];
 fn require<T: JsRealmAdapter>(
     runtime: &T::JsRuntimeAdapterType,
     realm: &T,
-    this_val: &<<T as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    args: &[<<T as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType],
-) -> Result<
-    <<T as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsValueAdapterType,
-    JsError,
-> {
+    _this_val: &T::JsValueAdapterType,
+    args: &[T::JsValueAdapterType],
+) -> Result<T::JsValueAdapterType, JsError> {
     if args.len() != 1 || args[0].js_get_type() != JsValueType::String {
         Err(JsError::new_str(
             "require requires a single string argument",

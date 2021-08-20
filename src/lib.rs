@@ -1,4 +1,3 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 #[cfg(feature = "quickjs")]
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
@@ -54,13 +53,13 @@ pub fn new_greco_rt_builder2(preprocs: bool, features: bool, modules: bool) -> E
 #[cfg(test)]
 pub mod tests {
 
+    use crate::preprocessors::cpp::CppPreProcessor;
     use backtrace::Backtrace;
     use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-    use hirofa_utils::js_utils::facades::{
-        JsRuntimeFacade, JsRuntimeFacadeInner, JsValueFacade, JsValueType,
-    };
+    use hirofa_utils::js_utils::facades::values::JsValueFacade;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use log::LevelFilter;
-    use quickjs_runtime::builder::QuickjsRuntimeBuilder;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use std::panic;
 
     fn init_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
@@ -68,7 +67,7 @@ pub mod tests {
             ctx_adapter.js_install_closure(
                 &["com", "my_company"],
                 "testFunction",
-                |runtime, realm, _this, args| {
+                |_runtime, realm, _this, args| {
                     // return 1234
                     let arg1 = &args[0].js_to_i32();
                     let arg2 = &args[1].js_to_i32();
@@ -86,13 +85,16 @@ pub mod tests {
     }
 
     fn test_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
-        let args: Vec<Box<dyn JsValueFacade>> = vec![Box::new(2), Box::new(4)];
+        let args: Vec<JsValueFacade> = vec![JsValueFacade::new_i32(2), JsValueFacade::new_i32(4)];
         let res =
             rt_facade.js_function_invoke_sync(None, &["com", "my_company"], "testFunction", args);
         match res {
             Ok(val) => {
-                assert!(val.js_get_type() == JsValueType::I32);
-                assert_eq!(val.js_as_i32(), 2 * 4 * 3);
+                if let JsValueFacade::I32 { val } = val {
+                    assert_eq!(val, 2 * 4 * 3);
+                } else {
+                    panic!("script did not return a i32")
+                }
             }
             Err(err) => {
                 panic!("func failed: {}", err);
@@ -122,7 +124,7 @@ pub mod tests {
         #[cfg(feature = "quickjs_runtime")]
         {
             println!("testing quickjs");
-            let quickjs_builder = JsEngine::quickjs_builder();
+            let quickjs_builder = QuickJsRuntimeBuilder::new();
             //let builder1: JsRuntimeBuilder = quickjs_builder;
             let rt1 = quickjs_builder.build();
             init_abstract_inner(&rt1);
@@ -163,6 +165,8 @@ pub mod tests {
             .ok()
             .unwrap();
 
-        QuickjsRuntimeBuilder::new().build()
+        QuickJsRuntimeBuilder::new()
+            .script_pre_processor(CppPreProcessor::new())
+            .build()
     }
 }
