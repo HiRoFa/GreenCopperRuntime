@@ -3,12 +3,9 @@
 //!
 //!
 
-use std::future::Future;
+use hirofa_utils::js_utils::adapters::JsRealmAdapter;
+use hirofa_utils::js_utils::JsError;
 use std::str::FromStr;
-
-pub trait FetchResponder {
-    fn fetch(&self, url: &str, init: dyn FetchInit) -> dyn Future<Output = Box<dyn Response>>;
-}
 
 pub enum Mode {
     Cors,
@@ -175,24 +172,67 @@ impl FromStr for Cache {
     }
 }
 
-pub trait FetchInit {
-    fn get_method(&self) -> Method;
-    fn get_headers(&self) -> dyn Headers;
-    fn get_body(&self) -> dyn Body;
-    fn get_mode(&self) -> Mode;
-    fn get_credentials(&self) -> Credentials;
-    fn get_cache(&self) -> Cache;
+pub struct FetchInit {
+    method: Method,
+    headers: Option<Headers>,
+    body: Option<Body>,
+    mode: Option<Mode>,
+    credentials: Option<Credentials>,
+    cache: Option<Cache>,
+}
+impl FetchInit {
+    pub fn from_js_object<R: JsRealmAdapter>(
+        realm: &R,
+        value: Option<&R::JsValueAdapterType>,
+    ) -> Self {
+        let ret = Self {
+            method: Method::Get,
+            headers: None,
+            body: None,
+            mode: None,
+            credentials: None,
+            cache: None,
+        };
+
+        ret
+    }
 }
 
-pub trait Headers {
-    fn append(&mut self, name: &str, value: &str);
+pub struct Headers {}
+impl Headers {
+    pub fn append(&mut self, name: &str, value: &str) {
+        todo!()
+    }
 }
 
-pub trait Body {}
+pub struct Body {}
+impl Body {
+    //
+}
 
-pub trait Response {}
+pub struct Response {}
+impl Response {
+    pub fn to_js_value<R: JsRealmAdapter>(
+        &self,
+        realm: &R,
+    ) -> Result<R::JsValueAdapterType, JsError> {
+        realm.js_null_create()
+    }
+}
 
 pub trait Request {
     fn get_url(&self) -> &str;
     fn get_header(&self, name: &str) -> &[String];
+}
+
+pub async fn do_fetch(
+    _realm_id: String,
+    url: Option<String>,
+    fetch_init: FetchInit,
+) -> Result<Response, String> {
+    if let Some(url) = url {
+        todo!()
+    } else {
+        Err("Missing mandatory url argument".to_string())
+    }
 }

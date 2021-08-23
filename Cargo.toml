@@ -28,7 +28,7 @@ http = ["ureq"]
 features = ["commonjs", "console", "fetch"]
 
 commonjs = []
-fetch = []
+fetch = ["ureq"]
 console = []
 
 
