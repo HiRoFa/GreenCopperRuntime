@@ -3,10 +3,13 @@
 //!
 //!
 
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
+use crate::features::js_fetch::proxies::RESPONSE_INSTANCES;
+use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::JsError;
 use std::str::FromStr;
+use std::sync::Arc;
 
+// todo see stackoverflow.com/questions/44121783
 pub enum Mode {
     Cors,
     NoCors,
@@ -176,7 +179,7 @@ pub struct FetchInit {
     method: Method,
     headers: Option<Headers>,
     body: Option<Body>,
-    mode: Option<Mode>,
+    mode: Mode,
     credentials: Option<Credentials>,
     cache: Option<Cache>,
 }
@@ -184,17 +187,38 @@ impl FetchInit {
     pub fn from_js_object<R: JsRealmAdapter>(
         realm: &R,
         value: Option<&R::JsValueAdapterType>,
-    ) -> Self {
-        let ret = Self {
+    ) -> Result<Self, JsError> {
+        let mut fetch_init = Self {
             method: Method::Get,
             headers: None,
             body: None,
-            mode: None,
+            mode: Mode::NoCors,
             credentials: None,
             cache: None,
         };
 
-        ret
+        if let Some(init_obj) = value {
+            realm.js_object_traverse_mut(init_obj, |prop_name, prop| {
+                //
+
+                match prop_name {
+                    "method" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.method = Method::from_str(val.as_str())
+                            .map_err(|e| JsError::new_str("No such method"))?;
+                    }
+                    "mode" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.mode = Mode::from_str(val.as_str())
+                            .map_err(|e| JsError::new_str("No such mode"))?;
+                    }
+                    _ => {}
+                }
+
+                Ok(())
+            })?;
+        }
+        Ok(fetch_init)
     }
 }
 
@@ -224,13 +248,20 @@ pub struct Response {
 }
 impl Response {
     pub fn to_js_value<R: JsRealmAdapter>(
-        &self,
+        self,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
-        realm.js_null_create()
+        // todo
+        let inst_res = realm.js_proxy_instantiate(&[], "Response", &[])?;
+        RESPONSE_INSTANCES.with(|rc| {
+            let map = &mut *rc.borrow_mut();
+            map.insert(inst_res.0, Arc::new(self))
+        });
+        Ok(inst_res.1)
     }
     pub async fn text(&self) -> Result<String, String> {
-        todo!()
+        let txt = self.body.text.clone(); // todo impl take in body
+        Ok(txt)
     }
     pub async fn form_data(&self) -> Result<String, String> {
         todo!()

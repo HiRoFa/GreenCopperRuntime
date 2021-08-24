@@ -13,12 +13,6 @@ extern crate lazy_static;
 ))]
 pub mod features;
 
-#[cfg(all(
-    feature = "quickjs",
-    any(feature = "all", feature = "com", feature = "http")
-))]
-pub mod fetch;
-
 #[cfg(feature = "quickjs")]
 pub mod moduleloaders;
 #[cfg(feature = "quickjs")]
@@ -53,6 +47,7 @@ pub fn new_greco_rt_builder2(preprocs: bool, features: bool, modules: bool) -> E
 #[cfg(test)]
 pub mod tests {
 
+    use crate::features::js_console;
     use crate::preprocessors::cpp::CppPreProcessor;
     use backtrace::Backtrace;
     use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
@@ -165,8 +160,10 @@ pub mod tests {
             .ok()
             .unwrap();
 
-        QuickJsRuntimeBuilder::new()
-            .script_pre_processor(CppPreProcessor::new())
-            .build()
+        let mut builder = QuickJsRuntimeBuilder::new().script_pre_processor(CppPreProcessor::new());
+
+        js_console::init(&mut builder);
+
+        builder.build()
     }
 }

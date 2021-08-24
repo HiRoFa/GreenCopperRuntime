@@ -10,9 +10,14 @@ pub mod spec;
 
 pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
     // todo abstract trait for builders
-    builder.js_runtime_init_hook(|rt| {
-        rt.js_loop_sync(|rta| rta.js_add_realm_init_hook(|_rt, realm| impl_for(realm)))
-    });
+    builder.js_runtime_init_hook(|rt| impl_for_rt(rt));
+}
+
+pub fn impl_for_rt<R>(runtime: &R) -> Result<(), JsError>
+where
+    R: JsRuntimeFacade,
+{
+    runtime.js_loop_sync(|rta| rta.js_add_realm_init_hook(|_rt, realm| impl_for(realm)))
 }
 
 pub fn impl_for<C>(realm: &C) -> Result<(), JsError>
@@ -34,7 +39,7 @@ where
                 } else {
                     None
                 };
-            let fetch_init: FetchInit = FetchInit::from_js_object(realm, args.get(1));
+            let fetch_init: FetchInit = FetchInit::from_js_object(realm, args.get(1))?;
             let realm_id = realm.js_get_realm_id().to_string();
 
             let prom = realm.js_promise_create_resolving(
@@ -57,25 +62,22 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use crate::features::js_console;
-    use crate::features::js_fetch::init;
+    use crate::features::js_fetch::impl_for_rt;
+    use crate::tests::init_test_greco_rt;
     use futures::executor::block_on;
     use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
-    use hirofa_utils::js_utils::{JsError, Script};
-    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
-    use quickjs_runtime::esvalue::EsValueFacade;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+    use hirofa_utils::js_utils::Script;
 
     #[test]
     fn test_fetch_generic() {
-        let mut rtb = QuickJsRuntimeBuilder::new();
-        js_console::init(&mut rtb);
-        init(&mut rtb);
-        let rt = rtb.build();
+        let rt = init_test_greco_rt();
+
+        impl_for_rt(&rt).ok().expect("init failed");
 
         let fetch_fut = rt.js_eval(
             None,
-            Script::new("test_fetch_gen.es", "let testFunc = async function() {console.log(1); let fetchRes = await fetch('https://httpbin.org/anything'); let text = await fetchRes.text(); return text;}; testFunc()"),
+            Script::new("test_fetch_gen.js", "let testFunc = async function() {console.log(1); let fetchRes = await fetch('https://httpbin.org/anything'); let text = await fetchRes.text(); return text;}; testFunc()"),
         );
         let res = block_on(fetch_fut);
         match res {
@@ -90,10 +92,8 @@ pub mod tests {
                     match fetch_res {
                         Ok(v) => match v {
                             Ok(resolved) => {
-                                println!(
-                                    "resolved to string: {}",
-                                    resolved.js_get_value_type() == JsValueType::String
-                                );
+                                //assert_eq!(resolved.js_get_value_type(), JsValueType::String);
+                                println!("resolved to string: {}", resolved.stringify());
                             }
                             Err(rejected) => {
                                 panic!("promise was rejected: {}", rejected.stringify());
