@@ -23,12 +23,12 @@ gpio = ["gpio-cdev", "futures"]
 mysql = ["mysql_lib"]
 
 com = ["http"]
-http = ["ureq"]
+http = ["reqwest"]
 
 features = ["commonjs", "console", "fetch"]
 
 commonjs = []
-fetch = ["ureq"]
+fetch = ["http"]
 console = []
 
 
@@ -56,7 +56,7 @@ backtrace = "0.3.56"
 url = "2.2.1"
 gpp = "0.6"
 
-ureq = {version = "1.*", features=["cookies", "json", "charset", "tls", "socks-proxy"], optional = true}
+reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "brotli", "deflate", "multipart"], optional = true}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
 futures = {version = "0.3", optional = true}
 mysql_lib = {package="mysql", version = "20.1",  optional = true}

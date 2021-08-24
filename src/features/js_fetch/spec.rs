@@ -205,18 +205,35 @@ impl Headers {
     }
 }
 
-pub struct Body {}
+pub struct Body {
+    pub text: String,
+}
 impl Body {
     //
 }
 
-pub struct Response {}
+pub struct Response {
+    pub body: Body,
+    pub headers: Headers,
+    pub ok: bool,
+    pub redirected: bool,
+    pub status: u16,
+    pub status_text: &'static str,
+    pub response_type: &'static str,
+    pub url: String,
+}
 impl Response {
     pub fn to_js_value<R: JsRealmAdapter>(
         &self,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
         realm.js_null_create()
+    }
+    pub async fn text(&self) -> Result<String, String> {
+        todo!()
+    }
+    pub async fn form_data(&self) -> Result<String, String> {
+        todo!()
     }
 }
 
@@ -231,7 +248,23 @@ pub async fn do_fetch(
     fetch_init: FetchInit,
 ) -> Result<Response, String> {
     if let Some(url) = url {
-        todo!()
+        // todo cache reqwest client per realm_id
+
+        let reqwest_resp = reqwest::get(url).await.map_err(|e| format!("{}", e))?;
+
+        let response: Response = Response {
+            body: Body {
+                text: reqwest_resp.text().await.map_err(|e| format!("{}", e))?,
+            },
+            headers: Headers {},
+            ok: false,
+            redirected: false,
+            status: 0,
+            status_text: "",
+            response_type: "",
+            url: "".to_string(),
+        };
+        Ok(response)
     } else {
         Err("Missing mandatory url argument".to_string())
     }
