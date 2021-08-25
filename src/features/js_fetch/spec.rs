@@ -6,6 +6,7 @@
 use crate::features::js_fetch::proxies::RESPONSE_INSTANCES;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::JsError;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -108,6 +109,35 @@ impl FromStr for Method {
     }
 }
 
+pub enum Redirect {
+    Follow,
+    Manual,
+    Error,
+}
+
+impl Redirect {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Follow => "follow",
+            Self::Manual => "manual",
+            Self::Error => "error",
+        }
+    }
+}
+
+impl FromStr for Redirect {
+    type Err = ();
+
+    fn from_str(val: &str) -> Result<Self, Self::Err> {
+        match val {
+            "manual" => Ok(Self::Manual),
+            "follow" => Ok(Self::Follow),
+            "error" => Ok(Self::Error),
+            _ => Err(()),
+        }
+    }
+}
+
 pub enum Credentials {
     Omit,
     SameOrigin,
@@ -177,11 +207,12 @@ impl FromStr for Cache {
 
 pub struct FetchInit {
     method: Method,
-    headers: Option<Headers>,
+    headers: Headers,
     body: Option<Body>,
     mode: Mode,
-    credentials: Option<Credentials>,
-    cache: Option<Cache>,
+    credentials: Credentials,
+    cache: Cache,
+    redirect: Redirect,
 }
 impl FetchInit {
     pub fn from_js_object<R: JsRealmAdapter>(
@@ -190,11 +221,12 @@ impl FetchInit {
     ) -> Result<Self, JsError> {
         let mut fetch_init = Self {
             method: Method::Get,
-            headers: None,
+            headers: Headers::new(),
             body: None,
             mode: Mode::NoCors,
-            credentials: None,
-            cache: None,
+            credentials: Credentials::SameOrigin,
+            cache: Cache::Default,
+            redirect: Redirect::Follow,
         };
 
         if let Some(init_obj) = value {
@@ -205,13 +237,43 @@ impl FetchInit {
                     "method" => {
                         let val = prop.js_to_string()?;
                         fetch_init.method = Method::from_str(val.as_str())
-                            .map_err(|e| JsError::new_str("No such method"))?;
+                            .map_err(|_e| JsError::new_str("No such method"))?;
                     }
                     "mode" => {
                         let val = prop.js_to_string()?;
                         fetch_init.mode = Mode::from_str(val.as_str())
-                            .map_err(|e| JsError::new_str("No such mode"))?;
+                            .map_err(|_e| JsError::new_str("No such mode"))?;
                     }
+                    "cache" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.cache = Cache::from_str(val.as_str())
+                            .map_err(|_e| JsError::new_str("No such cache"))?;
+                    }
+                    "credentials" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.credentials = Credentials::from_str(val.as_str())
+                            .map_err(|_e| JsError::new_str("No such credentials"))?;
+                    }
+
+                    "redirect" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.redirect = Redirect::from_str(val.as_str())
+                            .map_err(|_e| JsError::new_str("No such redirect"))?;
+                    }
+
+                    "body" => {
+                        let val = prop.js_to_string()?;
+                        fetch_init.body = Some(Body { text: val })
+                    }
+                    "headers" => {
+                        realm.js_object_traverse_mut(prop, |header_name, header_val| {
+                            fetch_init
+                                .headers
+                                .append(header_name, header_val.js_to_string()?.as_str());
+                            Ok(())
+                        })?;
+                    }
+
                     _ => {}
                 }
 
@@ -222,10 +284,21 @@ impl FetchInit {
     }
 }
 
-pub struct Headers {}
+pub struct Headers {
+    map: HashMap<String, Vec<String>>,
+}
 impl Headers {
+    pub fn new() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
     pub fn append(&mut self, name: &str, value: &str) {
-        todo!()
+        if !self.map.contains_key(name) {
+            self.map.insert(name.to_string(), vec![]);
+        }
+        let vec = self.map.get_mut(name).unwrap();
+        vec.push(value.to_string());
     }
 }
 
@@ -287,7 +360,7 @@ pub async fn do_fetch(
             body: Body {
                 text: reqwest_resp.text().await.map_err(|e| format!("{}", e))?,
             },
-            headers: Headers {},
+            headers: Headers::new(),
             ok: false,
             redirected: false,
             status: 0,
