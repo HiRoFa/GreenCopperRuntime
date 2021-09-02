@@ -1,5 +1,5 @@
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
-    builder
+pub(crate) fn init<B: JsRuntimeBuilder>(_builder: &mut B) {
+    // todo
 }

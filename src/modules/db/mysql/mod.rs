@@ -62,15 +62,11 @@
 //!
 
 use crate::modules::db::mysql::connection::MysqlConnection;
+use hirofa_utils::js_utils::adapters::proxies::JsProxy;
+use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use hirofa_utils::js_utils::modules::NativeModuleLoader;
 use hirofa_utils::js_utils::JsError;
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::esvalue::EsValueFacade;
-use quickjs_runtime::quickjs_utils;
-use quickjs_runtime::quickjs_utils::primitives;
-use quickjs_runtime::quickjscontext::QuickJsContext;
-use quickjs_runtime::quickjsruntime::{NativeModuleLoader, QuickJsRuntime};
-use quickjs_runtime::reflection::Proxy;
-use quickjs_runtime::valueref::JSValueRef;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -85,7 +81,6 @@ fn with_connection<R, C: FnOnce(&MysqlConnection) -> R>(
     proxy_instance_id: &usize,
     consumer: C,
 ) -> R {
-    // todo
     CONNECTIONS.with(|rc| {
         let map = &*rc.borrow();
         let con: &MysqlConnection = map.get(proxy_instance_id).expect("no such Connection");
@@ -109,41 +104,41 @@ fn drop_connection(proxy_instance_id: &usize) {
 
 struct MysqlModuleLoader {}
 
-impl NativeModuleLoader for MysqlModuleLoader {
-    fn has_module(&self, _q_ctx: &QuickJsContext, module_name: &str) -> bool {
+impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for MysqlModuleLoader {
+    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
         module_name.eq("greco://mysql")
     }
 
-    fn get_module_export_names(&self, _q_ctx: &QuickJsContext, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
         vec!["Connection"]
     }
 
     fn get_module_exports(
         &self,
-        q_ctx: &QuickJsContext,
+        realm: &R,
         _module_name: &str,
-    ) -> Vec<(&str, JSValueRef)> {
-        init_exports(q_ctx).ok().expect("init mysql exports failed")
+    ) -> Vec<(&str, R::JsValueAdapterType)> {
+        init_exports(realm).ok().expect("init mysql exports failed")
     }
 }
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
-    builder.native_module_loader(Box::new(MysqlModuleLoader {}))
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
+    builder.js_native_module_loader(MysqlModuleLoader {});
 }
 
-fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {
-    let myql_connection_proxy_class = Proxy::new()
-        .namespace(vec!["greco", "db", "mysql"])
-        .name("Connection")
-        .constructor(|q_ctx, id, args| {
-            let con = MysqlConnection::new(q_ctx, &args)?;
-            store_connection(id, con);
+fn init_exports<R: JsRealmAdapter + 'static>(
+    realm: &R,
+) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
+    let myql_connection_proxy_class = JsProxy::new(&["greco", "db", "mysql"], "Connection")
+        .set_constructor(|runtime, realm: &R, instance_id, args| {
+            let con = MysqlConnection::new(runtime, realm, args)?;
+            store_connection(instance_id, con);
             Ok(())
         })
-        .method("transaction", |_q_ctx, _id, _args| {
-            Ok(quickjs_utils::new_null_ref())
+        .add_method("transaction", |_runtime, realm, _id, _args| {
+            realm.js_null_create()
         })
-        .method("query", |q_ctx, id, args| {
+        .add_method("query", |runtime, realm: &R, id, args| {
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() != 3 {
@@ -151,23 +146,21 @@ fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)
             } else {
                 // todo
 
-                let query = primitives::to_string_q(q_ctx, &args[0])?;
-                let params = EsValueFacade::from_jsval(q_ctx, &args[1])?;
-                let row_consumer = EsValueFacade::from_jsval(q_ctx, &args[2])?;
+                let query = args[0].js_to_string()?;
 
-                with_connection( id, |con| {
-                    let mut esvf = con.query(query.as_str(), params, row_consumer)?;
-                    esvf.as_js_value(q_ctx)
+                let params = &args[1];
+                let row_consumer = &args[2];
+
+                with_connection( &id, |con| {
+                    con.query(runtime, realm, query.as_str(), params, row_consumer)
                 })
             }
 
         })
-        .finalizer(|_q_ctx, id| {
-            QuickJsRuntime::do_with(|_q_js_rt| {
+        .set_finalizer(|_rt, _realm, id| {
                 drop_connection(&id);
-            })
-        })
-        .install(q_ctx, false)?;
+        });
+    let res = realm.js_proxy_install(myql_connection_proxy_class, false)?;
 
-    Ok(vec![("Connection", myql_connection_proxy_class)])
+    Ok(vec![("Connection", res)])
 }

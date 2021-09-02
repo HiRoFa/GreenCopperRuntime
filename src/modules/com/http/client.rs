@@ -3,7 +3,6 @@ use hirofa_utils::js_utils::JsError;
 use log::trace;
 use quickjs_runtime::quickjs_utils;
 use quickjs_runtime::quickjs_utils::primitives;
-use quickjs_runtime::quickjscontext::QuickJsContext;
 use quickjs_runtime::reflection::Proxy;
 use quickjs_runtime::valueref::JSValueRef;
 use std::cell::RefCell;

@@ -33,36 +33,36 @@ fn impl_response<C>(realm: &C) -> Result<(), JsError>
 where
     C: JsRealmAdapter + 'static,
 {
-    let mut response_proxy = JsProxy::new(&[], "Response");
-    response_proxy.set_finalizer(|_rt, _realm, id| {
-        // todo.. need to use realm id as part of key?
-        RESPONSE_INSTANCES.with(|rc| {
-            let map = &mut *rc.borrow_mut();
-            map.remove(id);
+    let mut response_proxy = JsProxy::new(&[], "Response")
+        .set_finalizer(|_rt, _realm, id| {
+            // todo.. need to use realm id as part of key?
+            RESPONSE_INSTANCES.with(|rc| {
+                let map = &mut *rc.borrow_mut();
+                map.remove(&id);
+            });
+        })
+        .add_method("text", |_rt, realm: &C, instance_id, _args| {
+            //
+            let response = with_response(&instance_id, |response| response.clone())
+                .map_err(|s| JsError::new_str(s))?;
+            // todo promise may seem futile now but later we will just store bytes in body and encode to string async
+            realm.js_promise_create_resolving_async(
+                async move { response.text().await },
+                // todo js_string_crea2 with String
+                |realm, res| realm.js_string_create(res.as_str()),
+            )
+        })
+        .add_method("json", |_rt, realm: &C, instance_id, _args| {
+            //
+            let response = with_response(&instance_id, |response| response.clone())
+                .map_err(|s| JsError::new_str(s))?;
+            // todo promise may seem futile now but later we will just store bytes in body and encode to string async
+            realm.js_promise_create_resolving_async(
+                async move { response.text().await },
+                // todo js_string_crea2 with String
+                |realm, res| realm.js_json_parse(res.as_str()),
+            )
         });
-    });
-    response_proxy.add_method("text", |_rt, realm: &C, instance_id, _args| {
-        //
-        let response = with_response(instance_id, |response| response.clone())
-            .map_err(|s| JsError::new_str(s))?;
-        // todo promise may seem futile now but later we will just store bytes in body and encode to string async
-        realm.js_promise_create_resolving(
-            async move { response.text().await },
-            // todo js_string_crea2 with String
-            |realm, res| realm.js_string_create(res.as_str()),
-        )
-    });
-    response_proxy.add_method("json", |_rt, realm: &C, instance_id, _args| {
-        //
-        let response = with_response(instance_id, |response| response.clone())
-            .map_err(|s| JsError::new_str(s))?;
-        // todo promise may seem futile now but later we will just store bytes in body and encode to string async
-        realm.js_promise_create_resolving(
-            async move { response.text().await },
-            // todo js_string_crea2 with String
-            |realm, res| realm.js_json_parse(res.as_str()),
-        )
-    });
 
     realm.js_proxy_install(response_proxy, false)?;
 

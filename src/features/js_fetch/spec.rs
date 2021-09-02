@@ -332,11 +332,11 @@ impl Response {
         });
         Ok(inst_res.1)
     }
-    pub async fn text(&self) -> Result<String, String> {
+    pub async fn text(&self) -> Result<String, JsError> {
         let txt = self.body.text.clone(); // todo impl take in body
         Ok(txt)
     }
-    pub async fn form_data(&self) -> Result<String, String> {
+    pub async fn form_data(&self) -> Result<String, JsError> {
         todo!()
     }
 }
@@ -350,15 +350,20 @@ pub async fn do_fetch(
     _realm_id: String,
     url: Option<String>,
     fetch_init: FetchInit,
-) -> Result<Response, String> {
+) -> Result<Response, JsError> {
     if let Some(url) = url {
         // todo cache reqwest client per realm_id
 
-        let reqwest_resp = reqwest::get(url).await.map_err(|e| format!("{}", e))?;
+        let reqwest_resp = reqwest::get(url)
+            .await
+            .map_err(|e| JsError::new_string(format!("{}", e)))?;
 
         let response: Response = Response {
             body: Body {
-                text: reqwest_resp.text().await.map_err(|e| format!("{}", e))?,
+                text: reqwest_resp
+                    .text()
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{}", e)))?,
             },
             headers: Headers::new(),
             ok: false,
@@ -370,6 +375,6 @@ pub async fn do_fetch(
         };
         Ok(response)
     } else {
-        Err("Missing mandatory url argument".to_string())
+        Err(JsError::new_str("Missing mandatory url argument"))
     }
 }

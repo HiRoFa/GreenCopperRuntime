@@ -42,11 +42,9 @@
 //! ```
 //!
 
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use hirofa_utils::js_utils::modules::NativeModuleLoader;
 use hirofa_utils::js_utils::JsError;
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use quickjs_runtime::quickjscontext::QuickJsContext;
-use quickjs_runtime::quickjsruntime::NativeModuleLoader;
-use quickjs_runtime::valueref::JSValueRef;
 
 mod client;
 mod request;
@@ -54,7 +52,7 @@ mod response;
 
 struct HttpModuleLoader {}
 
-impl NativeModuleLoader for HttpModuleLoader {
+impl NativeModuleLoader<R> for HttpModuleLoader {
     fn has_module(&self, _q_ctx: &QuickJsContext, module_name: &str) -> bool {
         module_name.eq("greco://http")
     }
@@ -72,8 +70,8 @@ impl NativeModuleLoader for HttpModuleLoader {
     }
 }
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
-    builder.native_module_loader(Box::new(HttpModuleLoader {}))
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
+    builder.js_native_module_loader(Box::new(HttpModuleLoader {}));
 }
 
 fn init_exports(q_ctx: &QuickJsContext) -> Result<Vec<(&'static str, JSValueRef)>, JsError> {

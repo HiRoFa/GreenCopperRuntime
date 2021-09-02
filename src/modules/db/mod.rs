@@ -1,10 +1,9 @@
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 
 #[cfg(any(feature = "all", feature = "db", feature = "mysql"))]
 pub mod mysql;
 
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
     #[cfg(any(feature = "all", feature = "db", feature = "mysql"))]
-    let builder = mysql::init(builder);
-    builder
+    mysql::init(builder);
 }

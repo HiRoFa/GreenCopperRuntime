@@ -1,5 +1,5 @@
 use crate::modules::db::mysql::connection::MysqlConnection;
-use quickjs_runtime::esvalue::{EsNullValue, EsValueConvertible, EsValueFacade};
+use hirofa_utils::js_utils::facades::values::JsValueFacade;
 
 pub(crate) struct _MysqlTransaction {
     con: mysql_lib::PooledConn,
@@ -12,16 +12,16 @@ impl _MysqlTransaction {
 
         Self { con }
     }
-    fn _query(&self, _args: Vec<EsValueFacade>) -> EsValueFacade {
-        EsNullValue {}.to_es_value_facade()
+    fn _query(&self, _args: &[JsValueFacade]) -> JsValueFacade {
+        JsValueFacade::Null
     }
-    fn _commit(&self) -> EsValueFacade {
-        EsNullValue {}.to_es_value_facade()
+    fn _commit(&self) -> JsValueFacade {
+        JsValueFacade::Null
     }
-    fn _rollback(&self) -> EsValueFacade {
-        EsNullValue {}.to_es_value_facade()
+    fn _rollback(&self) -> JsValueFacade {
+        JsValueFacade::Null
     }
-    fn _close(&self) -> EsValueFacade {
-        EsNullValue {}.to_es_value_facade()
+    fn _close(&self) -> JsValueFacade {
+        JsValueFacade::Null
     }
 }

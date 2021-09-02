@@ -1,6 +1,7 @@
+use futures::executor::block_on;
+use hirofa_utils::js_utils::modules::ScriptModuleLoader;
 use hirofa_utils::js_utils::JsError;
 use log::trace;
-use quickjs_runtime::quickjsruntime::ScriptModuleLoader;
 use std::fs;
 use std::ops::Add;
 use std::path::{Path, PathBuf};
@@ -199,19 +200,22 @@ impl HttpModuleLoader {
     }
 
     fn read_url(&self, url: &str) -> Option<String> {
-        let mut req = ureq::get(url);
-        let resp = req.call();
-        if !resp.ok() {
+        let mut req = reqwest::get(url);
+        // todo make read_url async
+        let resp = block_on(req);
+        if !resp.is_ok() {
             return None;
         }
+        let resp = resp.expect("wtf");
         if self.is_validate_content_type {
-            let ct = resp.content_type();
+            let ct = &resp.headers()["Content-Type"];
             if !(ct.eq("application/javascript") || ct.eq("text/javascript")) {
                 log::error!("loaded module {} did not have javascript Content-Type", url);
                 return None;
             }
         }
-        let res = resp.into_string();
+        // todo async
+        let res = block_on(resp.text());
         match res {
             Ok(script) => Some(script),
             Err(e) => {
@@ -310,7 +314,7 @@ mod tests {
     use crate::moduleloaders::{
         last_index_of, normalize_path, FileSystemModuleLoader, HttpModuleLoader,
     };
-    use quickjs_runtime::quickjsruntime::ScriptModuleLoader;
+    use hirofa_utils::js_utils::modules::ScriptModuleLoader;
     use std::path::Path;
 
     #[test]
@@ -398,9 +402,6 @@ mod tests {
                 .unwrap(),
             "https://github.com/module.mjs"
         );
-        assert!(loader
-            .load_module("https://httpbin.org/get")
-            .starts_with("{"));
     }
 
     #[test]

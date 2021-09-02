@@ -42,7 +42,7 @@ where
             let fetch_init: FetchInit = FetchInit::from_js_object(realm, args.get(1))?;
             let realm_id = realm.js_get_realm_id().to_string();
 
-            let prom = realm.js_promise_create_resolving(
+            let prom = realm.js_promise_create_resolving_async(
                 //
                 // do request here and return result as fetch objects
                 do_fetch(realm_id, url, fetch_init),

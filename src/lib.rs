@@ -1,3 +1,4 @@
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 #[cfg(feature = "quickjs")]
 use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 
@@ -13,9 +14,8 @@ extern crate lazy_static;
 ))]
 pub mod features;
 
-#[cfg(feature = "quickjs")]
 pub mod moduleloaders;
-#[cfg(feature = "quickjs")]
+
 pub mod modules;
 pub mod preprocessors;
 
@@ -23,25 +23,25 @@ pub mod preprocessors;
 // danwel gewoon features beschikbaar maken met install functie die builder accepteerd
 // in quickjsruntimes kun je dan als test_dep een ref naar gc maken om console te installen in test rt
 
-#[cfg(feature = "quickjs")]
-pub fn new_greco_rt_builder() -> EsRuntimeBuilder {
-    new_greco_rt_builder2(true, true, true)
+pub fn init_greco_rt<B: JsRuntimeBuilder>(builder: &mut B) {
+    init_greco_rt2(builder, true, true, true)
 }
 
-#[cfg(feature = "quickjs")]
-pub fn new_greco_rt_builder2(preprocs: bool, features: bool, modules: bool) -> EsRuntimeBuilder {
-    let mut rt_builder = EsRuntimeBuilder::new();
+pub fn init_greco_rt2<B: JsRuntimeBuilder>(
+    builder: &mut B,
+    preprocs: bool,
+    features: bool,
+    modules: bool,
+) {
     if modules {
-        rt_builder = modules::init(rt_builder);
+        modules::init(builder);
     }
     if features {
-        rt_builder = features::init(rt_builder);
+        features::init(builder);
     }
     if preprocs {
-        rt_builder = preprocessors::init(rt_builder);
+        preprocessors::init(builder);
     }
-
-    rt_builder
 }
 
 #[cfg(test)]

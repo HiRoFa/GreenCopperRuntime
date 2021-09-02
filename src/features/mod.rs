@@ -1,5 +1,4 @@
-#[cfg(feature = "quickjs")]
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
 
 #[cfg(feature = "console")]
 pub mod js_console;
@@ -8,13 +7,12 @@ pub mod js_fetch;
 #[cfg(feature = "commonjs")]
 pub mod require;
 
-#[cfg(feature = "quickjs")]
-pub(crate) fn init(builder: EsRuntimeBuilder) -> EsRuntimeBuilder {
+pub(crate) fn init<T: JsRuntimeBuilder>(builder: &mut T) {
     #[cfg(feature = "commonjs")]
-    let mut builder = require::init(builder);
+    require::init(builder);
 
-    js_fetch::init(&mut builder);
-    js_console::init(&mut builder);
+    #[cfg(feature = "http")]
+    js_fetch::init(builder);
 
-    builder
+    js_console::init(builder);
 }

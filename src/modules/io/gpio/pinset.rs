@@ -16,7 +16,7 @@ thread_local! {
 pub struct PinSetHandle {
     event_loop: EventLoop,
     // this indicator is passed to the worker thread and may be altered to modify the pwm signal
-    pub pwm_stop_sender: Option<std::sync::mpsc::Sender<bool>>,
+    pub pwm_stop_sender: Option<std::sync::mpsc::SyncSender<bool>>,
 }
 
 impl PinSetHandle {
@@ -26,22 +26,32 @@ impl PinSetHandle {
             pwm_stop_sender: None,
         }
     }
-    pub fn do_with<C: FnOnce(&PinSet) + Send + 'static>(&self, consumer: C) {
-        self.event_loop.add_void(|| {
-            PIN_SET.with(|rc| {
-                let ps = &*rc.borrow();
-                consumer(ps)
+    pub async fn do_with<R: Send + 'static, C: FnOnce(&PinSet) -> R + Send + 'static>(
+        &self,
+        consumer: C,
+    ) -> R {
+        self.event_loop
+            .add(|| {
+                PIN_SET.with(|rc| {
+                    let ps = &*rc.borrow();
+                    consumer(ps)
+                })
             })
-        })
+            .await
     }
 
-    pub fn do_with_mut<C: FnOnce(&mut PinSet) + Send + 'static>(&self, consumer: C) {
-        self.event_loop.add_void(|| {
-            PIN_SET.with(|rc| {
-                let ps = &mut *rc.borrow_mut();
-                consumer(ps)
+    pub async fn do_with_mut<R: Send + 'static, C: FnOnce(&mut PinSet) -> R + Send + 'static>(
+        &self,
+        consumer: C,
+    ) -> R {
+        self.event_loop
+            .add(|| {
+                PIN_SET.with(|rc| {
+                    let ps = &mut *rc.borrow_mut();
+                    consumer(ps)
+                })
             })
-        })
+            .await
     }
 }
 
