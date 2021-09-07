@@ -110,7 +110,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     });
                     Ok(())
                 })
-                .add_method("init", |runtime, realm: &R, instance_id, args| {
+                .add_method("init", |_runtime, realm: &R, instance_id, args| {
                     // init pins, return prom, reject on fail
 
                     if args.len() < 3 {
@@ -284,7 +284,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     })
 
                 })
-                .add_method("softPwm", |runtime, realm: &R, instance_id, args: &[R::JsValueAdapterType]| {
+                .add_method("softPwm", |_runtime, realm: &R, instance_id, args: &[R::JsValueAdapterType]| {
 
                     if args.len() != 2 || !args[0].js_is_i32() || !(args[1].js_is_i32() || args[1].js_is_f64()) {
                         return Err(JsError::new_str("softPwm expects 2 args, (duration: Number, dutyCycle: Number) both in ms"));
@@ -309,7 +309,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
                         let (sender, receiver) = sync_channel(1);
                         let _ = pin_set_handle.pwm_stop_sender.replace(sender);
-                        pin_set_handle.do_with::<(), _>(move |pin_set: &PinSet| {
+                        pin_set_handle.do_with_void(move |pin_set: &PinSet| {
                             pin_set.start_pwm_sequence(frequency, duty_cycle, receiver);
                         });
 
@@ -318,7 +318,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     realm.js_null_create()
 
                 })
-                .add_method("softPwmOff", |runtime, realm, instance_id, _args| {
+                .add_method("softPwmOff", |_runtime, realm, instance_id, _args| {
                     PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
                         let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");

@@ -33,7 +33,7 @@ fn impl_response<C>(realm: &C) -> Result<(), JsError>
 where
     C: JsRealmAdapter + 'static,
 {
-    let mut response_proxy = JsProxy::new(&[], "Response")
+    let response_proxy = JsProxy::new(&[], "Response")
         .set_finalizer(|_rt, _realm, id| {
             // todo.. need to use realm id as part of key?
             RESPONSE_INSTANCES.with(|rc| {

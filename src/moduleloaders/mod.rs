@@ -200,7 +200,7 @@ impl HttpModuleLoader {
     }
 
     fn read_url(&self, url: &str) -> Option<String> {
-        let mut req = reqwest::get(url);
+        let req = reqwest::get(url);
         // todo make read_url async
         let resp = block_on(req);
         if !resp.is_ok() {

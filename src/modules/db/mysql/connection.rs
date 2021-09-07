@@ -17,8 +17,8 @@ pub(crate) struct MysqlConnection {
 
 impl MysqlConnection {
     pub fn new<R: JsRealmAdapter>(
-        runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &R::JsRuntimeAdapterType,
+        _realm: &R,
         args: &[R::JsValueAdapterType],
     ) -> Result<Self, JsError> {
         // todo, actually parse args
@@ -63,7 +63,6 @@ impl MysqlConnection {
             .js_get_runtime_facade_inner()
             .upgrade()
             .expect("invalid state");
-        let realm_id = realm.js_get_realm_id().to_string();
 
         let params_jsvf = realm.to_js_value_facade(params)?;
         let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);

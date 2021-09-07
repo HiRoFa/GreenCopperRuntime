@@ -116,7 +116,6 @@ pub mod tests {
             .ok()
             .unwrap();
 
-        #[cfg(feature = "quickjs_runtime")]
         {
             println!("testing quickjs");
             let quickjs_builder = QuickJsRuntimeBuilder::new();

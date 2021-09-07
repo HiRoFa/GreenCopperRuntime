@@ -5,6 +5,7 @@ use gpio_cdev::{
 use hirofa_utils::eventloop::EventLoop;
 use hirofa_utils::task_manager::TaskManager;
 use std::cell::RefCell;
+use std::future::Future;
 use std::ops::Sub;
 use std::sync::Arc;
 use std::time::Duration;
@@ -26,32 +27,36 @@ impl PinSetHandle {
             pwm_stop_sender: None,
         }
     }
-    pub async fn do_with<R: Send + 'static, C: FnOnce(&PinSet) -> R + Send + 'static>(
+    pub fn do_with<R: Send + 'static, C: FnOnce(&PinSet) -> R + Send + 'static>(
         &self,
         consumer: C,
-    ) -> R {
-        self.event_loop
-            .add(|| {
-                PIN_SET.with(|rc| {
-                    let ps = &*rc.borrow();
-                    consumer(ps)
-                })
+    ) -> impl Future<Output = R> {
+        self.event_loop.add(|| {
+            PIN_SET.with(|rc| {
+                let ps = &*rc.borrow();
+                consumer(ps)
             })
-            .await
+        })
+    }
+    pub fn do_with_void<C: FnOnce(&PinSet) + Send + 'static>(&self, consumer: C) {
+        self.event_loop.add_void(|| {
+            PIN_SET.with(|rc| {
+                let ps = &*rc.borrow();
+                consumer(ps)
+            })
+        })
     }
 
-    pub async fn do_with_mut<R: Send + 'static, C: FnOnce(&mut PinSet) -> R + Send + 'static>(
+    pub fn do_with_mut<R: Send + 'static, C: FnOnce(&mut PinSet) -> R + Send + 'static>(
         &self,
         consumer: C,
-    ) -> R {
-        self.event_loop
-            .add(|| {
-                PIN_SET.with(|rc| {
-                    let ps = &mut *rc.borrow_mut();
-                    consumer(ps)
-                })
+    ) -> impl Future<Output = R> {
+        self.event_loop.add(|| {
+            PIN_SET.with(|rc| {
+                let ps = &mut *rc.borrow_mut();
+                consumer(ps)
             })
-            .await
+        })
     }
 }
 
