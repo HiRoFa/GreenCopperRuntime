@@ -349,7 +349,7 @@ pub trait Request {
 pub async fn do_fetch(
     _realm_id: String,
     url: Option<String>,
-    fetch_init: FetchInit,
+    _fetch_init: FetchInit,
 ) -> Result<Response, JsError> {
     if let Some(url) = url {
         // todo cache reqwest client per realm_id

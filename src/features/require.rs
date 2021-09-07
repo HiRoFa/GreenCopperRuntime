@@ -14,7 +14,7 @@ pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
     builder.js_runtime_init_hook(|rt| {
         // todo, impl with native function.. like now
 
-        rt.js_loop_sync(|js_rt| {
+        rt.js_loop_sync_mut(|js_rt| {
             js_rt.js_add_realm_init_hook(|_js_rt, realm| {
                 //let global = get_global_q(q_ctx);
                 //let require_func =

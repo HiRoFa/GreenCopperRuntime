@@ -52,10 +52,10 @@ use log::LevelFilter;
 use std::str::FromStr;
 
 pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
-    builder.js_runtime_init_hook(|rt| rt.js_loop_sync(|rta| install_runtime(rta)))
+    builder.js_runtime_init_hook(|rt| rt.js_loop_sync_mut(|rta| install_runtime(rta)))
 }
 
-pub fn install_runtime<R: JsRuntimeAdapter>(runtime_adapter: &R) -> Result<(), JsError> {
+pub fn install_runtime<R: JsRuntimeAdapter>(runtime_adapter: &mut R) -> Result<(), JsError> {
     runtime_adapter.js_add_realm_init_hook(|_, realm| install_realm(realm))
 }
 

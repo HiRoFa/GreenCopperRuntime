@@ -17,7 +17,7 @@ pub fn impl_for_rt<R>(runtime: &R) -> Result<(), JsError>
 where
     R: JsRuntimeFacade,
 {
-    runtime.js_loop_sync(|rta| rta.js_add_realm_init_hook(|_rt, realm| impl_for(realm)))
+    runtime.js_loop_sync_mut(|rta| rta.js_add_realm_init_hook(|_rt, realm| impl_for(realm)))
 }
 
 pub fn impl_for<C>(realm: &C) -> Result<(), JsError>
