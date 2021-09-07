@@ -361,6 +361,6 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for GpioModuleLoader {
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
-    builder.js_native_module_loader(GpioModuleLoader {});
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+    builder.js_native_module_loader(GpioModuleLoader {})
 }

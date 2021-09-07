@@ -8,9 +8,9 @@ use hirofa_utils::js_utils::JsError;
 mod proxies;
 pub mod spec;
 
-pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
+pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
     // todo abstract trait for builders
-    builder.js_runtime_init_hook(|rt| impl_for_rt(rt));
+    builder.js_runtime_init_hook(|rt| impl_for_rt(rt))
 }
 
 pub fn impl_for_rt<R>(runtime: &R) -> Result<(), JsError>

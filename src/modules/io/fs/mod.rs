@@ -192,8 +192,8 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for FsModuleLoader {
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
-    builder.js_native_module_loader(FsModuleLoader {});
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+    builder.js_native_module_loader(FsModuleLoader {})
 }
 
 fn init_exports<R: JsRealmAdapter + 'static>(
@@ -265,7 +265,7 @@ pub mod tests {
             .expect("could not init logger");
 
         let mut rtb = QuickJsRuntimeBuilder::new();
-        init_greco_rt(&mut rtb);
+        rtb = init_greco_rt(rtb);
         let rt = rtb.build();
         rt.eval_sync(Script::new(
             "init_fs.es",

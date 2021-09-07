@@ -9,7 +9,7 @@ use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValue
 use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacade, JsValueType};
 use hirofa_utils::js_utils::{JsError, Script};
 
-pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
+pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
     // todo.. this should utilize the script module loaders in order to obtain the source, then use a 'require' function in js to do the actual loading..
     builder.js_runtime_init_hook(|rt| {
         // todo, impl with native function.. like now
@@ -25,7 +25,7 @@ pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
         })?;
 
         Ok(())
-    });
+    })
 }
 
 const DEFAULT_EXTENSIONS: &[&str] = &["js", "mjs", "ts", "mts"];

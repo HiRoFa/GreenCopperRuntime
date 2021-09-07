@@ -6,10 +6,11 @@ pub mod io;
 pub mod lib;
 pub mod util;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     //com::init(builder);
-    db::init(builder);
-    io::init(builder);
-    lib::init(builder);
-    util::init(builder)
+    let builder = db::init(builder);
+    let builder = io::init(builder);
+    let builder = lib::init(builder);
+    let builder = util::init(builder);
+    builder
 }

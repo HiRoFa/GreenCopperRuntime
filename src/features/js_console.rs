@@ -51,8 +51,8 @@ use hirofa_utils::js_utils::JsError;
 use log::LevelFilter;
 use std::str::FromStr;
 
-pub fn init<T: JsRuntimeBuilder>(builder: &mut T) {
-    builder.js_runtime_init_hook(|rt| rt.js_loop_sync(|rta| install_runtime(rta)));
+pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
+    builder.js_runtime_init_hook(|rt| rt.js_loop_sync(|rta| install_runtime(rta)))
 }
 
 pub fn install_runtime<R: JsRuntimeAdapter>(runtime_adapter: &R) -> Result<(), JsError> {

@@ -23,25 +23,27 @@ pub mod preprocessors;
 // danwel gewoon features beschikbaar maken met install functie die builder accepteerd
 // in quickjsruntimes kun je dan als test_dep een ref naar gc maken om console te installen in test rt
 
-pub fn init_greco_rt<B: JsRuntimeBuilder>(builder: &mut B) {
+pub fn init_greco_rt<B: JsRuntimeBuilder>(builder: B) -> B {
     init_greco_rt2(builder, true, true, true)
 }
 
 pub fn init_greco_rt2<B: JsRuntimeBuilder>(
-    builder: &mut B,
+    builder: B,
     preprocs: bool,
     features: bool,
     modules: bool,
-) {
+) -> B {
+    let mut builder = builder;
     if modules {
-        modules::init(builder);
+        builder = modules::init(builder);
     }
     if features {
-        features::init(builder);
+        builder = features::init(builder);
     }
     if preprocs {
-        preprocessors::init(builder);
+        builder = preprocessors::init(builder);
     }
+    builder
 }
 
 #[cfg(test)]
@@ -159,9 +161,9 @@ pub mod tests {
             .ok()
             .unwrap();
 
-        let mut builder = QuickJsRuntimeBuilder::new().script_pre_processor(CppPreProcessor::new());
+        let builder = QuickJsRuntimeBuilder::new().script_pre_processor(CppPreProcessor::new());
 
-        js_console::init(&mut builder);
+        let builder = js_console::init(builder);
 
         builder.build()
     }

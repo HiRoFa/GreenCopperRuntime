@@ -7,12 +7,12 @@ pub mod js_fetch;
 #[cfg(feature = "commonjs")]
 pub mod require;
 
-pub(crate) fn init<T: JsRuntimeBuilder>(builder: &mut T) {
+pub(crate) fn init<T: JsRuntimeBuilder>(builder: T) -> T {
     #[cfg(feature = "commonjs")]
-    require::init(builder);
+    let builder = require::init(builder);
 
     #[cfg(feature = "http")]
-    js_fetch::init(builder);
+    let builder = js_fetch::init(builder);
 
-    js_console::init(builder);
+    js_console::init(builder)
 }

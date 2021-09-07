@@ -6,10 +6,12 @@ pub mod gpio;
 #[cfg(any(feature = "all", feature = "io", feature = "fs"))]
 pub mod fs;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     #[cfg(any(feature = "all", feature = "io", feature = "gpio"))]
-    gpio::init(builder);
+    let builder = gpio::init(builder);
 
     #[cfg(any(feature = "all", feature = "io", feature = "fs"))]
-    fs::init(builder);
+    let builder = fs::init(builder);
+
+    builder
 }

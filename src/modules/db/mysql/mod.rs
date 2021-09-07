@@ -122,8 +122,8 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for MysqlModuleLoader {
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: &mut B) {
-    builder.js_native_module_loader(MysqlModuleLoader {});
+pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+    builder.js_native_module_loader(MysqlModuleLoader {})
 }
 
 fn init_exports<R: JsRealmAdapter + 'static>(
