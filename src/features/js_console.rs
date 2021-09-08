@@ -28,11 +28,12 @@
 //! use hirofa_utils::js_utils::Script;
 //! use log::LevelFilter;
 //! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+//! use hirofa_utils::js_utils::facades::JsRuntimeFacade;
 //! simple_logging::log_to_file("console_test.log", LevelFilter::max())
 //!             .ok()
 //!             .expect("could not init logger");
 //! let rt = QuickJsRuntimeBuilder::new().build();
-//! rt.exe_rt_task_in_event_loop(|rta| {
+//! rt.js_loop_sync_mut(|rta| {
 //!     crate::green_copper_runtime::features::js_console::install_runtime(rta);
 //! });
 //!

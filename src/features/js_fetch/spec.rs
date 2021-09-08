@@ -349,12 +349,20 @@ pub trait Request {
 pub async fn do_fetch(
     _realm_id: String,
     url: Option<String>,
-    _fetch_init: FetchInit,
+    fetch_init: FetchInit,
 ) -> Result<Response, JsError> {
     if let Some(url) = url {
         // todo cache reqwest client per realm_id
 
-        let reqwest_resp = reqwest::get(url)
+        let client = reqwest::ClientBuilder::new()
+            .build()
+            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+        let method = reqwest::Method::from_str(fetch_init.method.as_str())
+            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+
+        let response_fut = client.request(method, url).send();
+
+        let reqwest_resp = response_fut
             .await
             .map_err(|e| JsError::new_string(format!("{}", e)))?;
 

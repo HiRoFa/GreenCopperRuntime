@@ -9,30 +9,54 @@
 //! # example
 //!
 //! ```rust
-//! use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-//! use quickjs_runtime::esvalue::JsValueFacade;
 //! use hirofa_utils::js_utils::Script;
-//! let rt = crate::green_copper_runtime::new_greco_rt_builder().build();
+//! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+//! use futures::executor::block_on;
+//! use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+//! use hirofa_utils::js_utils::facades::values::JsValueFacade;
+//! let rtb = QuickJsRuntimeBuilder::new();
+//! let rtb = green_copper_runtime::init_greco_rt(rtb);
+//! let rt = rtb.build();
+//! let rti_ref = rt.js_get_runtime_facade_inner();
 //! rt.eval_sync(Script::new("init_fs.es", "async function test_write() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     await fs_mod.write('./test.txt', 'hello from greco fs');
 //! }\n"));
-//! let prom_esvf = rt.call_function_sync(vec![], "test_write", vec![]).ok().expect("write function invocation failed");
+//! let prom_jsvf = rt.js_function_invoke_sync(None, &[], "test_write", vec![]).ok().expect("write function invocation failed");
 //! // wait for promise to be done
-//! let done = prom_esvf.get_promise_result_sync();
-//! assert!(done.is_ok());
+//!
+//! if let JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+//!     let rti = rti_ref.upgrade().expect("invalid state");
+//!     let done = block_on(cached_promise.js_get_promise_result(&*rti));
+//!     assert!(done.is_ok());
+//! } else {
+//!     panic!("not a promise");
+//! }
+//!
 //! // do read test
-//! rt.eval_sync(Script::new("init_fs.es", "async function test_read() {\
+//! let eval_fut = rt.js_eval(None, Script::new("init_fs.es", "async function test_read() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     return await fs_mod.readString('./test.txt');
 //! }\n"));
-//! let prom_esvf = rt.call_function_sync(vec![], "test_read", vec![]).ok().expect("read invocation failed");
+//! let _ = block_on(eval_fut);
+//! let prom_jsvf = rt.js_function_invoke_sync(None, &[], "test_read", vec![]).ok().expect("read invocation failed");
 //! // wait for promise to be done
-//! let done = prom_esvf.get_promise_result_sync();
-//! assert!(done.is_ok());
-//! let done_esvf = done.ok().unwrap();
-//! let s = done_esvf.get_str();
-//! assert_eq!(s, "hello from greco fs");
+//! if let JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+//!     let rti = rti_ref.upgrade().expect("invalid state");
+//!     let done = block_on(cached_promise.js_get_promise_result(&*rti)).ok().expect("prom failed");
+//!     match done {
+//!        Ok(done_jsvf) => {
+//!           let s = done_jsvf.stringify();
+//!           assert_eq!(s, "String: hello from greco fs");
+//!        },
+//!        Err(val) => {
+//!           panic!("promise was rejected: {}", val.stringify());
+//!        }
+//!     }
+//!     
+//! } else {
+//!     panic!("not  promise")
+//! }
 //! ```
 //!
 //! # Methods
