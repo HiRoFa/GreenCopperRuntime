@@ -203,7 +203,7 @@ impl HttpModuleLoader {
         let req = reqwest::get(url);
         // todo make read_url async
         let resp = block_on(req);
-        if !resp.is_ok() {
+        if resp.is_err() {
             return None;
         }
         let resp = resp.expect("wtf");

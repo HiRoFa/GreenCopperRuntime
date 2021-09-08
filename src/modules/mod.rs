@@ -11,6 +11,5 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     let builder = db::init(builder);
     let builder = io::init(builder);
     let builder = lib::init(builder);
-    let builder = util::init(builder);
-    builder
+    util::init(builder)
 }

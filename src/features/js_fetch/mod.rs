@@ -34,7 +34,7 @@ where
             //arg1 = data: Object
             //if arg0 is not a string the returned promise will reject
             let url: Option<String> =
-                if args.len() > 0 && args[0].js_get_type() == JsValueType::String {
+                if !args.is_empty() && args[0].js_get_type() == JsValueType::String {
                     Some(args[0].js_to_string()?)
                 } else {
                     None
@@ -42,7 +42,7 @@ where
             let fetch_init: FetchInit = FetchInit::from_js_object(realm, args.get(1))?;
             let realm_id = realm.js_get_realm_id().to_string();
 
-            let prom = realm.js_promise_create_resolving_async(
+            realm.js_promise_create_resolving_async(
                 //
                 // do request here and return result as fetch objects
                 do_fetch(realm_id, url, fetch_init),
@@ -50,9 +50,7 @@ where
                     // convert result fetch objects to JsValueAdapter here
                     res.to_js_value(realm)
                 },
-            );
-
-            prom
+            )
         },
         2,
     )?;

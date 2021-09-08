@@ -301,6 +301,11 @@ impl Headers {
         vec.push(value.to_string());
     }
 }
+impl Default for Headers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub struct Body {
     pub text: String,

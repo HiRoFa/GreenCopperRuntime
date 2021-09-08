@@ -165,6 +165,7 @@ fn parse_field_value<R: JsRealmAdapter>(
     }
 
     if field.ends_with('d') || field.ends_with('i') {
+        #[allow(clippy::or_fun_call)]
         let mut i_val: String = value
             .js_to_string()
             .or::<String>(Ok("".to_string()))
@@ -196,6 +197,7 @@ fn parse_field_value<R: JsRealmAdapter>(
 
         return i_val;
     } else if field.ends_with('f') {
+        #[allow(clippy::or_fun_call)]
         let mut f_val: String = value.js_to_string().unwrap_or("".to_string());
 
         if let Some(dot_in_field_idx) = field.find('.') {
@@ -236,6 +238,7 @@ fn parse_field_value<R: JsRealmAdapter>(
             return json;
         }
     }
+    #[allow(clippy::or_fun_call)]
     value.js_to_string().unwrap_or("".to_string())
 }
 
@@ -244,6 +247,7 @@ fn parse_line<R: JsRealmAdapter>(realm_adapter: &R, args: &[R::JsValueAdapterTyp
         return "".to_string();
     }
 
+    #[allow(clippy::or_fun_call)]
     let message = args[0]
         .js_to_string()
         .or::<String>(Ok(String::new()))

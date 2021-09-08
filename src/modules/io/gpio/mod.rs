@@ -81,18 +81,17 @@ where
         let map = &*rc.borrow();
         let handle = map.get(instance_id);
         let pin_set_handle = handle.expect("no such pinset");
-        let ret = pin_set_handle.do_with_mut(move |pin_set| runner(pin_set));
-        ret
+        pin_set_handle.do_with_mut(move |pin_set| runner(pin_set))
     });
 
     realm.js_promise_create_resolving_async(
         async move {
             // run async code here and resolve or reject handle
-            Ok(fut.await?)
+            Ok(fut.await)
         },
         |realm, res| {
             // map
-            realm.from_js_value_facade(res)
+            realm.from_js_value_facade(res?)
         },
     )
 }
