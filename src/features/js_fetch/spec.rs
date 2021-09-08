@@ -365,7 +365,15 @@ pub async fn do_fetch(
         let method = reqwest::Method::from_str(fetch_init.method.as_str())
             .map_err(|e| JsError::new_string(format!("{}", e)))?;
 
-        let response_fut = client.request(method, url).send();
+        let mut request = client.request(method, url);
+
+        for header in &fetch_init.headers.map {
+            for val in header.1 {
+                request = request.header(header.0, val);
+            }
+        }
+
+        let response_fut = request.send();
 
         let reqwest_resp = response_fut
             .await

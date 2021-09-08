@@ -75,7 +75,7 @@ pub mod tests {
 
         let fetch_fut = rt.js_eval(
             None,
-            Script::new("test_fetch_gen.js", "let testFunc = async function() {console.log(1); let fetchRes = await fetch('https://httpbin.org/anything'); let text = await fetchRes.text(); return text;}; testFunc()"),
+            Script::new("test_fetch_gen.js", "let testFunc = async function() {console.log(1); let fetchRes = await fetch('https://httpbin.org/anything', {headers: {myHeader: ['a', 'b']}}); let text = await fetchRes.text(); return text;}; testFunc()"),
         );
         let res = block_on(fetch_fut);
         match res {
