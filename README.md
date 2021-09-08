@@ -28,14 +28,14 @@ and we're planning support for
 GreenCopperRuntime provides implementations for abstract features of the Runtimes like:
 * [x] [FileSystemModuleLoader](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/moduleloaders/struct.FileSystemModuleLoader.html)
 * [x] [HTTPModuleLoader](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/moduleloaders/struct.HttpModuleLoader.html)
-* [x] [HTTPFetch](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/fetch) (http capable implementation of fetch api)
+* [x] [HTTPFetch](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/features/js_fetch/index.html) (http capable implementation of fetch api)
 
 ### Preprocessing
 
 GreenCopperRuntime provides script pre-processing for:
 * [x] cpp style preprocessing (e.g. use #ifdef $GRECO_DEBUG in code) ([DOCS](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/preprocessors/cpp))
 * [ ] macro's which generate script before eval 
-* [x] Typescript support is currently implemented as a separate optional project [typescript_utils](https://github.com/HiRoFa/typescript_utils) 
+* [x] Typescript support is implemented as a separate optional project [typescript_utils](https://github.com/HiRoFa/typescript_utils) 
   * [ ] JavaScript transpiling specific to the runtime used
 
 The following features are optionally added by specifying them in your Cargo.toml
@@ -60,7 +60,8 @@ The following features are optionally added by specifying them in your Cargo.tom
   * [ ] caching
     * [ ] cache
     * [ ] memcached
-
+    * [ ] zookeeper
+    
 # Getting started
 
 // wip
@@ -79,16 +80,15 @@ quickjs_runtime = {git = 'https://github.com/HiRoFa/quickjs_es_runtime', branch=
 // wip
 
 GreenCopper based runtimes all split the API into two distinct halves, first of all there are your outer thread-safe API's which do not directly call the underlying runtime, These are the
-* JSRuntimeFacade (represents a Runtime)
-* JSRealmFacade (represents a Context or Realm)
-* JSValueFacade (represents a Value)
+* [JsRuntimeFacade](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/facades/trait.JsRuntimeFacade.html) (represents a Runtime)
+* [JsValueFacade](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/facades/values/enum.JsValueFacade.html) (represents a Value)
 
-All of these work (with some exeptions) by adding a job to an EventLoop (a member of the JSRuntimeFacade) and getting the result async (the API returns a Future).
+All of these work (with some exeptions) by adding a job to an EventLoop (a member of the JsRuntimeFacade) and getting the result async (the API returns a Future).
 
 These jobs run in a single thread per runtime and provide access to the Adapters which DO interact with the actual Runtime/Context/Value directly, these are:
-* JSRuntimeAdapter (represents a Runtime)
-* JSRealmAdapter (represents a Context or Realm)
-* JSValueAdapter (represents a Value)
+* [JsRuntimeAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRuntimeAdapter.html) (represents a Runtime)
+* [JsRealmAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRealmAdapter.html) (represents a Context or Realm)
+* [JsValueAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsValueAdapter.html) (represents a Value)
 
 ### Example 
 ```rust
@@ -126,6 +126,10 @@ async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
 
 // wip
 
-### Classes
+### Proxy classes
+
+// wip
+
+### Modules
 
 // wip
