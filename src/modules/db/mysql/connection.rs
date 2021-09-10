@@ -3,6 +3,7 @@ use hirofa_utils::js_utils::facades::values::JsValueFacade;
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::from_value;
 use mysql_lib::prelude::Queryable;
+use mysql_lib::Opts;
 use mysql_lib::Value;
 use std::sync::Arc;
 
@@ -31,8 +32,9 @@ impl MysqlConnection {
         let db = args[4].js_to_string()?;
 
         let con_str = format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db);
-        let pool =
-            mysql_lib::Pool::new(con_str).map_err(|e| JsError::new_string(format!("{}", e)))?;
+        let opts =
+            Opts::from_url(con_str.as_str()).map_err(|e| JsError::new_string(format!("{}", e)))?;
+        let pool = mysql_lib::Pool::new(opts).map_err(|e| JsError::new_string(format!("{}", e)))?;
 
         Ok(Self {
             _user: user,
