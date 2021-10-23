@@ -1,4 +1,4 @@
-import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/GreenCopperRuntime/main/modules/utils/assertions.mes';
 import {PinSet} from 'greco://gpio';
 
 // todo ServoDrivers

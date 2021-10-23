@@ -1,5 +1,5 @@
-import {Client as JsonRpcClient} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/com/jsonrpc.mes';
-import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/ESsesLib-q/main/modules/utils/assertions.mes';
+import {Client as JsonRpcClient} from 'https://raw.githubusercontent.com/HiRoFa/GreenCopperRuntime/main/modules/com/jsonrpc.mes';
+import {Assertions as assert} from 'https://raw.githubusercontent.com/HiRoFa/GreenCopperRuntime/main/modules/utils/assertions.mes';
 
 export class Client {
     constructor(url, user, pass){
