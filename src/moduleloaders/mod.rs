@@ -82,6 +82,8 @@ fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
 
     res = res.add(path.as_str());
 
+    log::debug!("normalize_path returning: {}", res);
+
     Ok(res)
 }
 
