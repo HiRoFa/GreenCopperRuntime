@@ -1,4 +1,3 @@
-use futures::executor::block_on;
 use hirofa_utils::js_utils::modules::ScriptModuleLoader;
 use hirofa_utils::js_utils::JsError;
 use log::trace;
@@ -200,9 +199,9 @@ impl HttpModuleLoader {
     }
 
     fn read_url(&self, url: &str) -> Option<String> {
-        let req = reqwest::get(url);
+        let resp = reqwest::blocking::get(url);
+        //let req = reqwest::get(url);
         // todo make read_url async
-        let resp = block_on(req);
         if resp.is_err() {
             return None;
         }
@@ -215,7 +214,7 @@ impl HttpModuleLoader {
             }
         }
         // todo async
-        let res = block_on(resp.text());
+        let res = resp.text();
         match res {
             Ok(script) => Some(script),
             Err(e) => {

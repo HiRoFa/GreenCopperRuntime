@@ -51,12 +51,12 @@ backtrace = "0.3.56"
 url = "2.2.1"
 gpp = "0.6"
 
-reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "brotli", "deflate", "multipart"], optional = true}
+reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "brotli", "deflate", "multipart", "blocking"], optional = true}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
 futures = {version = "0.3", optional = true}
 mysql_lib = {package="mysql", version = "21.0",  optional = true}
 
 [dev-dependencies]
-#quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime'}
-quickjs_runtime = "0.6"
+quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime'}
+#quickjs_runtime = "0.6"
 #quickjs_runtime = { path = '../quickjs_es_runtime'}
