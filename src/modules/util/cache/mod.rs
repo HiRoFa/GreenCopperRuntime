@@ -281,12 +281,10 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsErr
                             1,
                         )?;
                         realm.js_promise_add_reactions(&init_result, Some(then), None, None)?;
-
-                        Ok(init_result)
                     } else {
                         cache_add(realm, &key, &init_result, cache_region)?;
-                        Ok(init_result)
                     }
+                    Ok(init_result)
                 }
             })
         })
