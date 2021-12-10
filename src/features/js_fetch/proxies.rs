@@ -44,7 +44,7 @@ where
         .add_method("text", |_rt, realm: &C, instance_id, _args| {
             //
             let response = with_response(&instance_id, |response| response.clone())
-                .map_err(|s| JsError::new_str(s))?;
+                .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
             realm.js_promise_create_resolving_async(
                 async move { response.text().await },
@@ -55,7 +55,7 @@ where
         .add_method("json", |_rt, realm: &C, instance_id, _args| {
             //
             let response = with_response(&instance_id, |response| response.clone())
-                .map_err(|s| JsError::new_str(s))?;
+                .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
             realm.js_promise_create_resolving_async(
                 async move { response.text().await },
