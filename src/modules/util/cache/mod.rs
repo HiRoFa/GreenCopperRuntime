@@ -46,26 +46,26 @@
 //! removes an item from the cache
 //!
 
+use hirofa_utils::auto_id_map::AutoIdMap;
+use hirofa_utils::debug_mutex::DebugMutex;
+use hirofa_utils::js_utils::adapters::proxies::JsProxy;
+use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
+use hirofa_utils::js_utils::facades::values::JsValueFacade;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use hirofa_utils::js_utils::modules::NativeModuleLoader;
+use hirofa_utils::js_utils::JsError;
+use lru::LruCache;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Sub;
-use std::sync::{Arc,   Weak};
-use hirofa_utils::auto_id_map::AutoIdMap;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::facades::{JsRuntimeBuilder};
-use hirofa_utils::js_utils::facades::values::JsValueFacade;
-use hirofa_utils::js_utils::JsError;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
+use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
-use hirofa_utils::debug_mutex::DebugMutex;
-use lru::LruCache;
 
 struct CacheEntry {
     val: JsValueFacade,
     created: Instant,
-    last_used: Instant
+    last_used: Instant,
 }
 
 struct CacheRegion {
@@ -76,7 +76,7 @@ struct CacheRegion {
 
 impl CacheRegion {
     pub fn get(&mut self, key: &str) -> Option<&CacheEntry> {
-        if let Some (ce) = self.lru_cache.get_mut(key) {
+        if let Some(ce) = self.lru_cache.get_mut(key) {
             ce.last_used = Instant::now();
         }
         self.lru_cache.get(key)
@@ -85,10 +85,10 @@ impl CacheRegion {
         self.lru_cache.pop(key)
     }
     pub fn put(&mut self, key: &str, val: JsValueFacade) {
-        let ce = CacheEntry{
+        let ce = CacheEntry {
             val,
             created: Instant::now(),
-            last_used: Instant::now()
+            last_used: Instant::now(),
         };
         self.lru_cache.put(key.to_string(), ce);
     }
@@ -113,28 +113,35 @@ impl CacheRegion {
 }
 
 struct ManagedCache {
-    regions: HashMap<(String, String), Weak<DebugMutex<CacheRegion>>>
+    regions: HashMap<(String, String), Weak<DebugMutex<CacheRegion>>>,
 }
 
 impl ManagedCache {
     fn new() -> Self {
         Self {
-            regions: HashMap::new()
+            regions: HashMap::new(),
         }
     }
 
-    pub fn get_or_create_region(&mut self, realm_id: &str, cache_id: &str, max_idle: Duration, ttl: Duration, max_items: usize) -> Arc<DebugMutex<CacheRegion>> {
+    pub fn get_or_create_region(
+        &mut self,
+        realm_id: &str,
+        cache_id: &str,
+        max_idle: Duration,
+        ttl: Duration,
+        max_items: usize,
+    ) -> Arc<DebugMutex<CacheRegion>> {
         let key = (realm_id.to_string(), cache_id.to_string());
         if let Some(weak) = self.regions.get(&key) {
             if let Some(arc) = weak.upgrade() {
-                return arc
+                return arc;
             }
         }
         // new
         let region = CacheRegion {
             lru_cache: LruCache::new(max_items),
             ttl,
-            max_idle
+            max_idle,
         };
         let region_arc = Arc::new(DebugMutex::new(region, "region_mutex"));
         self.regions.insert(key, Arc::downgrade(&region_arc));
@@ -143,7 +150,6 @@ impl ManagedCache {
 }
 
 fn cache_cleanup() {
-
     let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
     let keys: Vec<(String, String)> = lock.regions.keys().cloned().collect();
     let mut to_clean = vec![];
@@ -152,8 +158,7 @@ fn cache_cleanup() {
         let weak_opt = lock.regions.get(&key);
         if let Some(weak) = weak_opt {
             if let Some(cache_arc) = weak.upgrade() {
-                to_clean.push( cache_arc.clone());
-
+                to_clean.push(cache_arc.clone());
             } else {
                 lock.regions.remove(&key);
             }
@@ -167,7 +172,6 @@ fn cache_cleanup() {
         let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
         cache_lock.invalidate_stale();
     }
-
 }
 
 lazy_static! {
@@ -215,16 +219,20 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for CacheModuleLoader {
         realm: &R,
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
-
-        init_region_proxy(realm).ok().expect("init cache region failed");
+        init_region_proxy(realm)
+            .ok()
+            .expect("init cache region failed");
 
         init_exports(realm).ok().expect("init cache exports failed")
     }
 }
 
-fn cache_add<R: JsRealmAdapter + 'static>(realm: &R, key: &str, value: &R::JsValueAdapterType, region: &mut CacheRegion) -> Result<(), JsError> {
-
-
+fn cache_add<R: JsRealmAdapter + 'static>(
+    realm: &R,
+    key: &str,
+    value: &R::JsValueAdapterType,
+    region: &mut CacheRegion,
+) -> Result<(), JsError> {
     if value.js_is_string() || value.js_is_i32() || value.js_is_f64() || value.js_is_bool() {
         let jsvf = realm.to_js_value_facade(value)?;
 
@@ -234,85 +242,63 @@ fn cache_add<R: JsRealmAdapter + 'static>(realm: &R, key: &str, value: &R::JsVal
     } else {
         Err(JsError::new_str("Only cache primitives"))
     }
-
-
-
-
 }
 
-fn init_region_proxy<R: JsRealmAdapter + 'static>(
-    realm: &R,
-) -> Result<(), JsError> {
-
+fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsError> {
     let proxy = JsProxy::new(&["greco", "util", "cache"], "Region")
         .add_method("get", |_rt, realm: &R, instance_id, args| {
-
             if args.len() != 2 || !args[0].js_is_string() || !args[1].js_is_function() {
-                return Err(JsError::new_str("get requires two arguments, key:string and init:function"));
+                return Err(JsError::new_str(
+                    "get requires two arguments, key:string and init:function",
+                ));
             }
 
             let key = args[0].js_to_string()?;
 
-            with_cache_region(
-                instance_id,
-                move |cache_region| {
-                    let entry_opt = cache_region.get(key.as_str());
-                    if let Some(entry) = entry_opt {
-                        let jsvf = &entry.val;
-                        match jsvf {
-                            JsValueFacade::I32 { val } => {
-                                realm.js_i32_create(*val)
-                            }
-                            JsValueFacade::F64 { val } => {
-                                realm.js_f64_create(*val)
-                            }
-                            JsValueFacade::String { val } => {
-                                realm.js_string_create(val)
-                            }
-                            JsValueFacade::Boolean { val } => {
-                                realm.js_boolean_create(*val)
-                            }
-                            _ => {
-                                Err(JsError::new_str("unexpected cached jsvf type"))
-                            }
-                        }
-                    } else {
+            with_cache_region(instance_id, move |cache_region| {
+                let entry_opt = cache_region.get(key.as_str());
+                if let Some(entry) = entry_opt {
+                    let jsvf = &entry.val;
+                    match jsvf {
+                        JsValueFacade::I32 { val } => realm.js_i32_create(*val),
+                        JsValueFacade::F64 { val } => realm.js_f64_create(*val),
+                        JsValueFacade::String { val } => realm.js_string_create(val),
+                        JsValueFacade::Boolean { val } => realm.js_boolean_create(*val),
+                        _ => Err(JsError::new_str("unexpected cached jsvf type")),
+                    }
+                } else {
+                    let init_func = args[1].clone();
 
-                        let init_func = args[1].clone();
+                    let init_result = realm.js_function_invoke(None, &init_func, &[])?;
 
-                        let init_result = realm.js_function_invoke(None, &init_func, &[])?;
-
-                        if init_result.js_is_promise() {
-
-                            let then = realm.js_function_create("cache_add_func", move |realm, _this, args| {
-
+                    if init_result.js_is_promise() {
+                        let then = realm.js_function_create(
+                            "cache_add_func",
+                            move |realm, _this, args| {
                                 // cache args 0
                                 with_cache_region(instance_id, |cache_region2| {
                                     cache_add(realm, &key, &args[0], cache_region2)
                                 })?;
 
                                 realm.js_null_create()
-                            }, 1)?;
-                            realm.js_promise_add_reactions(&init_result, Some(then), None, None)?;
+                            },
+                            1,
+                        )?;
+                        realm.js_promise_add_reactions(&init_result, Some(then), None, None)?;
 
-                            Ok(init_result)
-
-                        } else {
-                            cache_add(realm, &key, &init_result, cache_region)?;
-                            Ok(init_result)
-                        }
-
+                        Ok(init_result)
+                    } else {
+                        cache_add(realm, &key, &init_result, cache_region)?;
+                        Ok(init_result)
                     }
-
                 }
-            )
-
-
+            })
         })
         .add_method("remove", |_rt, realm, instance_id, args| {
-
             if args.len() != 1 || !args[0].js_is_string() {
-                return Err(JsError::new_str("remove requires one arguments, key:string"));
+                return Err(JsError::new_str(
+                    "remove requires one arguments, key:string",
+                ));
             }
 
             let key = args[0].js_to_string()?;
@@ -321,9 +307,8 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(
                 region.remove(key.as_str());
                 realm.js_null_create()
             })
-
-
-        }).set_finalizer(|_rt, _realm, instance_id| {
+        })
+        .set_finalizer(|_rt, _realm, instance_id| {
             //
             CACHES.with(|rc| {
                 let caches = &mut *rc.borrow_mut();
@@ -338,28 +323,42 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(
 fn init_exports<R: JsRealmAdapter + 'static>(
     realm: &R,
 ) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
-    let cache_region_function = realm.js_function_create("getRegion", |realm, _this, args| {
+    let cache_region_function = realm.js_function_create(
+        "getRegion",
+        |realm, _this, args| {
+            if args.len() < 1
+                || !args[0].js_is_string()
+                || (args.len() > 1 && !args[1].js_is_object())
+            {
+                return Err(JsError::new_str(
+                    "getRegion requires one or two arguments, id:string and init: object",
+                ));
+            }
 
-        if args.len() < 1 || !args[0].js_is_string() || (args.len() > 1 && !args[1].js_is_object()) {
-            return Err(JsError::new_str("getRegion requires one or two arguments, id:string and init: object"));
-        }
+            let cache = &mut *CACHE.lock("getRegion").unwrap();
 
-        let cache = &mut *CACHE.lock("getRegion").unwrap();
+            let cache_id = args[0].js_to_string()?;
+            let max_idle = Duration::from_secs(3600);
+            let ttl = Duration::from_secs(86400);
+            let max_items = 100000;
 
-        let cache_id = args[0].js_to_string()?;
-        let max_idle = Duration::from_secs(3600);
-        let ttl = Duration::from_secs(86400);
-        let max_items = 100000;
+            let region = cache.get_or_create_region(
+                realm.js_get_realm_id(),
+                cache_id.as_str(),
+                max_idle,
+                ttl,
+                max_items,
+            );
 
-        let region = cache.get_or_create_region(realm.js_get_realm_id(), cache_id.as_str(), max_idle, ttl, max_items);
+            let instance_id = CACHES.with(|rc| {
+                let caches = &mut *rc.borrow_mut();
+                caches.insert(region)
+            });
 
-        let instance_id = CACHES.with(|rc| {
-            let caches = &mut *rc.borrow_mut();
-            caches.insert(region)
-        });
-
-        realm.js_proxy_instantiate_with_id(&["greco", "util", "cache"], "Region", instance_id)
-    }, 1)?;
+            realm.js_proxy_instantiate_with_id(&["greco", "util", "cache"], "Region", instance_id)
+        },
+        1,
+    )?;
 
     Ok(vec![("getRegion", cache_region_function)])
 }
@@ -369,9 +368,7 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
 
     // add greco://cache module (machine local cache)
     // config per region, every region is a LRUCache
-    let builder = builder.js_native_module_loader(CacheModuleLoader{});
-
-
+    let builder = builder.js_native_module_loader(CacheModuleLoader {});
 
     builder
 }
