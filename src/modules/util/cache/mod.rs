@@ -97,10 +97,7 @@ impl CacheRegion {
         let min_created = Instant::now().sub(self.ttl);
         loop {
             if let Some(lru) = self.lru_cache.peek_lru() {
-                if lru.1.last_used.lt(&min_last_used) {
-                    // invalidate
-                    let _ = self.lru_cache.pop_lru();
-                } else if lru.1.created.lt(&min_created) {
+                if lru.1.last_used.lt(&min_last_used) || lru.1.created.lt(&min_created) {
                     // invalidate
                     let _ = self.lru_cache.pop_lru();
                 } else {
@@ -150,24 +147,24 @@ impl ManagedCache {
 }
 
 fn cache_cleanup() {
-    let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
-    let keys: Vec<(String, String)> = lock.regions.keys().cloned().collect();
-    let mut to_clean = vec![];
 
-    for key in keys {
-        let weak_opt = lock.regions.get(&key);
-        if let Some(weak) = weak_opt {
-            if let Some(cache_arc) = weak.upgrade() {
-                to_clean.push(cache_arc.clone());
+    let mut to_clean = vec![];
+    {
+        let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
+        let keys: Vec<(String, String)> = lock.regions.keys().cloned().collect();
+        for key in keys {
+            let weak_opt = lock.regions.get(&key);
+            if let Some(weak) = weak_opt {
+                if let Some(cache_arc) = weak.upgrade() {
+                    to_clean.push(cache_arc.clone());
+                } else {
+                    lock.regions.remove(&key);
+                }
             } else {
                 lock.regions.remove(&key);
             }
-        } else {
-            lock.regions.remove(&key);
         }
     }
-
-    drop(lock);
     for cache_to_clean in to_clean {
         let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
         cache_lock.invalidate_stale();
@@ -326,7 +323,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
     let cache_region_function = realm.js_function_create(
         "getRegion",
         |realm, _this, args| {
-            if args.len() < 1
+            if args.is_empty()
                 || !args[0].js_is_string()
                 || (args.len() > 1 && !args[1].js_is_object())
             {
@@ -368,7 +365,5 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
 
     // add greco://cache module (machine local cache)
     // config per region, every region is a LRUCache
-    let builder = builder.js_native_module_loader(CacheModuleLoader {});
-
-    builder
+     builder.js_native_module_loader(CacheModuleLoader {})
 }
