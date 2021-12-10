@@ -147,7 +147,6 @@ impl ManagedCache {
 }
 
 fn cache_cleanup() {
-
     let mut to_clean = vec![];
     {
         let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
@@ -365,5 +364,5 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
 
     // add greco://cache module (machine local cache)
     // config per region, every region is a LRUCache
-     builder.js_native_module_loader(CacheModuleLoader {})
+    builder.js_native_module_loader(CacheModuleLoader {})
 }
