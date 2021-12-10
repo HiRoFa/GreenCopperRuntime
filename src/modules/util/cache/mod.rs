@@ -49,17 +49,17 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Sub;
-use std::sync::{Arc, Mutex,  Weak};
+use std::sync::{Arc,   Weak};
 use hirofa_utils::auto_id_map::AutoIdMap;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacadeInner};
+use hirofa_utils::js_utils::facades::{JsRuntimeBuilder};
 use hirofa_utils::js_utils::facades::values::JsValueFacade;
 use hirofa_utils::js_utils::JsError;
 use hirofa_utils::js_utils::modules::NativeModuleLoader;
 use std::thread;
 use std::time::{Duration, Instant};
-use hirofa_utils::eventloop::EventLoop;
+use hirofa_utils::debug_mutex::DebugMutex;
 use lru::LruCache;
 
 struct CacheEntry {
@@ -113,7 +113,7 @@ impl CacheRegion {
 }
 
 struct ManagedCache {
-    regions: HashMap<(String, String), Weak<Mutex<CacheRegion>>>
+    regions: HashMap<(String, String), Weak<DebugMutex<CacheRegion>>>
 }
 
 impl ManagedCache {
@@ -123,7 +123,7 @@ impl ManagedCache {
         }
     }
 
-    pub fn get_or_create_region(&mut self, realm_id: &str, cache_id: &str, max_idle: Duration, ttl: Duration, max_items: usize) -> Arc<Mutex<CacheRegion>> {
+    pub fn get_or_create_region(&mut self, realm_id: &str, cache_id: &str, max_idle: Duration, ttl: Duration, max_items: usize) -> Arc<DebugMutex<CacheRegion>> {
         let key = (realm_id.to_string(), cache_id.to_string());
         if let Some(weak) = self.regions.get(&key) {
             if let Some(arc) = weak.upgrade() {
@@ -136,7 +136,7 @@ impl ManagedCache {
             ttl,
             max_idle
         };
-        let region_arc = Arc::new(Mutex::new(region));
+        let region_arc = Arc::new(DebugMutex::new(region, "region_mutex"));
         self.regions.insert(key, Arc::downgrade(&region_arc));
         region_arc
     }
@@ -144,7 +144,7 @@ impl ManagedCache {
 
 fn cache_cleanup() {
 
-    let lock: &mut ManagedCache = &mut *CACHE.lock().unwrap();
+    let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
     let keys: Vec<(String, String)> = lock.regions.keys().cloned().collect();
     let mut to_clean = vec![];
 
@@ -164,20 +164,20 @@ fn cache_cleanup() {
 
     drop(lock);
     for cache_to_clean in to_clean {
-        let cache_lock = &mut *cache_to_clean.lock().unwrap();
+        let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
         cache_lock.invalidate_stale();
     }
 
 }
 
 lazy_static! {
-    static ref CACHE: Arc<Mutex<ManagedCache>> = {
+    static ref CACHE: Arc<DebugMutex<ManagedCache>> = {
         // start cleanup thread
         thread::spawn(|| loop {
             thread::sleep(Duration::from_secs(60));
             cache_cleanup();
         });
-        Arc::new(Mutex::new(ManagedCache::new()))
+        Arc::new(DebugMutex::new(ManagedCache::new(), "CACHE"))
 
     };
 }
@@ -185,14 +185,14 @@ lazy_static! {
 // todo better to impl regions in Cache with a CacheHandle which can be used as our per_thread instance (drop region when all handles drop?)
 
 thread_local! {
-    static CACHES: RefCell<AutoIdMap<Arc<Mutex<CacheRegion>>>> = RefCell::new(AutoIdMap::new());
+    static CACHES: RefCell<AutoIdMap<Arc<DebugMutex<CacheRegion>>>> = RefCell::new(AutoIdMap::new());
 }
 
 fn with_cache_region<C: FnOnce(&mut CacheRegion) -> R, R>(id: usize, consumer: C) -> R {
     CACHES.with(|rc| {
         let caches = &mut *rc.borrow_mut();
         let cache_mtx = caches.get(&id).expect("invalid cache id");
-        let cache_locked = &mut *cache_mtx.lock().unwrap();
+        let cache_locked = &mut *cache_mtx.lock("with_cache_region").unwrap();
         consumer(cache_locked)
     })
 }
@@ -245,7 +245,7 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(
 ) -> Result<(), JsError> {
 
     let proxy = JsProxy::new(&["greco", "util", "cache"], "Region")
-        .add_method("get", |rt, realm: &R, instance_id, args| {
+        .add_method("get", |_rt, realm: &R, instance_id, args| {
 
             if args.len() != 2 || !args[0].js_is_string() || !args[1].js_is_function() {
                 return Err(JsError::new_str("get requires two arguments, key:string and init:function"));
@@ -288,12 +288,12 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(
 
                                 // cache args 0
                                 with_cache_region(instance_id, |cache_region2| {
-                                    cache_add(realm, &key, &args[0], cache_region2);
-                                });
+                                    cache_add(realm, &key, &args[0], cache_region2)
+                                })?;
 
                                 realm.js_null_create()
                             }, 1)?;
-                            realm.js_promise_add_reactions(&init_result, Some(then), None, None);
+                            realm.js_promise_add_reactions(&init_result, Some(then), None, None)?;
 
                             Ok(init_result)
 
@@ -315,8 +315,15 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(
                 return Err(JsError::new_str("remove requires one arguments, key:string"));
             }
 
-            realm.js_null_create()
-        }).set_finalizer(|rt, realm, instance_id| {
+            let key = args[0].js_to_string()?;
+
+            with_cache_region(instance_id, |region| {
+                region.remove(key.as_str());
+                realm.js_null_create()
+            })
+
+
+        }).set_finalizer(|_rt, _realm, instance_id| {
             //
             CACHES.with(|rc| {
                 let caches = &mut *rc.borrow_mut();
@@ -337,7 +344,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
             return Err(JsError::new_str("getRegion requires one or two arguments, id:string and init: object"));
         }
 
-        let cache = &mut *CACHE.lock().unwrap();
+        let cache = &mut *CACHE.lock("getRegion").unwrap();
 
         let cache_id = args[0].js_to_string()?;
         let max_idle = Duration::from_secs(3600);
