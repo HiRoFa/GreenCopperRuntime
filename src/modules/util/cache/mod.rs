@@ -4,7 +4,7 @@
 //!
 //! # Example
 //!
-//! ## cacheMod.getRegion(id: string, options?: object): greco.utils.cache.Region
+//! ## cacheMod.getRegion(id: string, options?: object): greco.util.cache.Region
 //!
 //! Gets or initializes a region
 //!
@@ -351,7 +351,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
             caches.insert(region)
         });
 
-        realm.js_proxy_instantiate_with_id(&["greco", "utils", "cache"], "Region", instance_id)
+        realm.js_proxy_instantiate_with_id(&["greco", "util", "cache"], "Region", instance_id)
     }, 1)?;
 
     Ok(vec![("getRegion", cache_region_function)])

@@ -11,7 +11,7 @@ license = "MIT"
 
 default = ["all"]
 
-all = ["io", "db", "com", "features", "utils"]
+all = ["io", "db", "com", "features", "util"]
 
 io = ["gpio", "fs"]
 db = ["mysql"]
@@ -28,7 +28,7 @@ features = ["commonjs", "console", "fetch"]
 commonjs = []
 fetch = ["http"]
 console = []
-utils = ["cache"]
+util = ["cache"]
 cache = ["lru"]
 
 [dependencies]
