@@ -25,7 +25,7 @@ fn last_index_of(haystack: &str, needle: &str) -> Option<usize> {
     None
 }
 
-fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
+pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
     // todo support:
     // name starting with /
     // name starting or containing ../ or starting with ./
