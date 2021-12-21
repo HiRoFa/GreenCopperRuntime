@@ -1,10 +1,10 @@
+use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use hirofa_utils::js_utils::modules::ScriptModuleLoader;
 use hirofa_utils::js_utils::JsError;
 use log::trace;
 use std::fs;
 use std::ops::Add;
 use std::path::{Path, PathBuf};
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use url::Url;
 
 pub struct FileSystemModuleLoader {
@@ -381,7 +381,6 @@ mod tests {
 
     #[test]
     fn test_http() {
-
         let loader = HttpModuleLoader::new()
             .secure_only()
             .validate_content_type(false)
