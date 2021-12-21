@@ -4,6 +4,7 @@ use log::trace;
 use std::fs;
 use std::ops::Add;
 use std::path::{Path, PathBuf};
+use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use url::Url;
 
 pub struct FileSystemModuleLoader {
@@ -121,10 +122,7 @@ impl FileSystemModuleLoader {
         let path = self.get_real_fs_path(filename);
         path.exists() && path.canonicalize().unwrap().starts_with(&self.base_path)
     }
-}
-
-impl ScriptModuleLoader for FileSystemModuleLoader {
-    fn normalize_path(&self, ref_path: &str, path: &str) -> Option<String> {
+    fn normalize_file_path(&self, ref_path: &str, path: &str) -> Option<String> {
         // the ref path will always be an absolute path, so no need to parse . or ..
         // but even though we call it an absolute path here it will will be a relative path to the loader's main dir
         // so basically the file:// prefix is just to recognize the path a a path the FileSystemModuleLoader can handle
@@ -154,8 +152,14 @@ impl ScriptModuleLoader for FileSystemModuleLoader {
             }
         }
     }
+}
 
-    fn load_module(&self, absolute_path: &str) -> String {
+impl<R: JsRealmAdapter> ScriptModuleLoader<R> for FileSystemModuleLoader {
+    fn normalize_path(&self, _realm: &R, ref_path: &str, path: &str) -> Option<String> {
+        self.normalize_file_path(ref_path, path)
+    }
+
+    fn load_module(&self, _realm: &R, absolute_path: &str) -> String {
         self.read_file(absolute_path)
             .unwrap_or_else(|_| "".to_string())
     }
@@ -255,18 +259,8 @@ impl HttpModuleLoader {
             true
         }
     }
-}
 
-#[cfg(any(feature = "all", feature = "com", feature = "http"))]
-impl Default for HttpModuleLoader {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(any(feature = "all", feature = "com", feature = "http"))]
-impl ScriptModuleLoader for HttpModuleLoader {
-    fn normalize_path(&self, ref_path: &str, path: &str) -> Option<String> {
+    fn normalize_http_path(&self, ref_path: &str, path: &str) -> Option<String> {
         // the ref path will always be an absolute path
 
         if path.starts_with("http://") || path.starts_with("https://") {
@@ -299,8 +293,22 @@ impl ScriptModuleLoader for HttpModuleLoader {
             }
         }
     }
+}
 
-    fn load_module(&self, absolute_path: &str) -> String {
+#[cfg(any(feature = "all", feature = "com", feature = "http"))]
+impl Default for HttpModuleLoader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(any(feature = "all", feature = "com", feature = "http"))]
+impl<R: JsRealmAdapter> ScriptModuleLoader<R> for HttpModuleLoader {
+    fn normalize_path(&self, _realm: &R, ref_path: &str, path: &str) -> Option<String> {
+        self.normalize_http_path(ref_path, path)
+    }
+
+    fn load_module(&self, _realm: &R, absolute_path: &str) -> String {
         // todo, load_module should really return a Result
         if let Some(script) = self.read_url(absolute_path) {
             script
@@ -315,7 +323,6 @@ mod tests {
     use crate::moduleloaders::{
         last_index_of, normalize_path, FileSystemModuleLoader, HttpModuleLoader,
     };
-    use hirofa_utils::js_utils::modules::ScriptModuleLoader;
     use std::path::Path;
 
     #[test]
@@ -374,6 +381,7 @@ mod tests {
 
     #[test]
     fn test_http() {
+
         let loader = HttpModuleLoader::new()
             .secure_only()
             .validate_content_type(false)
@@ -381,25 +389,25 @@ mod tests {
             .allow_domain("httpbin.org");
         // disallow http
         assert!(loader
-            .normalize_path("http://github.com/example.js", "module.mjs")
+            .normalize_http_path("http://github.com/example.js", "module.mjs")
             .is_none());
         // disallow domain
         assert!(loader
-            .normalize_path("https://other.github.com/example.js", "module.mjs")
+            .normalize_http_path("https://other.github.com/example.js", "module.mjs")
             .is_none());
         // allow domain
         assert!(loader
-            .normalize_path("https://github.com/example.js", "module.mjs")
+            .normalize_http_path("https://github.com/example.js", "module.mjs")
             .is_some());
         assert_eq!(
             loader
-                .normalize_path("https://github.com/scripts/example.js", "module.mjs")
+                .normalize_http_path("https://github.com/scripts/example.js", "module.mjs")
                 .unwrap(),
             "https://github.com/scripts/module.mjs"
         );
         assert_eq!(
             loader
-                .normalize_path("https://github.com/example.js", "module.mjs")
+                .normalize_http_path("https://github.com/example.js", "module.mjs")
                 .unwrap(),
             "https://github.com/module.mjs"
         );
@@ -411,10 +419,10 @@ mod tests {
         let path = Path::new("./modules").canonicalize().unwrap();
         println!("path = {:?}", path);
         assert!(loader
-            .normalize_path("file:///test.es", "utils/assertions.mes")
+            .normalize_file_path("file:///test.es", "utils/assertions.mes")
             .is_some());
         assert!(loader
-            .normalize_path("file:///test.es", "utils/notfound.mes")
+            .normalize_file_path("file:///test.es", "utils/notfound.mes")
             .is_none());
     }
 }
