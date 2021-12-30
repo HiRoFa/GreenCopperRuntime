@@ -1,14 +1,17 @@
+use futures::executor::block_on;
 use crate::modules::db::mysql::connection::MysqlConnection;
 use hirofa_utils::js_utils::facades::values::JsValueFacade;
+use mysql_lib::Conn;
 
 pub(crate) struct _MysqlTransaction {
-    con: mysql_lib::PooledConn,
+    con: Conn,
 }
 
 impl _MysqlTransaction {
     fn _new(con: &MysqlConnection) -> Self {
         //
-        let con = con.pool.get_conn().unwrap();
+        // todo async constructor? errors handling
+        let con = block_on(con.pool.get_pool().get_conn()).unwrap();
 
         Self { con }
     }

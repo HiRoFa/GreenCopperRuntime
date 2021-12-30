@@ -129,7 +129,14 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
 fn init_exports<R: JsRealmAdapter + 'static>(
     realm: &R,
 ) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
-    let myql_connection_proxy_class = JsProxy::new(&["greco", "db", "mysql"], "Connection")
+    let mysql_connection_proxy_class = create_mysql_connection_proxy(realm);
+    let res = realm.js_proxy_install(mysql_connection_proxy_class, false)?;
+
+    Ok(vec![("Connection", res)])
+}
+
+pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> JsProxy<R> {
+    JsProxy::new(&["greco", "db", "mysql"], "Connection")
         .set_constructor(|runtime, realm: &R, instance_id, args| {
             let con = MysqlConnection::new(runtime, realm, args)?;
             store_connection(instance_id, con);
@@ -158,9 +165,6 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
         })
         .set_finalizer(|_rt, _realm, id| {
-                drop_connection(&id);
-        });
-    let res = realm.js_proxy_install(myql_connection_proxy_class, false)?;
-
-    Ok(vec![("Connection", res)])
+            drop_connection(&id);
+        })
 }

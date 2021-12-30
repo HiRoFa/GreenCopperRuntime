@@ -40,7 +40,7 @@ pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
     };
 
     let url = Url::parse(ref_path.as_str())
-        .map_err(|e| JsError::new_string(format!("failed to parse Url: {}", e)))?;
+        .map_err(|e| JsError::new_string(format!("failed to parse Url [{}] due to : {}", ref_path, e)))?;
     let path = if let Some(stripped) = name.strip_prefix('/') {
         stripped.to_string()
     } else {
@@ -423,5 +423,18 @@ mod tests {
         assert!(loader
             .normalize_file_path("file:///test.es", "utils/notfound.mes")
             .is_none());
+    }
+
+    #[test]
+    fn test_gcs() {
+
+      match normalize_path("gcs_project:///hello/world.ts", "../project2/world") {
+          Ok(p) => {
+              assert_eq!(p.as_str(), "gcs_project:///project2/world")
+          }
+          Err(e) => {
+              panic!("{}", e)
+          }
+      }
     }
 }
