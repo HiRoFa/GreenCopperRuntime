@@ -1,5 +1,5 @@
-use futures::executor::block_on;
 use crate::modules::db::mysql::connection::MysqlConnection;
+use futures::executor::block_on;
 use hirofa_utils::js_utils::facades::values::JsValueFacade;
 use mysql_lib::Conn;
 

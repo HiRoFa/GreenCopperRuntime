@@ -39,8 +39,9 @@ pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
         ref_path.to_string()
     };
 
-    let url = Url::parse(ref_path.as_str())
-        .map_err(|e| JsError::new_string(format!("failed to parse Url [{}] due to : {}", ref_path, e)))?;
+    let url = Url::parse(ref_path.as_str()).map_err(|e| {
+        JsError::new_string(format!("failed to parse Url [{}] due to : {}", ref_path, e))
+    })?;
     let path = if let Some(stripped) = name.strip_prefix('/') {
         stripped.to_string()
     } else {
@@ -427,14 +428,13 @@ mod tests {
 
     #[test]
     fn test_gcs() {
-
-      match normalize_path("gcs_project:///hello/world.ts", "../project2/world") {
-          Ok(p) => {
-              assert_eq!(p.as_str(), "gcs_project:///project2/world")
-          }
-          Err(e) => {
-              panic!("{}", e)
-          }
-      }
+        match normalize_path("gcs_project:///hello/world.ts", "../project2/world") {
+            Ok(p) => {
+                assert_eq!(p.as_str(), "gcs_project:///project2/world")
+            }
+            Err(e) => {
+                panic!("{}", e)
+            }
+        }
     }
 }

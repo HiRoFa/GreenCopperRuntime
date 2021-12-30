@@ -1,12 +1,12 @@
+use cached::proc_macro::cached;
+use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::JsValueFacade;
 use hirofa_utils::js_utils::JsError;
-use mysql_lib::{from_value, Pool, Row};
 use mysql_lib::prelude::Queryable;
 use mysql_lib::Value;
+use mysql_lib::{from_value, Pool, Row};
 use std::sync::Arc;
-use futures::executor::block_on;
-use cached::proc_macro::cached;
 
 struct PoolRef {
     pool: Option<Pool>,
@@ -42,19 +42,29 @@ pub(crate) struct MysqlConnection {
     pub(crate) pool: PoolWrapper,
 }
 
-#[cached(key = "String", size = 50, time = 3600, result = true, convert = r#"{ format!("mysql://{}:p@{}:{}/{}", user, host, port, db) }"#)]
-pub(crate) fn get_con_pool_wrapper(user: &str, pass: &str, host: &str, port: u16, db: &str) -> Result<PoolWrapper, JsError> {
-
+#[cached(
+    key = "String",
+    size = 50,
+    time = 3600,
+    result = true,
+    convert = r#"{ format!("mysql://{}:p@{}:{}/{}", user, host, port, db) }"#
+)]
+pub(crate) fn get_con_pool_wrapper(
+    user: &str,
+    pass: &str,
+    host: &str,
+    port: u16,
+    db: &str,
+) -> Result<PoolWrapper, JsError> {
     let con_str = format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db);
 
     let pool = mysql_lib::Pool::new(con_str.as_str());
 
-    let pw = PoolWrapper{ arc: Arc::new(PoolRef {
-        pool: Some(pool)
-    }) };
+    let pw = PoolWrapper {
+        arc: Arc::new(PoolRef { pool: Some(pool) }),
+    };
 
     Ok(pw)
-
 }
 
 impl MysqlConnection {
@@ -74,9 +84,7 @@ impl MysqlConnection {
 
         let pool = get_con_pool_wrapper(user, pass, host, port, db)?;
 
-        Ok(Self {
-            pool,
-        })
+        Ok(Self { pool })
     }
     /// query method
     pub fn query<R: JsRealmAdapter + 'static>(
@@ -157,7 +165,9 @@ impl MysqlConnection {
 
                     log::trace!("mysql::query / 1 / res_set");
 
-                    for row_res in result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))? {
+                    for row_res in
+                        result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))?
+                    {
                         log::trace!("mysql::query / 2 / row");
 
                         let mut esvf_row = vec![];
@@ -207,14 +217,12 @@ impl MysqlConnection {
                         // todo batch this per x rows with invoke_function_batch_sync
 
                         if let JsValueFacade::JsFunction { cached_function } = &*row_consumer_jsvf {
-                            let row_res_jsvf = cached_function.js_invoke_function(&*rti, esvf_row).await?;
+                            let row_res_jsvf =
+                                cached_function.js_invoke_function(&*rti, esvf_row).await?;
                             results.push(row_res_jsvf);
                         } else {
                             panic!("row_consumer was not a function");
                         }
-
-
-
                     }
                 }
                 Ok(results)
