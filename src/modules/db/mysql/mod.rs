@@ -166,3 +166,68 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             drop_connection(&id);
         })
 }
+
+#[cfg(test)]
+pub mod tests {
+    use futures::executor::block_on;
+    use hirofa_utils::js_utils::facades::values::JsValueFacade;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+    use hirofa_utils::js_utils::Script;
+    use log::LevelFilter;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+
+    //#[test]
+    fn test_params() {
+        let builder = QuickJsRuntimeBuilder::new();
+        let builder = crate::init_greco_rt(builder);
+        let rt = builder.build();
+
+        simple_logging::log_to_stderr(LevelFilter::Trace);
+
+        let script = Script::new(
+            "test_mysql.js",
+            r#"
+        
+        async function test() {
+            let mysqlMod = await import('greco://mysql');
+            let host = '127.0.0.1';
+            let port = 3307;
+            let user = 'test';
+            let pass = 'test';
+            let db = 'testdb';
+            let con = new mysqlMod.Connection(host, port, user, pass, db);
+            
+            await con.query('show tables', null, (...rows) => {
+                console.log('row %s', rows[0]);
+            });
+            
+        }
+        
+        test()
+        
+        "#,
+        );
+        let res: JsValueFacade = block_on(rt.js_eval(None, script))
+            .ok()
+            .expect("script failed");
+
+        println!("{}", res.stringify());
+        if let JsValueFacade::JsPromise { cached_promise } = res {
+            let rti_weak = rt.js_get_runtime_facade_inner();
+            let rti = rti_weak.upgrade().expect("invalid state");
+            let p_res = block_on(cached_promise.js_get_promise_result(&*rti))
+                .ok()
+                .expect("get prom res failed");
+            match p_res {
+                Ok(jsvf) => {
+                    println!("prom resolved to {}", jsvf.stringify());
+                }
+                Err(e) => {
+                    panic!("prom rejected: {}", e.stringify());
+                }
+            }
+        } else {
+            panic!("did not get a promise");
+        }
+    }
+}

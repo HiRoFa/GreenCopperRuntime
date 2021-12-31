@@ -100,6 +100,8 @@ impl MysqlConnection {
         //
         // takes three args, qry, params, consumer
 
+        log::trace!("Connection.query: {}", query);
+
         let query = query.to_string();
 
         let con = self.pool.get_pool().get_conn();
@@ -110,21 +112,26 @@ impl MysqlConnection {
             .expect("invalid state");
 
         let mut params_map = HashMap::new();
-        let props = realm.js_object_get_properties(params)?;
-        for prop_name in props {
-            let prop = realm.js_object_get_property(params, prop_name.as_str())?;
-            params_map.insert(prop_name, realm.to_js_value_facade(&prop)?);
+        if params.js_is_object() {
+            let props = realm.js_object_get_properties(params)?;
+            for prop_name in props {
+                let prop = realm.js_object_get_property(params, prop_name.as_str())?;
+                params_map.insert(prop_name, realm.to_js_value_facade(&prop)?);
+            }
         }
 
         let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
 
         realm.js_promise_create_resolving_async(
             async move {
+                log::trace!("Connection.query running async helper");
                 // in helper thread here
 
                 let mut con = con
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Connection.query running async helper / got con");
 
                 let mut results: Vec<JsValueFacade> = vec![];
 
@@ -133,6 +140,8 @@ impl MysqlConnection {
                     .prep(query)
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Connection.query running async helper / prepped stmt");
 
                 let arr: Vec<(String, Value)> = params_map
                     .into_iter()
@@ -150,16 +159,21 @@ impl MysqlConnection {
                     })
                     .collect();
 
+                log::trace!("Connection.query running async helper / prepped params");
+
                 let mut result = con
                     .exec_iter(stmt, arr)
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
+                log::trace!("Connection.query running async helper / got results");
+
                 //let mut result = con.query_iter(query).map_err(|e| format!("{}", e))?;
 
                 while !result.is_empty() {
+                    log::trace!("Connection.query running async helper / results !empty");
                     let result_set: Result<Vec<Row>, mysql_lib::Error> = result.collect().await;
-
+                    log::trace!("Connection.query running async helper / got result set");
                     // every row is a Vec<EsValueFacade>
                     // call row consumer with that
 
