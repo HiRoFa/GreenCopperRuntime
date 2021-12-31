@@ -6,6 +6,7 @@ use hirofa_utils::js_utils::JsError;
 use mysql_lib::prelude::Queryable;
 use mysql_lib::Value;
 use mysql_lib::{from_value, Pool, Row};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 struct PoolRef {
@@ -108,7 +109,13 @@ impl MysqlConnection {
             .upgrade()
             .expect("invalid state");
 
-        let params_jsvf = realm.to_js_value_facade(params)?;
+        let mut params_map = HashMap::new();
+        let props = realm.js_object_get_properties(params)?;
+        for prop_name in props {
+            let prop = realm.js_object_get_property(params, prop_name.as_str())?;
+            params_map.insert(prop_name, realm.to_js_value_facade(&prop)?);
+        }
+
         let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
 
         realm.js_promise_create_resolving_async(
@@ -127,28 +134,21 @@ impl MysqlConnection {
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-                let arr: Vec<Value> = match params_jsvf {
-                    JsValueFacade::Array { val } => {
-                        val.iter()
-                            .map(|jsvf| {
-                                match jsvf {
-                                    JsValueFacade::I32 { val } => val.into(),
-                                    JsValueFacade::F64 { val } => val.into(),
-                                    JsValueFacade::String { val } => val.into(),
-                                    JsValueFacade::Boolean { val } => val.into(),
-                                    _ => {
-                                        // todo err? panic?
-                                        "".to_string().into()
-                                    }
-                                }
-                            })
-                            .collect()
-                    }
-
-                    _ => {
-                        vec![]
-                    }
-                };
+                let arr: Vec<(String, Value)> = params_map
+                    .into_iter()
+                    .map(|(prop_name, jsvf)| {
+                        match jsvf {
+                            JsValueFacade::I32 { val } => (prop_name, val.into()),
+                            JsValueFacade::F64 { val } => (prop_name, val.into()),
+                            JsValueFacade::String { val } => (prop_name, val.into()),
+                            JsValueFacade::Boolean { val } => (prop_name, val.into()),
+                            _ => {
+                                // todo err? panic?
+                                (prop_name, "".to_string().into())
+                            }
+                        }
+                    })
+                    .collect();
 
                 let mut result = con
                     .exec_iter(stmt, arr)

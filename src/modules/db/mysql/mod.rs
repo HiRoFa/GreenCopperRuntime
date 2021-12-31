@@ -17,11 +17,9 @@
 //!     let dbSchema = "esses";
 //!     let con = new mysql_mod.Connection(url, port, user, pass, dbSchema);
 //!     // params and batches
-//!     await con.execute("insert into table1(name, lastName) values(?, ?)", ['Pete', 'Peterson'], ['Andrew', 'Anderson']);
+//!     await con.execute("insert into table1(name, lastName) values(:name, :lastName)", {name: 'Pete', lastName: 'Peterson'}, {name: 'Andrew', lastName: 'Anderson'});
 //!
-//!     let q1_objects = await con.query("select * from something where id > ? and age < ?", [1, 123], (row) => {
-//!        let name = row[0];
-//!         let age = row[1];
+//!     let q1_objects = await con.query("select * from something where id > :id and age < :age", {id: 1, age: 123}, (name, age) => {
 //!         console.log("a name = %s, age = %s", name, age);
 //!         return {name, age};
 //!     });
@@ -30,13 +28,13 @@
 //!     let transaction = await con.transaction();
 //!     try {
 //!         // all methods return a promise so execution never blocks
-//!         await transaction.execute("insert into table1(name) values('?')", ['Harry'], ['Henry']);
-//!         let ct_rows = await transaction.query("select count(*) from table1", [], (row) => {
-//!             return {count: row[0]};
+//!         await transaction.execute("insert into table1(name) values(:name)", {name: 'Harry'}, {name: 'Henry'});
+//!         let ct_rows = await transaction.query("select count(*) from table1", [], (ct) => {
+//!             return {count: ct};
 //!         });
 //!         await transaction.commit();
 //!     } finally {
-//!         // returns a promise await for eror handling.
+//!         // returns a promise await for error handling.
 //!         await transaction.close();
 //!     }
 //! }
@@ -149,7 +147,7 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() != 3 {
-                Err(JsError::new_str("query requires 3 arguments (query: String, params: Array, rowConsumer: Function)"))
+                Err(JsError::new_str("query requires 3 arguments (query: String, params: Object, rowConsumer: Function)"))
             } else {
                 // todo
 
