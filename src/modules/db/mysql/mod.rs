@@ -176,7 +176,7 @@ pub mod tests {
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    //#[test]
+    #[test]
     fn test_params() {
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
@@ -197,8 +197,12 @@ pub mod tests {
             let db = 'testdb';
             let con = new mysqlMod.Connection(host, port, user, pass, db);
             
-            await con.query('show tables', null, (...rows) => {
+            await con.query('select * from test where \'test\' = ?', ['test'], (...rows) => {
                 console.log('row %s', rows[0]);
+            });
+            
+            await con.query('select * from test where \'test\' = :a', {a: 'test'}, (...rows) => {
+                console.log('named row %s', rows[0]);
             });
             
         }
