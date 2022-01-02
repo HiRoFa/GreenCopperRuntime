@@ -162,6 +162,24 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             }
 
         })
+        .add_method("execute", |runtime, realm: &R, id, args| {
+            // todo think up a macro for this?
+            // 3 args, second may be null
+            if args.len() < 2 {
+                Err(JsError::new_str("query requires at least 2 arguments (query: String, ...params: Array<Object>)"))
+            } else {
+                // todo
+
+                let query = args[0].js_to_string()?;
+
+                let params: Vec<&R::JsValueAdapterType> = args[1..args.len()].iter().collect();
+
+                with_connection( &id, |con| {
+                    con.execute(runtime, realm, query.as_str(), &params)
+                })
+            }
+
+        })
         .set_finalizer(|_rt, _realm, id| {
             drop_connection(&id);
         })
@@ -204,6 +222,8 @@ pub mod tests {
             await con.query('select * from test where \'test\' = :a', {a: 'test'}, (...rows) => {
                 console.log('named row %s', rows[0]);
             });
+            
+            await con.execute('insert into test(id) values(?)', [4], [8], [12]);
             
         }
         

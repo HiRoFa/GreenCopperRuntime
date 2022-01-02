@@ -56,7 +56,10 @@ pub(crate) fn get_con_pool_wrapper(
     port: u16,
     db: &str,
 ) -> Result<PoolWrapper, JsError> {
-    let con_str = format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db);
+    let con_str = format!(
+        "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=10",
+        user, pass, host, port, db
+    );
 
     let pool = mysql_lib::Pool::new(con_str.as_str());
 
@@ -86,46 +89,10 @@ impl MysqlConnection {
 
         Ok(Self { pool })
     }
-    /// query method
-    pub fn query<R: JsRealmAdapter + 'static>(
-        &self,
-        _runtime: &R::JsRuntimeAdapterType,
+    fn parse_params<R: JsRealmAdapter + 'static>(
         realm: &R,
-        query: &str,
         params: &R::JsValueAdapterType,
-        row_consumer: &R::JsValueAdapterType,
-    ) -> Result<R::JsValueAdapterType, JsError> {
-        // start a tx, qry, close tx
-        //
-        // takes three args, qry, params, consumer
-
-        log::trace!("Connection.query: {}", query);
-
-        let query = query.to_string();
-
-        let con = self.pool.get_pool().get_conn();
-
-        let rti = realm
-            .js_get_runtime_facade_inner()
-            .upgrade()
-            .expect("invalid state");
-
-        // let arr: Vec<Value> = params_vec
-        //                     .into_iter()
-        //                     .map(|jsvf| {
-        //                         match jsvf {
-        //                             JsValueFacade::I32 { val } => val.into(),
-        //                             JsValueFacade::F64 { val } => val.into(),
-        //                             JsValueFacade::String { val } => val.into(),
-        //                             JsValueFacade::Boolean { val } => val.into(),
-        //                             _ => {
-        //                                 // todo err? panic?
-        //                                 "".to_string().into()
-        //                             }
-        //                         }
-        //                     })
-        //                     .collect();
-
+    ) -> Result<(Option<Vec<(String, Value)>>, Vec<Value>), JsError> {
         let mut params_vec: Vec<Value> = vec![];
         let mut params_named_vec: Option<Vec<(String, Value)>> = None;
         if params.js_is_array() {
@@ -159,6 +126,33 @@ impl MysqlConnection {
             })?;
             params_named_vec = Some(vec);
         }
+        Ok((params_named_vec, params_vec))
+    }
+    /// query method
+    pub fn query<R: JsRealmAdapter + 'static>(
+        &self,
+        _runtime: &R::JsRuntimeAdapterType,
+        realm: &R,
+        query: &str,
+        params: &R::JsValueAdapterType,
+        row_consumer: &R::JsValueAdapterType,
+    ) -> Result<R::JsValueAdapterType, JsError> {
+        // start a tx, qry, close tx
+        //
+        // takes three args, qry, params, consumer
+
+        log::trace!("Connection.query: {}", query);
+
+        let query = query.to_string();
+
+        let con = self.pool.get_pool().get_conn();
+
+        let rti = realm
+            .js_get_runtime_facade_inner()
+            .upgrade()
+            .expect("invalid state");
+
+        let (params_named_vec, params_vec) = Self::parse_params(realm, params)?;
 
         let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
 
@@ -275,6 +269,85 @@ impl MysqlConnection {
             |realm, val: Vec<JsValueFacade>| {
                 //
                 realm.from_js_value_facade(JsValueFacade::Array { val })
+            },
+        )
+    }
+    /// execute method
+    /// todo support array of params
+    pub fn execute<R: JsRealmAdapter + 'static>(
+        &self,
+        _runtime: &R::JsRuntimeAdapterType,
+        realm: &R,
+        query: &str,
+        params_arr: &[&R::JsValueAdapterType],
+    ) -> Result<R::JsValueAdapterType, JsError> {
+        // start a tx, exe, close tx
+        //
+        // takes two args, qry, ...params
+
+        log::trace!("Connection.execute: {}", query);
+
+        let query = query.to_string();
+
+        let con = self.pool.get_pool().get_conn();
+
+        let mut params_vec_vec = vec![];
+        let mut params_named_vec_vec = None;
+        for params in params_arr {
+            let (params_named_vec, params_vec) = Self::parse_params(realm, params)?;
+            if let Some(named_vec) = params_named_vec {
+                if params_named_vec_vec.is_none() {
+                    let _ = params_named_vec_vec.replace(vec![]);
+                }
+                params_named_vec_vec.as_mut().unwrap().push(named_vec);
+            } else {
+                params_vec_vec.push(params_vec);
+            }
+        }
+
+        realm.js_promise_create_resolving_async(
+            async move {
+                log::trace!("Connection.execute running async helper");
+                // in helper thread here
+
+                let mut con = con
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Connection.execute running async helper / got con");
+
+
+                //
+                let stmt = con
+                    .prep(query)
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Connection.execute running async helper / prepped stmt");
+
+                log::trace!("Connection.execute running async helper / prepped params");
+
+                let result_fut = if let Some(named_params) = params_named_vec_vec {
+                    log::trace!("Connection.execute running async helper / prepped params / using named, size = {}", named_params.len());
+                    con.exec_batch(stmt, named_params)
+                } else {
+                    log::trace!("Connection.execute running async helper / prepped params / using positional, size = {}", params_vec_vec.len());
+                    con.exec_batch(stmt, params_vec_vec)
+                };
+
+                result_fut
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Connection.execute running async helper / got results");
+
+                //let mut result = con.query_iter(query).map_err(|e| format!("{}", e))?;
+
+                Ok(())
+            },
+            |realm, _val| {
+                //
+                realm.js_null_create()
             },
         )
     }
