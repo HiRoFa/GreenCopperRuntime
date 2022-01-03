@@ -95,6 +95,10 @@ impl MysqlConnection {
     ) -> Result<(Option<Vec<(String, Value)>>, Vec<Value>), JsError> {
         let mut params_vec: Vec<Value> = vec![];
         let mut params_named_vec: Option<Vec<(String, Value)>> = None;
+        log::trace!(
+            "connection::parse_params params.type = {}",
+            params.js_get_type()
+        );
         if params.js_is_array() {
             realm.js_array_traverse_mut(params, |_index, item| {
                 if item.js_is_i32() {
