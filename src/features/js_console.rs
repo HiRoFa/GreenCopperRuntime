@@ -47,7 +47,7 @@
 //! ```[00:00:00.012] (7f44e7d24700) INFO   the quick brown fox jumped over 32 fences with a accuracy of 0.51```
 
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacade};
+use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacade, JsValueType};
 use hirofa_utils::js_utils::JsError;
 use log::LevelFilter;
 use std::str::FromStr;
@@ -69,6 +69,13 @@ pub fn install_realm<R: JsRealmAdapter>(realm_adapter: &R) -> Result<(), JsError
     realm_adapter.js_install_function(&["console"], "trace", console_trace, 1)?;
 
     Ok(())
+}
+
+fn stringify_log_obj<R: JsRealmAdapter>(realm: &R, arg: &R::JsValueAdapterType) -> String {
+    match realm.js_json_stringify(arg, None) {
+        Ok(r) => r,
+        Err(e) => format!("Error: {}", e),
+    }
 }
 
 fn console_log<R: JsRealmAdapter>(
@@ -239,48 +246,108 @@ fn parse_field_value<R: JsRealmAdapter>(
         }
     }
     #[allow(clippy::or_fun_call)]
-    value.js_to_string().unwrap_or("".to_string())
+    match value.js_get_type() {
+        JsValueType::Object => stringify_log_obj(realm_adapter, value),
+        JsValueType::Function => stringify_log_obj(realm_adapter, value),
+        JsValueType::Array => stringify_log_obj(realm_adapter, value),
+        _ => value.js_to_string().unwrap_or("".to_string()),
+    }
 }
 
 fn parse_line<R: JsRealmAdapter>(realm_adapter: &R, args: &[R::JsValueAdapterType]) -> String {
+    let mut output = String::new();
+
+    output.push_str("JS_REALM:[");
+    output.push_str(realm_adapter.js_get_realm_id());
+    output.push_str("]: ");
+
     if args.is_empty() {
-        return "".to_string();
+        return output;
     }
 
-    #[allow(clippy::or_fun_call)]
-    let message = args[0]
-        .js_to_string()
-        .or::<String>(Ok(String::new()))
-        .unwrap();
+    let message = match &args[0].js_get_type() {
+        JsValueType::Object => stringify_log_obj(realm_adapter, &args[0]),
+        JsValueType::Function => stringify_log_obj(realm_adapter, &args[0]),
+        JsValueType::Array => stringify_log_obj(realm_adapter, &args[0]),
+        _ => args[0].js_to_string().unwrap_or_else(|e| format!("{}", e)),
+    };
 
-    let mut output = String::new();
     let mut field_code = String::new();
     let mut in_field = false;
 
     let mut x = 1;
 
-    for chr in message.chars() {
-        if in_field {
-            field_code.push(chr);
-            if chr.eq(&'s') || chr.eq(&'d') || chr.eq(&'f') || chr.eq(&'o') || chr.eq(&'i') {
-                // end field
+    let mut filled = 1;
 
-                if x < args.len() {
-                    output.push_str(
-                        parse_field_value(realm_adapter, field_code.as_str(), &args[x]).as_str(),
-                    );
-                    x += 1;
+    if args[0].js_is_string() {
+        for chr in message.chars() {
+            if in_field {
+                field_code.push(chr);
+                if chr.eq(&'s') || chr.eq(&'d') || chr.eq(&'f') || chr.eq(&'o') || chr.eq(&'i') {
+                    // end field
+
+                    if x < args.len() {
+                        output.push_str(
+                            parse_field_value(realm_adapter, field_code.as_str(), &args[x])
+                                .as_str(),
+                        );
+                        x += 1;
+                        filled += 1;
+                    }
+
+                    in_field = false;
+                    field_code = String::new();
                 }
-
-                in_field = false;
-                field_code = String::new();
+            } else if chr.eq(&'%') {
+                in_field = true;
+            } else {
+                output.push(chr);
             }
-        } else if chr.eq(&'%') {
-            in_field = true;
-        } else {
-            output.push(chr);
         }
+    } else {
+        output.push_str(message.as_str());
+    }
+
+    for arg in args.iter().skip(filled) {
+        // add args which we're not filled in str
+        output.push(' ');
+        let tail_arg = match arg.js_get_type() {
+            JsValueType::Object => stringify_log_obj(realm_adapter, arg),
+            JsValueType::Function => stringify_log_obj(realm_adapter, arg),
+            JsValueType::Array => stringify_log_obj(realm_adapter, arg),
+            _ => arg.js_to_string().unwrap_or_else(|_| "".to_string()),
+        };
+        output.push_str(tail_arg.as_str());
     }
 
     output
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use hirofa_utils::js_utils::Script;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    //use log::LevelFilter;
+
+    #[test]
+    pub fn test_console() {
+        //simple_logging::log_to_stderr(LevelFilter::Info);
+        log::info!("> test_console");
+        let rt = crate::init_greco_rt(QuickJsRuntimeBuilder::new()).build();
+
+        rt.eval_sync(Script::new(
+            "test_console.es",
+            "console.log('one %s', 'two', 3);\
+            console.log('two %s %s', 'two', 3);\
+            console.log('date:', new Date());\
+            console.log('err:', new Error('testpoof'));\
+            console.log('array:', [1, 2, true, {a: 1}]);\
+            console.log('obj arg: %s', {a: 1});\
+            console.log({obj: true}, {obj: false});",
+        ))
+        .ok()
+        .expect("test_console.es failed");
+        log::info!("< test_console");
+    }
 }

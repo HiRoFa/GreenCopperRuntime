@@ -25,7 +25,7 @@ pub struct PoolWrapper {
 
 impl PoolWrapper {
     pub(crate) fn get_pool(&self) -> &Pool {
-        &self.arc.pool.as_ref().unwrap()
+        self.arc.pool.as_ref().unwrap()
     }
 }
 
@@ -89,6 +89,7 @@ impl MysqlConnection {
 
         Ok(Self { pool })
     }
+    #[allow(clippy::type_complexity)]
     fn parse_params<R: JsRealmAdapter + 'static>(
         realm: &R,
         params: &R::JsValueAdapterType,
