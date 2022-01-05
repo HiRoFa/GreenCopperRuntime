@@ -428,9 +428,9 @@ mod tests {
 
     #[test]
     fn test_gcs() {
-        match normalize_path("gcs_project:///hello/world.ts", "../project2/world") {
+        match normalize_path("gcsproject:///hello/world.ts", "../project2/world") {
             Ok(p) => {
-                assert_eq!(p.as_str(), "gcs_project:///project2/world")
+                assert_eq!(p.as_str(), "gcsproject:///project2/world")
             }
             Err(e) => {
                 panic!("{}", e)

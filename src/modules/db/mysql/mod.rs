@@ -191,16 +191,16 @@ pub mod tests {
     use hirofa_utils::js_utils::facades::values::JsValueFacade;
     use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use hirofa_utils::js_utils::Script;
-    use log::LevelFilter;
+    //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    #[test]
-    fn test_params() {
+    //#[test]
+    fn _test_params() {
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
 
-        simple_logging::log_to_stderr(LevelFilter::Trace);
+        //simple_logging::log_to_stderr(LevelFilter::Trace);
 
         let script = Script::new(
             "test_mysql.js",
