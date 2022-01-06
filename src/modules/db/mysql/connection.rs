@@ -57,7 +57,7 @@ pub(crate) fn get_con_pool_wrapper(
     db: &str,
 ) -> Result<PoolWrapper, JsError> {
     let con_str = format!(
-        "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=10",
+        "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
         user, pass, host, port, db
     );
 
@@ -110,6 +110,8 @@ impl MysqlConnection {
                     params_vec.push(item.js_to_bool().into());
                 } else if item.js_is_string() {
                     params_vec.push(item.js_to_str()?.into());
+                } else if item.js_is_null_or_undefined() {
+                    params_vec.push(Value::NULL);
                 }
 
                 Ok(())
@@ -125,6 +127,8 @@ impl MysqlConnection {
                     vec.push((name.to_string(), item.js_to_bool().into()));
                 } else if item.js_is_string() {
                     vec.push((name.to_string(), item.js_to_str()?.into()));
+                } else if item.js_is_null_or_undefined() {
+                    vec.push((name.to_string(), Value::NULL));
                 }
 
                 Ok(())
