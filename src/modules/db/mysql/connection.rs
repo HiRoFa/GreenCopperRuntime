@@ -176,6 +176,7 @@ impl MysqlConnection {
 
                 log::trace!("Connection.query running async helper / got con");
 
+                let mut fut_results = vec![];
                 let mut results: Vec<JsValueFacade> = vec![];
 
                 //
@@ -263,16 +264,20 @@ impl MysqlConnection {
 
                         // invoke row consumer with single row data
                         // todo batch this per x rows with invoke_function_batch_sync
-
+                        // and at least don't .await here, add all futures to a vec and await all at same time
                         if let JsValueFacade::JsFunction { cached_function } = &*row_consumer_jsvf {
-                            let row_res_jsvf =
-                                cached_function.js_invoke_function(&*rti, esvf_row).await?;
-                            results.push(row_res_jsvf);
+                            let row_res_jsvf_fut =
+                                cached_function.js_invoke_function(&*rti, esvf_row);
+                            fut_results.push(row_res_jsvf_fut);
                         } else {
                             panic!("row_consumer was not a function");
                         }
                     }
                 }
+                for row_res_jsvf_fut in fut_results {
+                    results.push(row_res_jsvf_fut.await?);
+                }
+
                 Ok(results)
             },
             |realm, val: Vec<JsValueFacade>| {
