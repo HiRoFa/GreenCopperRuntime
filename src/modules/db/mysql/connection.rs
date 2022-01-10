@@ -1,11 +1,10 @@
 use cached::proc_macro::cached;
 use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::values::JsValueFacade;
+use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::prelude::Queryable;
-use mysql_lib::Value;
-use mysql_lib::{from_value, Pool, Row};
+use mysql_lib::{from_value, Pool, Row, Value};
 use std::sync::Arc;
 
 struct PoolRef {
@@ -110,6 +109,9 @@ impl MysqlConnection {
                     params_vec.push(item.js_to_bool().into());
                 } else if item.js_is_string() {
                     params_vec.push(item.js_to_str()?.into());
+                } else if item.js_is_typed_array() {
+                    let buf = realm.js_typed_array_detach_buffer(item)?;
+                    params_vec.push(buf.into());
                 } else if item.js_is_null_or_undefined() {
                     params_vec.push(Value::NULL);
                 }
@@ -127,6 +129,9 @@ impl MysqlConnection {
                     vec.push((name.to_string(), item.js_to_bool().into()));
                 } else if item.js_is_string() {
                     vec.push((name.to_string(), item.js_to_str()?.into()));
+                } else if item.js_is_typed_array() {
+                    let buf = realm.js_typed_array_detach_buffer(item)?;
+                    vec.push((name.to_string(), buf.into()));
                 } else if item.js_is_null_or_undefined() {
                     vec.push((name.to_string(), Value::NULL));
                 }
@@ -229,10 +234,6 @@ impl MysqlConnection {
                                 _val @ Value::NULL => {
                                     esvf_row.push(JsValueFacade::Null);
                                 }
-                                val @ Value::Bytes(..) => {
-                                    let i = from_value::<String>(val);
-                                    esvf_row.push(JsValueFacade::new_string(i));
-                                }
                                 val @ Value::Int(..) => {
                                     let i = from_value::<i64>(val) as i32;
                                     esvf_row.push(JsValueFacade::new_i32(i));
@@ -248,6 +249,10 @@ impl MysqlConnection {
                                 val @ Value::Double(..) => {
                                     let i = from_value::<f64>(val);
                                     esvf_row.push(JsValueFacade::new_f64(i));
+                                }
+                                val @ Value::Bytes(..) => {
+                                    let buffer = from_value::<Vec<u8>>(val);
+                                    esvf_row.push(JsValueFacade::TypedArray{buffer, array_type: TypedArrayType::Uint8});
                                 }
                                 _val @ Value::Date(..) => {
                                     //use mysql_lib::chrono::NaiveDateTime;
