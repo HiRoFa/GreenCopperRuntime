@@ -191,6 +191,8 @@ impl MysqlConnection {
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
+                let col_types: Vec<ColumnType> = stmt.columns().into_iter().map(|col| {col.column_type()}).collect();
+
                 log::trace!("Connection.query running async helper / prepped stmt");
 
                 log::trace!("Connection.query running async helper / prepped params");
@@ -203,13 +205,13 @@ impl MysqlConnection {
                     con.exec_iter(stmt, params_vec)
                 };
 
+
+
                 let mut result = result_fut
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
                 log::trace!("Connection.query running async helper / got results");
-
-                //let mut result = con.query_iter(query).map_err(|e| format!("{}", e))?;
 
                 while !result.is_empty() {
                     log::trace!("Connection.query running async helper / results !empty");
@@ -218,7 +220,8 @@ impl MysqlConnection {
                     // every row is a Vec<EsValueFacade>
                     // call row consumer with that
 
-                    log::trace!("mysql::query / 1 / res_set");
+                    //let cols = result.columns().is_some()
+
 
 
 
@@ -228,8 +231,6 @@ impl MysqlConnection {
                         log::trace!("mysql::query / 2 / row");
 
                         let mut esvf_row = vec![];
-
-
 
                         let row = row_res.unwrap();
 
@@ -257,15 +258,16 @@ impl MysqlConnection {
                                     esvf_row.push(JsValueFacade::new_f64(i));
                                 }
                                 val @ Value::Bytes(..) => {
-                                    // ok so error here leeds to never resolving promises
-                                    //let col = &result.columns_ref()[index];
-                                    //if col.column_type() == ColumnType::MYSQL_TYPE_BLOB {
-                                    //    let buffer = from_value::<Vec<u8>>(val);
-                                    //    esvf_row.push(JsValueFacade::TypedArray{buffer, array_type: TypedArrayType::Uint8});
-                                    //} else {
+
+                                    let is_blob = col_types.len() < index && col_types[index] == ColumnType::MYSQL_TYPE_BLOB;
+
+                                    if is_blob {
+                                        let buffer = from_value::<Vec<u8>>(val);
+                                        esvf_row.push(JsValueFacade::TypedArray{buffer, array_type: TypedArrayType::Uint8});
+                                    } else {
                                         let i = from_value::<String>(val);
                                         esvf_row.push(JsValueFacade::new_string(i));
-                                    //}
+                                    }
                                 }
                                 _val @ Value::Date(..) => {
                                     //use mysql_lib::chrono::NaiveDateTime;

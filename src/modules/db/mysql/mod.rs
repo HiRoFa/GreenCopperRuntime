@@ -199,7 +199,7 @@ pub mod tests {
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
 
-        simple_logging::log_to_stderr(log::LevelFilter::Trace);
+        //simple_logging::log_to_stderr(log::LevelFilter::Trace);
 
         let script = Script::new(
             "test_mysql.js",
