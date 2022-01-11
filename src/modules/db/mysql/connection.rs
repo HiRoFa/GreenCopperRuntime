@@ -3,6 +3,7 @@ use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::JsError;
+use mysql_lib::consts::ColumnType;
 use mysql_lib::prelude::Queryable;
 use mysql_lib::{from_value, Pool, Row, Value};
 use std::sync::Arc;
@@ -219,6 +220,8 @@ impl MysqlConnection {
 
                     log::trace!("mysql::query / 1 / res_set");
 
+
+
                     for row_res in
                         result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))?
                     {
@@ -226,8 +229,11 @@ impl MysqlConnection {
 
                         let mut esvf_row = vec![];
 
+
+
                         let row = row_res.unwrap();
-                        for val_raw in row {
+
+                        for (index, val_raw) in row.into_iter().enumerate() {
                             log::trace!("mysql::query / 3 / val");
 
                             match val_raw {
@@ -251,8 +257,15 @@ impl MysqlConnection {
                                     esvf_row.push(JsValueFacade::new_f64(i));
                                 }
                                 val @ Value::Bytes(..) => {
-                                    let buffer = from_value::<Vec<u8>>(val);
-                                    esvf_row.push(JsValueFacade::TypedArray{buffer, array_type: TypedArrayType::Uint8});
+                                    // ok so error here leeds to never resolving promises
+                                    //let col = &result.columns_ref()[index];
+                                    //if col.column_type() == ColumnType::MYSQL_TYPE_BLOB {
+                                    //    let buffer = from_value::<Vec<u8>>(val);
+                                    //    esvf_row.push(JsValueFacade::TypedArray{buffer, array_type: TypedArrayType::Uint8});
+                                    //} else {
+                                        let i = from_value::<String>(val);
+                                        esvf_row.push(JsValueFacade::new_string(i));
+                                    //}
                                 }
                                 _val @ Value::Date(..) => {
                                     //use mysql_lib::chrono::NaiveDateTime;

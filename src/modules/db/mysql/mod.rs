@@ -191,16 +191,15 @@ pub mod tests {
     use hirofa_utils::js_utils::facades::values::JsValueFacade;
     use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use hirofa_utils::js_utils::Script;
-    //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    //#[test]
+    #[test]
     fn _test_params() {
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
 
-        //simple_logging::log_to_stderr(LevelFilter::Trace);
+        simple_logging::log_to_stderr(log::LevelFilter::Trace);
 
         let script = Script::new(
             "test_mysql.js",
@@ -208,11 +207,11 @@ pub mod tests {
         
         async function test() {
             let mysqlMod = await import('greco://mysql');
-            let host = '127.0.0.1';
-            let port = 3307;
-            let user = 'test';
-            let pass = 'test';
-            let db = 'testdb';
+            let host = '192.168.10.43';
+            let port = 3306;
+            let user = 'hirofa';
+            let pass = 'hirofa';
+            let db = 'hirofa_testdb';
             let con = new mysqlMod.Connection(host, port, user, pass, db);
             
             await con.query('select * from test where \'test\' = ?', ['test'], (...rows) => {
@@ -223,7 +222,17 @@ pub mod tests {
                 console.log('named row %s', rows[0]);
             });
             
+            await con.execute('delete from test', []);
+            
             await con.execute('insert into test(id) values(?)', [4], [8], [12]);
+            
+            let tables = await con.query('show tables', null, (row1) => {
+                return row1;
+            });
+            
+            for (let table of tables) {
+                console.log('found table %s', table);            
+            }
             
         }
         
