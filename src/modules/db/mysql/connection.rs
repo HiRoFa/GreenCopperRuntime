@@ -5,7 +5,7 @@ use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::consts::ColumnType;
 use mysql_lib::prelude::Queryable;
-use mysql_lib::{from_value, Pool, Row, Value};
+use mysql_lib::{from_value, Pool, Row, TxOpts, Value};
 use std::sync::Arc;
 
 struct PoolRef {
@@ -350,6 +350,10 @@ impl MysqlConnection {
 
                 log::trace!("Connection.execute running async helper / got con");
 
+                // split queries, if multiple do in single tx?
+
+                //let tx_opts= TxOpts::default();
+                //let tx = con.start_transaction(tx_opts).await.map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
                 //
                 let stmt = con
