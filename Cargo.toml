@@ -17,7 +17,7 @@ io = ["gpio", "fs"]
 db = ["mysql"]
 
 fs = []
-gpio = ["gpio-cdev", "futures"]
+gpio = ["gpio-cdev"]
 mysql = ["mysql_lib"]
 
 com = ["http"]
@@ -56,7 +56,7 @@ cached = "0.26"
 
 reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
-futures = {version = "0.3", optional = true}
+futures = {version = "0.3"}
 mysql_lib = {package="mysql_async", version = "0.29",  optional = true}
 lru = {version = "0.7.0", optional = true}
 
