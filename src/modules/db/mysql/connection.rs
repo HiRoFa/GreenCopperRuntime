@@ -5,7 +5,7 @@ use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::consts::ColumnType;
 use mysql_lib::prelude::Queryable;
-use mysql_lib::{from_value, Pool, Row, TxOpts, Value};
+use mysql_lib::{from_value, Conn, Pool, Row, Value};
 use std::sync::Arc;
 
 struct PoolRef {
@@ -24,8 +24,11 @@ pub struct PoolWrapper {
 }
 
 impl PoolWrapper {
-    pub(crate) fn get_pool(&self) -> &Pool {
+    pub fn get_pool(&self) -> &Pool {
         self.arc.pool.as_ref().unwrap()
+    }
+    pub async fn get_conn(&self) -> Result<Conn, mysql_lib::Error> {
+        self.get_pool().get_conn().await
     }
 }
 
@@ -38,7 +41,6 @@ impl Clone for PoolWrapper {
 }
 
 pub(crate) struct MysqlConnection {
-    // todo encapsulate in wrapper
     pub(crate) pool: PoolWrapper,
 }
 
@@ -47,19 +49,26 @@ pub(crate) struct MysqlConnection {
     size = 50,
     time = 3600,
     result = true,
-    convert = r#"{ format!("mysql://{}:p@{}:{}/{}", user, host, port, db) }"#
+    convert = r#"{ format!("mysql://{}:p@{}:{}/{:?}", user, host, port, db_opt) }"#
 )]
-pub(crate) fn get_con_pool_wrapper(
+pub fn get_con_pool_wrapper(
     user: &str,
     pass: &str,
     host: &str,
     port: u16,
-    db: &str,
+    db_opt: Option<&str>,
 ) -> Result<PoolWrapper, JsError> {
-    let con_str = format!(
-        "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
-        user, pass, host, port, db
-    );
+    let con_str = if let Some(db) = db_opt {
+        format!(
+            "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
+            user, pass, host, port, db
+        )
+    } else {
+        format!(
+            "mysql://{}:{}@{}:{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
+            user, pass, host, port
+        )
+    };
 
     let pool = mysql_lib::Pool::new(con_str.as_str());
 
@@ -83,7 +92,11 @@ impl MysqlConnection {
         let port = args[1].js_to_i32() as u16;
         let user = args[2].js_to_str()?;
         let pass = args[3].js_to_str()?;
-        let db = args[4].js_to_str()?;
+        let db = if args[4].js_is_null_or_undefined() {
+            None
+        } else {
+            Some(args[4].js_to_str()?)
+        };
 
         let pool = get_con_pool_wrapper(user, pass, host, port, db)?;
 
