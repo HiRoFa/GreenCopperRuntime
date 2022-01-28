@@ -47,17 +47,6 @@
 //!
 //! ```
 //!
-//! # todo
-//!
-//! the row object, should that just be an array ```['Harry', 39]``` or an object ```{name: "Harry", age: 39}```
-//!
-//! or both by different forEach methods? or arg?
-//!
-//! ```rs.forEach()``` and ```rs.forEachNamed()```?
-//!
-//! or return a proxy obj with dynamic getters for names and indices?
-//!
-//!
 
 use crate::modules::db::mysql::connection::MysqlConnection;
 use hirofa_utils::js_utils::adapters::proxies::JsProxy;

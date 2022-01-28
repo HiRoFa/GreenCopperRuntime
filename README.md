@@ -21,8 +21,6 @@ and we're planning support for
 
 [GreenCopperCmd](https://github.com/HiRoFa/GreenCopperCmd) is a commandline utility which you can use to run js/ts files with GreenCopper
 
-[GreenCopperServer](https://github.com/HiRoFa/GreenCopperServer) is a server runtime which add server features (like a http server) and serves as a FaaS-like platform.
-
 # Default implementations
 
 GreenCopperRuntime provides implementations for abstract features of the Runtimes like:
