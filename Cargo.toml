@@ -11,7 +11,10 @@ license = "MIT"
 
 default = ["all"]
 
-all = ["io", "db", "com", "features", "util"]
+crypto = ["uuid"]
+jwt = ["jwt-simple", "uuid"]
+
+all = ["io", "db", "com", "features", "util", "crypto", "jwt"]
 
 io = ["gpio", "fs"]
 db = ["mysql"]
@@ -39,7 +42,7 @@ cache = ["lru"]
 #todo make this a dev dep and only use for tests
 #libquickjs-sys = {version="0.9.0", optional=true}
 #libquickjs-sys = {git= "https://github.com/HiRoFa/quickjs-rs"}
-hirofa_utils = "0.4"
+hirofa_utils = "0.5"
 #hirofa_utils = {git = "https://github.com/HiRoFa/utils"}
 #hirofa_utils = { path = '../utils'}
 
@@ -60,7 +63,11 @@ futures = {version = "0.3"}
 mysql_lib = {package="mysql_async", version = "0.29",  optional = true}
 lru = {version = "0.7.0", optional = true}
 
+uuid = {version="1.0.0-alpha.1", features=["v4", "serde"], optional = true}
+jwt-simple = {version="0.10", optional = true}
+
 [dev-dependencies]
-quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime'}
-#quickjs_runtime = "0.6"
+#quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime'}
+
+quickjs_runtime = "0.8"
 #quickjs_runtime = { path = '../quickjs_es_runtime'}

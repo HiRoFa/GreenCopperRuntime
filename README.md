@@ -38,13 +38,19 @@ GreenCopperRuntime provides script pre-processing for:
 
 The following features are optionally added by specifying them in your Cargo.toml
 
+* [ ] crypto
+  * [x] crypto.randomUUID()
+  * [ ] crypto.subtle
+* [ ] JWT
 * [ ] db
   * [x] [mysql](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/db/mysql) (Work in progress)
-  * [ ] couchbase
+    * [x] single query (named and positional params)
+    * [x] execute (batch)
+    * [ ] transactions
   * [ ] cassandra
   * [ ] redis
 * [ ] com
-  * [x] [http](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/com/http) (Work in progress)
+  * [ ] [http](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/com/http) (Work in progress, was deleted due to fetch being done first. will review this func later for advanced things like client certs)
   * [ ] sockets
 * [ ] io
   * [x] [gpio](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/io/gpio) (Work in progress)
@@ -56,9 +62,7 @@ The following features are optionally added by specifying them in your Cargo.tom
     * [x] [commonjs](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/features/require) 
 * [ ] utilities
   * [ ] caching
-    * [ ] cache
-    * [ ] memcached
-    * [ ] zookeeper
+    * [x] cache (WiP)
     
 # Getting started
 

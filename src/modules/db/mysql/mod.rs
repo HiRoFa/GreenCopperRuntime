@@ -49,6 +49,8 @@
 //!
 
 use crate::modules::db::mysql::connection::MysqlConnection;
+use crate::modules::db::mysql::transaction::MysqlTransaction;
+use hirofa_utils::auto_id_map::AutoIdMap;
 use hirofa_utils::js_utils::adapters::proxies::JsProxy;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
@@ -62,6 +64,7 @@ pub mod transaction;
 
 thread_local! {
     static CONNECTIONS: RefCell<HashMap< usize, MysqlConnection>> = RefCell::new(HashMap::new());
+    static TRANSACTIONS: RefCell<AutoIdMap<MysqlTransaction>> = RefCell::new(AutoIdMap::new());
 }
 
 fn with_connection<R, C: FnOnce(&MysqlConnection) -> R>(
@@ -75,6 +78,17 @@ fn with_connection<R, C: FnOnce(&MysqlConnection) -> R>(
     })
 }
 
+fn with_transaction<R, C: FnOnce(&MysqlTransaction) -> R>(
+    proxy_instance_id: &usize,
+    consumer: C,
+) -> R {
+    TRANSACTIONS.with(|rc| {
+        let map = &*rc.borrow();
+        let con: &MysqlTransaction = map.get(proxy_instance_id).expect("no such Transaction");
+        consumer(con)
+    })
+}
+
 fn store_connection(proxy_instance_id: usize, con: MysqlConnection) {
     CONNECTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
@@ -84,6 +98,20 @@ fn store_connection(proxy_instance_id: usize, con: MysqlConnection) {
 
 fn drop_connection(proxy_instance_id: &usize) {
     CONNECTIONS.with(|rc| {
+        let map = &mut *rc.borrow_mut();
+        map.remove(proxy_instance_id);
+    })
+}
+
+fn store_transaction(tx: MysqlTransaction) -> usize {
+    TRANSACTIONS.with(|rc| {
+        let map = &mut *rc.borrow_mut();
+        map.insert(tx)
+    })
+}
+
+fn drop_transaction(proxy_instance_id: &usize) {
+    TRANSACTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.remove(proxy_instance_id);
     })
@@ -117,9 +145,74 @@ fn init_exports<R: JsRealmAdapter + 'static>(
     realm: &R,
 ) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
     let mysql_connection_proxy_class = create_mysql_connection_proxy(realm);
-    let res = realm.js_proxy_install(mysql_connection_proxy_class, false)?;
+    let mysql_transaction_proxy_class = create_mysql_transaction_proxy(realm);
+    let con_res = realm.js_proxy_install(mysql_connection_proxy_class, false)?;
+    let tx_res = realm.js_proxy_install(mysql_transaction_proxy_class, false)?;
 
-    Ok(vec![("Connection", res)])
+    Ok(vec![("Connection", con_res), ("Transaction", tx_res)])
+}
+
+pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
+    _realm: &R,
+) -> JsProxy<R> {
+    JsProxy::new(&["greco", "db", "mysql"], "Transaction")
+
+        .add_method("commit", |_runtime, realm, id, _args| {
+            with_transaction( &id, |tx| {
+                tx.commit(realm)
+            })
+        })
+        .add_method("rollback", |_runtime, realm, id, _args| {
+            with_transaction( &id, |tx| {
+                tx.rollback(realm)
+            })
+        })
+        .add_method("close", |_runtime, realm, id, _args| {
+            with_transaction( &id, |tx| {
+                tx.close_tx(realm)
+            })
+        })
+        .add_method("query", |runtime, realm: &R, id, args| {
+
+            // todo think up a macro for this?
+            // 3 args, second may be null
+            if args.len() != 3 {
+                Err(JsError::new_str("query requires 3 arguments (query: String, params: Object, rowConsumer: Function)"))
+            } else {
+                // todo
+
+                let query = args[0].js_to_string()?;
+
+                let params = &args[1];
+                let row_consumer = &args[2];
+
+                with_transaction( &id, |tx| {
+                    tx.query(runtime, realm, query.as_str(), params, row_consumer)
+                })
+            }
+
+        })
+        .add_method("execute", |runtime, realm: &R, id, args| {
+            // todo think up a macro for this?
+            // 3 args, second may be null
+            if args.len() < 2 {
+                Err(JsError::new_str("execute requires at least 2 arguments (query: String, ...params: Array<Object>)"))
+            } else {
+                // todo
+
+                let query = args[0].js_to_string()?;
+
+                let params: Vec<&R::JsValueAdapterType> = args[1..args.len()].iter().collect();
+
+                with_transaction( &id, |tx| {
+                    tx.execute(runtime, realm, query.as_str(), &params)
+                })
+            }
+
+        })
+        .set_finalizer(|_rt, _realm, id| {
+            drop_transaction(&id);
+        })
 }
 
 pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> JsProxy<R> {
@@ -129,8 +222,11 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             store_connection(instance_id, con);
             Ok(())
         })
-        .add_method("transaction", |_runtime, realm, _id, _args| {
-            realm.js_null_create()
+        .add_method("transaction", |_runtime, realm, id, _args| {
+            // todo options like isolation/readonly
+            with_connection( &id, |con| {
+                 con.start_transaction(realm)
+            })
         })
         .add_method("query", |runtime, realm: &R, id, args| {
             // todo think up a macro for this?
@@ -155,7 +251,7 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() < 2 {
-                Err(JsError::new_str("query requires at least 2 arguments (query: String, ...params: Array<Object>)"))
+                Err(JsError::new_str("execute requires at least 2 arguments (query: String, ...params: Array<Object>)"))
             } else {
                 // todo
 
