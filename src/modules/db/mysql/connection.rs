@@ -4,7 +4,7 @@ use cached::proc_macro::cached;
 use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
-use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::consts::ColumnType;
 use mysql_lib::prelude::Queryable;
@@ -230,19 +230,43 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
     );
     if params.js_is_array() {
         realm.js_array_traverse_mut(params, |_index, item| {
-            if item.js_is_i32() {
-                params_vec.push(item.js_to_i32().into());
-            } else if item.js_is_f64() {
-                params_vec.push(item.js_to_f64().into());
-            } else if item.js_is_bool() {
-                params_vec.push(item.js_to_bool().into());
-            } else if item.js_is_string() {
-                params_vec.push(item.js_to_str()?.into());
-            } else if item.js_is_typed_array() {
-                let buf = realm.js_typed_array_detach_buffer(item)?;
-                params_vec.push(buf.into());
-            } else if item.js_is_null_or_undefined() {
-                params_vec.push(Value::NULL);
+            match item.js_get_type() {
+                JsValueType::I32 => {
+                    params_vec.push(item.js_to_i32().into());
+                }
+                JsValueType::F64 => {
+                    params_vec.push(item.js_to_f64().into());
+                }
+                JsValueType::String => {
+                    params_vec.push(item.js_to_str()?.into());
+                }
+                JsValueType::Boolean => {
+                    params_vec.push(item.js_to_bool().into());
+                }
+                JsValueType::Object => {
+                    if item.js_is_typed_array() {
+                        let buf = realm.js_typed_array_detach_buffer(item)?;
+                        params_vec.push(buf.into());
+                    } else {
+                        let json_str = realm.js_json_stringify(item, None)?;
+                        params_vec.push(json_str.into());
+                    }
+                }
+                JsValueType::Function => {}
+                JsValueType::BigInt => {}
+                JsValueType::Promise => {}
+                JsValueType::Date => {}
+                JsValueType::Null => {
+                    params_vec.push(Value::NULL);
+                }
+                JsValueType::Undefined => {
+                    params_vec.push(Value::NULL);
+                }
+                JsValueType::Array => {
+                    let json_str = realm.js_json_stringify(item, None)?;
+                    params_vec.push(json_str.into());
+                }
+                JsValueType::Error => {}
             }
 
             Ok(())
@@ -250,19 +274,43 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
     } else if params.js_is_object() {
         let mut vec = vec![];
         realm.js_object_traverse_mut(params, |name, item| {
-            if item.js_is_i32() {
-                vec.push((name.to_string(), item.js_to_i32().into()));
-            } else if item.js_is_f64() {
-                vec.push((name.to_string(), item.js_to_f64().into()));
-            } else if item.js_is_bool() {
-                vec.push((name.to_string(), item.js_to_bool().into()));
-            } else if item.js_is_string() {
-                vec.push((name.to_string(), item.js_to_str()?.into()));
-            } else if item.js_is_typed_array() {
-                let buf = realm.js_typed_array_detach_buffer(item)?;
-                vec.push((name.to_string(), buf.into()));
-            } else if item.js_is_null_or_undefined() {
-                vec.push((name.to_string(), Value::NULL));
+            match item.js_get_type() {
+                JsValueType::I32 => {
+                    vec.push((name.to_string(), item.js_to_i32().into()));
+                }
+                JsValueType::F64 => {
+                    vec.push((name.to_string(), item.js_to_f64().into()));
+                }
+                JsValueType::String => {
+                    vec.push((name.to_string(), item.js_to_str()?.into()));
+                }
+                JsValueType::Boolean => {
+                    vec.push((name.to_string(), item.js_to_bool().into()));
+                }
+                JsValueType::Object => {
+                    if item.js_is_typed_array() {
+                        let buf = realm.js_typed_array_detach_buffer(item)?;
+                        vec.push((name.to_string(), buf.into()));
+                    } else {
+                        let json_str = realm.js_json_stringify(item, None)?;
+                        vec.push((name.to_string(), json_str.into()));
+                    }
+                }
+                JsValueType::Function => {}
+                JsValueType::BigInt => {}
+                JsValueType::Promise => {}
+                JsValueType::Date => {}
+                JsValueType::Null => {
+                    vec.push((name.to_string(), Value::NULL));
+                }
+                JsValueType::Undefined => {
+                    vec.push((name.to_string(), Value::NULL));
+                }
+                JsValueType::Array => {
+                    let json_str = realm.js_json_stringify(item, None)?;
+                    vec.push((name.to_string(), json_str.into()));
+                }
+                JsValueType::Error => {}
             }
 
             Ok(())

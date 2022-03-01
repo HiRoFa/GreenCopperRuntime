@@ -29,44 +29,42 @@ impl MysqlTransaction {
         _row_consumer: &R::JsValueAdapterType,
     ) -> Result<R::JsValueAdapterType, JsError> {
         log::trace!("Transaction.query: {}", query);
-
         /*
+                let query = query.to_string();
 
-        let query = query.to_string();
+                let mut tx = self.tx.clone();
 
-        let mut tx = self.tx.clone();
+                let rti = realm
+                    .js_get_runtime_facade_inner()
+                    .upgrade()
+                    .expect("invalid state");
 
-        let rti = realm
-            .js_get_runtime_facade_inner()
-            .upgrade()
-            .expect("invalid state");
+                let (params_named_vec, params_vec) = parse_params(realm, params)?;
 
-        let (params_named_vec, params_vec) = parse_params(realm, params)?;
+                let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
 
-        let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
+                realm.js_promise_create_resolving_async(
+                    async move {
+                        log::trace!("Connection.query running async helper");
+                        // in helper thread here
 
-        realm.js_promise_create_resolving_async(
-            async move {
-                log::trace!("Connection.query running async helper");
-                // in helper thread here
+                        let tx_lock = &mut *tx.lock().unwrap();
 
-                let tx_lock = &mut *tx.lock().unwrap();
-
-                run_query::<Conn, R>(
-                    tx_lock,
-                    query,
-                    params_named_vec,
-                    params_vec,
-                    row_consumer_jsvf,
-                    rti,
+                        run_query::<Conn, R>(
+                            tx_lock,
+                            query,
+                            params_named_vec,
+                            params_vec,
+                            row_consumer_jsvf,
+                            rti,
+                        )
+                        .await
+                    },
+                    |realm, val: Vec<JsValueFacade>| {
+                        //
+                        realm.from_js_value_facade(JsValueFacade::Array { val })
+                    },
                 )
-                .await
-            },
-            |realm, val: Vec<JsValueFacade>| {
-                //
-                realm.from_js_value_facade(JsValueFacade::Array { val })
-            },
-        )
         */
         realm.js_null_create()
     }
