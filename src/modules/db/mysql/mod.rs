@@ -278,7 +278,7 @@ pub mod tests {
     use hirofa_utils::js_utils::Script;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    #[test]
+    //#[test]
     fn _test_params() {
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);

@@ -41,7 +41,7 @@ The following features are optionally added by specifying them in your Cargo.tom
 * [ ] crypto
   * [x] crypto.randomUUID()
   * [ ] crypto.subtle
-* [ ] JWT
+* [x] JWT (Work in progress)
 * [ ] db
   * [x] [mysql](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/db/mysql) (Work in progress)
     * [x] single query (named and positional params)

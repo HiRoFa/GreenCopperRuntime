@@ -101,11 +101,7 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
         .await
         .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-    let col_types: Vec<ColumnType> = stmt
-        .columns()
-        .into_iter()
-        .map(|col| col.column_type())
-        .collect();
+    let col_types: Vec<ColumnType> = stmt.columns().iter().map(|col| col.column_type()).collect();
 
     log::trace!("Connection.query running async helper / prepped stmt");
 

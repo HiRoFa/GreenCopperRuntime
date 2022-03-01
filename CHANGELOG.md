@@ -1,4 +1,6 @@
+# 0.0.4
 
+* first JWT impl (greco://jwt)
 
 # 0.0.2 (work in progress)
 
