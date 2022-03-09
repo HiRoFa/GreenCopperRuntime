@@ -10,7 +10,6 @@ By using GreenCopper you can write generic code (including native features like 
 
 Currently we're working on the following runtimes
 * [quickjs_runtime](https://github.com/HiRoFa/quickjs_es_runtime)
-* [starlight_runtime](https://github.com/HiRoFa/starlight_runtime)
 * [spidermonkey_runtime](https://github.com/HiRoFa/spidermonkey_runtime)
 
 and we're planning support for
