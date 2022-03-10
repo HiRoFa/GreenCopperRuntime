@@ -168,7 +168,9 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
                     }
                     val @ Value::Bytes(..) => {
                         let is_blob = col_types.len() < index
-                            && col_types[index] == ColumnType::MYSQL_TYPE_BLOB;
+                            && (col_types[index] == ColumnType::MYSQL_TYPE_BLOB
+                                || col_types[index] == ColumnType::MYSQL_TYPE_MEDIUM_BLOB
+                                || col_types[index] == ColumnType::MYSQL_TYPE_LONG_BLOB);
 
                         if is_blob {
                             let buffer = from_value::<Vec<u8>>(val);
