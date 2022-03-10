@@ -101,9 +101,27 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
         .await
         .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-    let col_types: Vec<ColumnType> = stmt.columns().iter().map(|col| col.column_type()).collect();
+    let col_types_and_lengths: Vec<(ColumnType, u32)> = stmt
+        .columns()
+        .iter()
+        .map(|col| (col.column_type(), col.column_length()))
+        .collect();
 
     log::trace!("Connection.query running async helper / prepped stmt");
+
+    /*
+    for col in stmt.columns() {
+        log::trace!(
+            "Connection.query running async helper / prepped stmt, name={}, ct={:?}, len={} schema_str={}, charset={}" ,
+            col.name_str().to_string(),
+            col.column_type(),
+            col.column_length(),
+            col.schema_str(),
+            col.character_set()
+        );
+    }
+
+     */
 
     log::trace!("Connection.query running async helper / prepped params");
 
@@ -167,10 +185,21 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
                         esvf_row.push(JsValueFacade::new_f64(i));
                     }
                     val @ Value::Bytes(..) => {
-                        let is_blob = col_types.len() < index
-                            && (col_types[index] == ColumnType::MYSQL_TYPE_BLOB
-                                || col_types[index] == ColumnType::MYSQL_TYPE_MEDIUM_BLOB
-                                || col_types[index] == ColumnType::MYSQL_TYPE_LONG_BLOB);
+                        log::trace!("mysql::query / 3 / val / bytes");
+                        let is_blob = if col_types_and_lengths.len() > index {
+                            log::trace!(
+                                "mysql::query / 3 / val / bytes / ct={:?}",
+                                col_types_and_lengths[index]
+                            );
+                            // todo supporting mediumblob sucks because this lib has no dif between TEXT and BLOB
+                            // so for now i use LONGBLOB and MEDIUMTEXT to differentiate between the two
+                            col_types_and_lengths[index].0 == ColumnType::MYSQL_TYPE_BLOB
+                                && col_types_and_lengths[index].1 == 4294967295
+                        } else {
+                            false
+                        };
+
+                        log::trace!("mysql::query / 3 / val / bytes / is_blob={}", is_blob);
 
                         if is_blob {
                             let buffer = from_value::<Vec<u8>>(val);
