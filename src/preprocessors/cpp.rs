@@ -79,6 +79,7 @@ impl CppPreProcessor {
             ctx.macros
                 .insert(format!("${{{}}}", key), value.to_string());
             ctx.macros.insert(format!("${}", key), value.to_string());
+            ctx.macros.insert(format!("__{}", key), value.to_string());
         }
         self
     }
