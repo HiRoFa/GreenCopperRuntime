@@ -6,7 +6,7 @@ use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValue
 use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
 use hirofa_utils::js_utils::JsError;
-use mysql_lib::consts::ColumnType;
+use mysql_lib::consts::{ColumnFlags, ColumnType};
 use mysql_lib::prelude::Queryable;
 use mysql_lib::{from_value, Conn, IsolationLevel, Pool, Row, TxOpts, Value};
 use std::sync::Arc;
@@ -101,10 +101,13 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
         .await
         .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-    let col_types_and_lengths: Vec<(ColumnType, u32)> = stmt
+    let blobs: Vec<bool> = stmt
         .columns()
         .iter()
-        .map(|col| (col.column_type(), col.column_length()))
+        .map(|col| {
+            col.column_type() == ColumnType::MYSQL_TYPE_BLOB
+                && (col.flags() == ColumnFlags::BLOB_FLAG | ColumnFlags::BINARY_FLAG)
+        })
         .collect();
 
     log::trace!("Connection.query running async helper / prepped stmt");
@@ -186,15 +189,8 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
                     }
                     val @ Value::Bytes(..) => {
                         log::trace!("mysql::query / 3 / val / bytes");
-                        let is_blob = if col_types_and_lengths.len() > index {
-                            log::trace!(
-                                "mysql::query / 3 / val / bytes / ct={:?}",
-                                col_types_and_lengths[index]
-                            );
-                            // todo supporting mediumblob sucks because this lib has no dif between TEXT and BLOB
-                            // so for now i use LONGBLOB and MEDIUMTEXT to differentiate between the two
-                            col_types_and_lengths[index].0 == ColumnType::MYSQL_TYPE_BLOB
-                                && col_types_and_lengths[index].1 == 4294967295
+                        let is_blob = if blobs.len() > index {
+                            blobs[index]
                         } else {
                             false
                         };
