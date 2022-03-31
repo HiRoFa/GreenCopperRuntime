@@ -172,12 +172,20 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
                         esvf_row.push(JsValueFacade::Null);
                     }
                     val @ Value::Int(..) => {
-                        let i = from_value::<i64>(val) as i32;
-                        esvf_row.push(JsValueFacade::new_i32(i));
+                        let i = from_value::<i64>(val);
+                        if i > (i32::MAX as i64) {
+                            esvf_row.push(JsValueFacade::new_f64(i as f64));
+                        } else {
+                            esvf_row.push(JsValueFacade::new_i32(i as i32));
+                        }
                     }
                     val @ Value::UInt(..) => {
-                        let i = from_value::<u64>(val) as i32;
-                        esvf_row.push(JsValueFacade::new_i32(i));
+                        let i = from_value::<u64>(val);
+                        if i > (i32::MAX as u64) {
+                            esvf_row.push(JsValueFacade::new_f64(i as f64));
+                        } else {
+                            esvf_row.push(JsValueFacade::new_i32(i as i32));
+                        }
                     }
                     val @ Value::Float(..) => {
                         let i = from_value::<f64>(val);
