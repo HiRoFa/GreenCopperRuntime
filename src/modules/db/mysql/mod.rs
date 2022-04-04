@@ -89,6 +89,18 @@ fn with_transaction<R, C: FnOnce(&MysqlTransaction) -> R>(
     })
 }
 
+fn with_transaction_mut<R, C: FnOnce(&mut MysqlTransaction) -> R>(
+    proxy_instance_id: &usize,
+    consumer: C,
+) -> R {
+    TRANSACTIONS.with(|rc| {
+        let map = &mut *rc.borrow_mut();
+        let con: &mut MysqlTransaction =
+            map.get_mut(proxy_instance_id).expect("no such Transaction");
+        consumer(con)
+    })
+}
+
 fn store_connection(proxy_instance_id: usize, con: MysqlConnection) {
     CONNECTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
@@ -157,19 +169,19 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
 ) -> JsProxy<R> {
     JsProxy::new(&["greco", "db", "mysql"], "Transaction")
 
-        .add_method("commit", |_runtime, realm, id, _args| {
+        .add_method("commit", |runtime, realm, id, _args| {
             with_transaction( &id, |tx| {
-                tx.commit(realm)
+                tx.commit(runtime, realm)
             })
         })
-        .add_method("rollback", |_runtime, realm, id, _args| {
+        .add_method("rollback", |runtime, realm, id, _args| {
             with_transaction( &id, |tx| {
-                tx.rollback(realm)
+                tx.rollback(runtime, realm)
             })
         })
-        .add_method("close", |_runtime, realm, id, _args| {
+        .add_method("close", |runtime, realm, id, _args| {
             with_transaction( &id, |tx| {
-                tx.close_tx(realm)
+                tx.close_tx(runtime, realm)
             })
         })
         .add_method("query", |runtime, realm: &R, id, args| {
@@ -186,7 +198,7 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
                 let params = &args[1];
                 let row_consumer = &args[2];
 
-                with_transaction( &id, |tx| {
+                with_transaction_mut( &id, |tx| {
                     tx.query(runtime, realm, query.as_str(), params, row_consumer)
                 })
             }

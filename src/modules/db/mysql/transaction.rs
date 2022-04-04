@@ -1,92 +1,216 @@
+use crate::modules::db::mysql::connection::parse_params;
+use futures::lock::Mutex;
 use hirofa_utils::js_utils::adapters::JsRealmAdapter;
+use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade};
 use hirofa_utils::js_utils::JsError;
+use mysql_lib::prelude::Queryable;
 use mysql_lib::Transaction;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 pub(crate) struct MysqlTransaction {
-    _tx: Arc<Mutex<Transaction<'static>>>,
+    //conn: Arc<Mutex<Option<Conn>>>,
+    tx: Arc<Mutex<Option<Transaction<'static>>>>,
 }
 
 impl MysqlTransaction {
-    pub(crate) fn new(tx: Transaction<'static>) -> Self {
-        Self {
-            _tx: Arc::new(Mutex::new(tx)),
-        }
+    pub(crate) fn new(tx: Transaction<'static>) -> Result<Self, JsError> {
+        Ok(Self {
+            // ok so this works.. but sucks... order of promise creation might not be respected if not awaiting all promises created by transaction.doSomething
+            // the alternative is to block_on from the js thread.. which sucks
+            // or just use a sync connection in a thread per tx... which sucks
+            // or run queries async, in which case the order of promise creation might not be respected.. which sucks
+            //conn: Arc::new(Mutex::new(Some(conn))),
+            tx: Arc::new(Mutex::new(Some(tx))),
+        })
     }
-    pub(crate) fn commit<R: JsRealmAdapter>(
-        &self,
-        realm: &R,
-    ) -> Result<R::JsValueAdapterType, JsError> {
-        realm.js_null_create()
-    }
-    /// query method
-    pub fn query<R: JsRealmAdapter + 'static>(
+    pub(crate) fn commit<R: JsRealmAdapter + 'static>(
         &self,
         _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
+    ) -> Result<R::JsValueAdapterType, JsError> {
+        let con_arc = self.tx.clone();
+
+        realm.js_promise_create_resolving_async(
+            async move {
+                log::trace!("MysqlTransaction.query running async helper");
+                let lock_fut = con_arc.lock();
+                let lock = &mut *lock_fut.await;
+                let tx = lock
+                    .take()
+                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+
+                let res = tx
+                    .commit()
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)));
+
+                // in helper thread here
+
+                res
+            },
+            move |realm, _val: ()| realm.js_null_create(),
+        )
+    }
+    /// query method
+    pub fn query<R: JsRealmAdapter + 'static>(
+        &mut self,
+        _runtime: &R::JsRuntimeAdapterType,
+        realm: &R,
         query: &str,
-        _params: &R::JsValueAdapterType,
-        _row_consumer: &R::JsValueAdapterType,
+        params: &R::JsValueAdapterType,
+        row_consumer: &R::JsValueAdapterType,
     ) -> Result<R::JsValueAdapterType, JsError> {
         log::trace!("Transaction.query: {}", query);
-        /*
-                let query = query.to_string();
 
-                let mut tx = self.tx.clone();
+        let query = query.to_string();
 
-                let rti = realm
-                    .js_get_runtime_facade_inner()
-                    .upgrade()
-                    .expect("invalid state");
+        let rti = realm
+            .js_get_runtime_facade_inner()
+            .upgrade()
+            .expect("invalid state");
 
-                let (params_named_vec, params_vec) = parse_params(realm, params)?;
+        let (params_named_vec, params_vec) = parse_params(realm, params)?;
 
-                let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
+        let row_consumer_jsvf = realm.to_js_value_facade(row_consumer)?;
 
-                realm.js_promise_create_resolving_async(
-                    async move {
-                        log::trace!("Connection.query running async helper");
-                        // in helper thread here
+        // move Conn into future and get it back
+        let con_arc = self.tx.clone();
 
-                        let tx_lock = &mut *tx.lock().unwrap();
+        realm.js_promise_create_resolving_async(
+            async move {
+                log::trace!("MysqlTransaction.query running async helper");
+                let lock_fut = con_arc.lock();
+                let lock = &mut *lock_fut.await;
+                let conn = lock
+                    .take()
+                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+                let fut = crate::modules::db::mysql::connection::run_query::<Transaction, R>(
+                    conn,
+                    query,
+                    params_named_vec,
+                    params_vec,
+                    row_consumer_jsvf,
+                    rti,
+                );
 
-                        run_query::<Conn, R>(
-                            tx_lock,
-                            query,
-                            params_named_vec,
-                            params_vec,
-                            row_consumer_jsvf,
-                            rti,
-                        )
-                        .await
-                    },
-                    |realm, val: Vec<JsValueFacade>| {
-                        //
-                        realm.from_js_value_facade(JsValueFacade::Array { val })
-                    },
-                )
-        */
-        realm.js_null_create()
+                let res = fut.await;
+
+                lock.replace(res.0);
+
+                // in helper thread here
+
+                res.1
+            },
+            move |realm, val: Vec<JsValueFacade>| {
+                // then
+
+                realm.from_js_value_facade(val.to_js_value_facade())
+            },
+        )
+
+        //realm.js_null_create()
     }
     pub fn execute<R: JsRealmAdapter + 'static>(
         &self,
         _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
-        _query: &str,
-        _params_arr: &[&R::JsValueAdapterType],
+        query: &str,
+        params_arr: &[&R::JsValueAdapterType],
     ) -> Result<R::JsValueAdapterType, JsError> {
-        realm.js_null_create()
+        log::trace!("Transaction.execute: {}", query);
+
+        let query = query.to_string();
+
+        let con_arc = self.tx.clone();
+
+        let mut params_vec_vec = vec![];
+        let mut params_named_vec_vec = None;
+        for params in params_arr {
+            let (params_named_vec, params_vec) = parse_params(realm, params)?;
+            if let Some(named_vec) = params_named_vec {
+                if params_named_vec_vec.is_none() {
+                    let _ = params_named_vec_vec.replace(vec![]);
+                }
+                params_named_vec_vec.as_mut().unwrap().push(named_vec);
+            } else {
+                params_vec_vec.push(params_vec);
+            }
+        }
+
+        realm.js_promise_create_resolving_async(
+            async move {
+                log::trace!("Transaction.execute running async helper");
+                // in helper thread here
+
+                let lock_fut = con_arc.lock();
+                let lock = &mut *lock_fut.await;
+                let mut tx = lock
+                    .take()
+                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+
+                log::trace!("Transaction.execute running async helper / got con");
+
+                //
+                let stmt = tx
+                    .prep(query)
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Transaction.execute running async helper / prepped stmt");
+
+                log::trace!("Transaction.execute running async helper / prepped params");
+
+                let result_fut = if let Some(named_params) = params_named_vec_vec {
+                    log::trace!("Transaction.execute running async helper / prepped params / using named, size = {}", named_params.len());
+                    tx.exec_batch(stmt, named_params)
+                } else {
+                    log::trace!("Transaction.execute running async helper / prepped params / using positional, size = {}", params_vec_vec.len());
+                    tx.exec_batch(stmt, params_vec_vec)
+                };
+
+                result_fut
+                    .await
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+
+                log::trace!("Transaction.execute running async helper / got results");
+
+                lock.replace(tx);
+
+                Ok(())
+            },
+            |realm, _val| {
+                //
+                realm.js_null_create()
+            },
+        )
     }
-    pub(crate) fn close_tx<R: JsRealmAdapter>(
+    pub(crate) fn close_tx<R: JsRealmAdapter + 'static>(
         &self,
+        _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
+        // todo check if committed, else rollback
+        //
+        // self.execute(runtime, realm, "ROLLBACK", &[])
         realm.js_null_create()
     }
-    pub(crate) fn rollback<R: JsRealmAdapter>(
+    pub(crate) fn rollback<R: JsRealmAdapter + 'static>(
         &self,
+        runtime: &R::JsRuntimeAdapterType,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
-        realm.js_null_create()
+        self.execute(runtime, realm, "ROLLBACK", &[])
+    }
+}
+
+impl Drop for MysqlTransaction {
+    fn drop(&mut self) {
+        //let lock_fut = self.conn.lock();
+        //let lock = &mut *block_on(lock_fut);
+        //if let Some(mut conn) = lock.take() {
+        // todo do this in helper task, which can then be async as when the connn drops it is returned to the pool
+        // just be sure to spawn the task, not just create a future whicgh is never awaited
+        //let _ = block_on(conn.query_drop("ROLLBACK"));
+        //}
     }
 }

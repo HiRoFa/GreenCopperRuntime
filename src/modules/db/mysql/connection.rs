@@ -3,7 +3,7 @@ use crate::modules::db::mysql::transaction::MysqlTransaction;
 use cached::proc_macro::cached;
 use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
+use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
 use hirofa_utils::js_utils::JsError;
 use mysql_lib::consts::{ColumnFlags, ColumnType};
@@ -83,169 +83,174 @@ pub fn get_con_pool_wrapper(
 }
 
 pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
-    queryable: &mut Q,
+    mut connection: Q,
     query: String,
     params_named_vec: Option<Vec<(String, Value)>>,
     params_vec: Vec<Value>,
-    row_consumer_jsvf: Arc<JsValueFacade>,
+    row_consumer_jsvf: JsValueFacade,
     rti: Arc<<<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsRuntimeFacadeType as JsRuntimeFacade>::JsRuntimeFacadeInnerType>,
-) -> Result<Vec<JsValueFacade>, JsError> {
+) -> (Q, Result<Vec<JsValueFacade>, JsError>) {
     log::trace!("run_query: running async helper / got con");
 
-    let mut fut_results = vec![];
-    let mut results: Vec<JsValueFacade> = vec![];
+    let res: Result<Vec<JsValueFacade>, JsError> = (async {
+        let mut fut_results = vec![];
+        let mut results: Vec<JsValueFacade> = vec![];
 
-    //
-    let stmt = queryable
-        .prep(query)
-        .await
-        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+        //
+        let stmt = connection
+            .prep(query)
+            .await
+            .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-    let blobs: Vec<bool> = stmt
-        .columns()
-        .iter()
-        .map(|col| {
-            col.column_type() == ColumnType::MYSQL_TYPE_BLOB
-                && (col.flags() == ColumnFlags::BLOB_FLAG | ColumnFlags::BINARY_FLAG)
-        })
-        .collect();
+        let blobs: Vec<bool> = stmt
+            .columns()
+            .iter()
+            .map(|col| {
+                col.column_type() == ColumnType::MYSQL_TYPE_BLOB
+                    && (col.flags() == ColumnFlags::BLOB_FLAG | ColumnFlags::BINARY_FLAG)
+            })
+            .collect();
 
-    log::trace!("Connection.query running async helper / prepped stmt");
+        log::trace!("Connection.query running async helper / prepped stmt");
 
-    /*
-    for col in stmt.columns() {
-        log::trace!(
-            "Connection.query running async helper / prepped stmt, name={}, ct={:?}, len={} schema_str={}, charset={}" ,
-            col.name_str().to_string(),
-            col.column_type(),
-            col.column_length(),
-            col.schema_str(),
-            col.character_set()
-        );
-    }
+        /*
+        for col in stmt.columns() {
+            log::trace!(
+                "Connection.query running async helper / prepped stmt, name={}, ct={:?}, len={} schema_str={}, charset={}" ,
+                col.name_str().to_string(),
+                col.column_type(),
+                col.column_length(),
+                col.schema_str(),
+                col.character_set()
+            );
+        }
 
-     */
+         */
 
-    log::trace!("Connection.query running async helper / prepped params");
+        log::trace!("Connection.query running async helper / prepped params");
 
-    let result_fut = if let Some(named_params) = params_named_vec {
-        log::trace!(
-            "Connection.query running async helper / prepped params / using named, size = {}",
-            named_params.len()
-        );
-        queryable.exec_iter(stmt, named_params)
-    } else {
-        log::trace!(
+        let result_fut = if let Some(named_params) = params_named_vec {
+            log::trace!(
+                "Connection.query running async helper / prepped params / using named, size = {}",
+                named_params.len()
+            );
+            connection.exec_iter(stmt, named_params)
+        } else {
+            log::trace!(
             "Connection.query running async helper / prepped params / using positional, size = {}",
             params_vec.len()
         );
-        queryable.exec_iter(stmt, params_vec)
-    };
+            connection.exec_iter(stmt, params_vec)
+        };
 
-    let mut result = result_fut
-        .await
-        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+        let mut result = result_fut
+            .await
+            .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-    log::trace!("Connection.query running async helper / got results");
+        log::trace!("Connection.query running async helper / got results");
 
-    while !result.is_empty() {
-        log::trace!("Connection.query running async helper / results !empty");
-        let result_set: Result<Vec<Row>, mysql_lib::Error> = result.collect().await;
-        log::trace!("Connection.query running async helper / got result set");
-        // every row is a Vec<EsValueFacade>
-        // call row consumer with that
+        while !result.is_empty() {
+            log::trace!("Connection.query running async helper / results !empty");
+            let result_set: Result<Vec<Row>, mysql_lib::Error> = result.collect().await;
+            log::trace!("Connection.query running async helper / got result set");
+            // every row is a Vec<EsValueFacade>
+            // call row consumer with that
 
-        //let cols = result.columns().is_some()
+            //let cols = result.columns().is_some()
 
-        for row_res in result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))? {
-            log::trace!("mysql::query / 2 / row");
+            for row_res in result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))? {
+                log::trace!("mysql::query / 2 / row");
 
-            let mut esvf_row = vec![];
+                let mut esvf_row = vec![];
 
-            let row = row_res.unwrap();
+                let row = row_res.unwrap();
 
-            for (index, val_raw) in row.into_iter().enumerate() {
-                log::trace!("mysql::query / 3 / val");
+                for (index, val_raw) in row.into_iter().enumerate() {
+                    log::trace!("mysql::query / 3 / val");
 
-                match val_raw {
-                    _val @ Value::NULL => {
-                        esvf_row.push(JsValueFacade::Null);
-                    }
-                    val @ Value::Int(..) => {
-                        let i = from_value::<i64>(val);
-                        if i > (i32::MAX as i64) {
-                            esvf_row.push(JsValueFacade::new_f64(i as f64));
-                        } else {
-                            esvf_row.push(JsValueFacade::new_i32(i as i32));
+                    match val_raw {
+                        _val @ Value::NULL => {
+                            esvf_row.push(JsValueFacade::Null);
                         }
-                    }
-                    val @ Value::UInt(..) => {
-                        let i = from_value::<u64>(val);
-                        if i > (i32::MAX as u64) {
-                            esvf_row.push(JsValueFacade::new_f64(i as f64));
-                        } else {
-                            esvf_row.push(JsValueFacade::new_i32(i as i32));
+                        val @ Value::Int(..) => {
+                            let i = from_value::<i64>(val);
+                            if i > (i32::MAX as i64) {
+                                esvf_row.push(JsValueFacade::new_f64(i as f64));
+                            } else {
+                                esvf_row.push(JsValueFacade::new_i32(i as i32));
+                            }
                         }
-                    }
-                    val @ Value::Float(..) => {
-                        let i = from_value::<f64>(val);
-                        esvf_row.push(JsValueFacade::new_f64(i));
-                    }
-                    val @ Value::Double(..) => {
-                        let i = from_value::<f64>(val);
-                        esvf_row.push(JsValueFacade::new_f64(i));
-                    }
-                    val @ Value::Bytes(..) => {
-                        log::trace!("mysql::query / 3 / val / bytes");
-                        let is_blob = if blobs.len() > index {
-                            blobs[index]
-                        } else {
-                            false
-                        };
-
-                        log::trace!("mysql::query / 3 / val / bytes / is_blob={}", is_blob);
-
-                        if is_blob {
-                            let buffer = from_value::<Vec<u8>>(val);
-                            esvf_row.push(JsValueFacade::TypedArray {
-                                buffer,
-                                array_type: TypedArrayType::Uint8,
-                            });
-                        } else {
-                            let i = from_value::<String>(val);
-                            esvf_row.push(JsValueFacade::new_string(i));
+                        val @ Value::UInt(..) => {
+                            let i = from_value::<u64>(val);
+                            if i > (i32::MAX as u64) {
+                                esvf_row.push(JsValueFacade::new_f64(i as f64));
+                            } else {
+                                esvf_row.push(JsValueFacade::new_i32(i as i32));
+                            }
                         }
-                    }
-                    _val @ Value::Date(..) => {
-                        //use mysql_lib::chrono::NaiveDateTime;
-                        //println!("A date value: {}", from_value::<NaiveDateTime>(val))
-                        // todo
-                    }
-                    val @ Value::Time(..) => {
-                        use std::time::Duration;
-                        println!("A time value: {:?}", from_value::<Duration>(val))
-                        // todo
+                        val @ Value::Float(..) => {
+                            let i = from_value::<f64>(val);
+                            esvf_row.push(JsValueFacade::new_f64(i));
+                        }
+                        val @ Value::Double(..) => {
+                            let i = from_value::<f64>(val);
+                            esvf_row.push(JsValueFacade::new_f64(i));
+                        }
+                        val @ Value::Bytes(..) => {
+                            log::trace!("mysql::query / 3 / val / bytes");
+                            let is_blob = if blobs.len() > index {
+                                blobs[index]
+                            } else {
+                                false
+                            };
+
+                            log::trace!("mysql::query / 3 / val / bytes / is_blob={}", is_blob);
+
+                            if is_blob {
+                                let buffer = from_value::<Vec<u8>>(val);
+                                esvf_row.push(JsValueFacade::TypedArray {
+                                    buffer,
+                                    array_type: TypedArrayType::Uint8,
+                                });
+                            } else {
+                                let i = from_value::<String>(val);
+                                esvf_row.push(JsValueFacade::new_string(i));
+                            }
+                        }
+                        _val @ Value::Date(..) => {
+                            //use mysql_lib::chrono::NaiveDateTime;
+                            //println!("A date value: {}", from_value::<NaiveDateTime>(val))
+                            // todo
+                        }
+                        val @ Value::Time(..) => {
+                            use std::time::Duration;
+                            println!("A time value: {:?}", from_value::<Duration>(val))
+                            // todo
+                        }
                     }
                 }
-            }
 
-            // invoke row consumer with single row data
-            // todo batch this per x rows with invoke_function_batch_sync
-            if let JsValueFacade::JsFunction { cached_function } = &*row_consumer_jsvf {
-                let row_res_jsvf_fut = cached_function.js_invoke_function(&*rti, esvf_row);
-                fut_results.push(row_res_jsvf_fut);
-            } else {
-                panic!("row_consumer was not a function");
+                // invoke row consumer with single row data
+                // todo batch this per x rows with invoke_function_batch_sync
+                if let JsValueFacade::JsFunction { cached_function } = &row_consumer_jsvf {
+                    let row_res_jsvf_fut = cached_function.js_invoke_function(&*rti, esvf_row);
+                    fut_results.push(row_res_jsvf_fut);
+                } else {
+                    panic!("row_consumer was not a function");
+                }
             }
         }
-    }
-    for row_res_jsvf_fut in fut_results {
-        // normally this would be bad and you'd want to .await a join![all_futs]
-        // but because these are all running in the EventLoop (and started running without us calling .await) it's ok
-        results.push(row_res_jsvf_fut.await?);
-    }
+        for row_res_jsvf_fut in fut_results {
+            // normally this would be bad and you'd want to .await a join![all_futs]
+            // but because these are all running in the EventLoop (and started running without us calling .await) it's ok
+            results.push(row_res_jsvf_fut.await?);
+        }
 
-    Ok(results)
+        Ok(results)
+    })
+    .await;
+
+    (connection, res)
 }
 
 #[allow(clippy::type_complexity)]
@@ -401,30 +406,34 @@ impl MysqlConnection {
 
         let (params_named_vec, params_vec) = parse_params(realm, params)?;
 
-        let row_consumer_jsvf = Arc::new(realm.to_js_value_facade(row_consumer)?);
+        let row_consumer_jsvf = realm.to_js_value_facade(row_consumer)?;
 
         realm.js_promise_create_resolving_async(
             async move {
                 log::trace!("Connection.query running async helper");
                 // in helper thread here
 
-                let mut con = con
+                let con = con
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-                run_query::<Conn, R>(
-                    &mut con,
+                Ok(run_query::<Conn, R>(
+                    con,
                     query,
                     params_named_vec,
                     params_vec,
                     row_consumer_jsvf,
                     rti,
                 )
-                .await
+                .await)
             },
-            |realm, val: Vec<JsValueFacade>| {
-                //
-                realm.from_js_value_facade(JsValueFacade::Array { val })
+            |realm, val: (Conn, Result<Vec<JsValueFacade>, JsError>)| {
+                // reset con here
+
+                match val.1 {
+                    Ok(res_vec) => realm.from_js_value_facade(res_vec.to_js_value_facade()),
+                    Err(e) => Err(e),
+                }
             },
         )
     }
@@ -436,10 +445,6 @@ impl MysqlConnection {
         query: &str,
         params_arr: &[&R::JsValueAdapterType],
     ) -> Result<R::JsValueAdapterType, JsError> {
-        // start a tx, exe, close tx
-        //
-        // takes two args, qry, ...params
-
         log::trace!("Connection.execute: {}", query);
 
         let query = query.to_string();
@@ -471,10 +476,6 @@ impl MysqlConnection {
 
                 log::trace!("Connection.execute running async helper / got con");
 
-                // split queries, if multiple do in single tx?
-
-                //let tx_opts= TxOpts::default();
-                //let tx = con.start_transaction(tx_opts).await.map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
                 //
                 let stmt = con
@@ -519,13 +520,35 @@ impl MysqlConnection {
 
         realm.js_promise_create_resolving_async(
             async move {
+                let mut tx_opts = TxOpts::new();
+                tx_opts.with_isolation_level(IsolationLevel::ReadCommitted);
+
                 let tx_fut = pool_arc.pool.as_ref().unwrap().start_transaction(tx_opts);
-                // todo queryable wrapper for use in con and tx
+
                 let tx = tx_fut
                     .await
                     .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
 
-                let tx_instance = MysqlTransaction::new(tx);
+                //conn.start_transaction()
+                /*
+                                log::trace!("start_transaction, running 'SET AUTOCOMMIT = 0'");
+                                conn.query_drop("SET AUTOCOMMIT = 0")
+                                    .await
+                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
+
+                                log::trace!(
+                                    "start_transaction, running 'SET TRANSACTION ISOLATION LEVEL READ COMMITTED'"
+                                );
+                                conn.query_drop("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                                    .await
+                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
+
+                                log::trace!("start_transaction, running 'START TRANSACTION'");
+                                conn.query_drop("START TRANSACTION")
+                                    .await
+                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
+                */
+                let tx_instance = MysqlTransaction::new(tx)?;
 
                 Ok(tx_instance)
             },
