@@ -188,7 +188,7 @@ mod tests {
         };
 
         if let JsValueFacade::String { val } = val {
-            assert_ne!(val.as_str(), "${PATH}");
+            assert_ne!(&*val, "${PATH}");
             assert!(!val.is_empty());
         } else {
             panic!("not a string")

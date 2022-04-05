@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub(crate) struct MysqlTransaction {
     //conn: Arc<Mutex<Option<Conn>>>,
     tx: Arc<Mutex<Option<Transaction<'static>>>>,
+    closed: bool,
 }
 
 impl MysqlTransaction {
@@ -21,23 +22,30 @@ impl MysqlTransaction {
             // or run queries async, in which case the order of promise creation might not be respected.. which sucks
             //conn: Arc::new(Mutex::new(Some(conn))),
             tx: Arc::new(Mutex::new(Some(tx))),
+            closed: false,
         })
     }
     pub(crate) fn commit<R: JsRealmAdapter + 'static>(
-        &self,
+        &mut self,
         _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
+        log::trace!("MysqlTransaction.commit called, setting to closed");
+
         let con_arc = self.tx.clone();
+
+        self.closed = true;
 
         realm.js_promise_create_resolving_async(
             async move {
-                log::trace!("MysqlTransaction.query running async helper");
+                log::trace!("MysqlTransaction.commit running async helper");
                 let lock_fut = con_arc.lock();
                 let lock = &mut *lock_fut.await;
                 let tx = lock
                     .take()
-                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+                    .ok_or_else(|| JsError::new_str("MysqlTransaction.commit: invalid state"))?;
+
+                log::trace!("MysqlTransaction.commit called, tx.id={}", tx.id());
 
                 let res = tx
                     .commit()
@@ -53,7 +61,7 @@ impl MysqlTransaction {
     }
     /// query method
     pub fn query<R: JsRealmAdapter + 'static>(
-        &mut self,
+        &self,
         _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
         query: &str,
@@ -61,6 +69,10 @@ impl MysqlTransaction {
         row_consumer: &R::JsValueAdapterType,
     ) -> Result<R::JsValueAdapterType, JsError> {
         log::trace!("Transaction.query: {}", query);
+
+        if self.closed {
+            return Err(JsError::new_str("transaction is closed"));
+        }
 
         let query = query.to_string();
 
@@ -79,13 +91,17 @@ impl MysqlTransaction {
         realm.js_promise_create_resolving_async(
             async move {
                 log::trace!("MysqlTransaction.query running async helper");
+
                 let lock_fut = con_arc.lock();
                 let lock = &mut *lock_fut.await;
-                let conn = lock
+                let tx = lock
                     .take()
-                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+                    .ok_or_else(|| JsError::new_str("MysqlTransaction.query: invalid state"))?;
+
+                log::trace!("MysqlTransaction.query called, tx.id={}", tx.id());
+
                 let fut = crate::modules::db::mysql::connection::run_query::<Transaction, R>(
-                    conn,
+                    tx,
                     query,
                     params_named_vec,
                     params_vec,
@@ -119,6 +135,10 @@ impl MysqlTransaction {
     ) -> Result<R::JsValueAdapterType, JsError> {
         log::trace!("Transaction.execute: {}", query);
 
+        if self.closed {
+            return Err(JsError::new_str("transaction is closed"));
+        }
+
         let query = query.to_string();
 
         let con_arc = self.tx.clone();
@@ -144,37 +164,44 @@ impl MysqlTransaction {
 
                 let lock_fut = con_arc.lock();
                 let lock = &mut *lock_fut.await;
+
                 let mut tx = lock
                     .take()
-                    .ok_or_else(|| JsError::new_str("invalid state"))?;
+                    .ok_or_else(|| JsError::new_str("MysqlTransaction.execute: invalid state"))?;
 
-                log::trace!("Transaction.execute running async helper / got con");
+                // this blocks ensures we can reset the tx to its lock even when errors occur in execution
+                let exe_res: Result<(), JsError> = async {
 
-                //
-                let stmt = tx
-                    .prep(query)
-                    .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    log::trace!("MysqlTransaction.execute called, tx.id={}", tx.id());
 
-                log::trace!("Transaction.execute running async helper / prepped stmt");
+                    //
+                    let stmt = tx
+                        .prep(query)
+                        .await
+                        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-                log::trace!("Transaction.execute running async helper / prepped params");
+                    log::trace!("Transaction.execute running async helper / prepped stmt");
 
-                let result_fut = if let Some(named_params) = params_named_vec_vec {
-                    log::trace!("Transaction.execute running async helper / prepped params / using named, size = {}", named_params.len());
-                    tx.exec_batch(stmt, named_params)
-                } else {
-                    log::trace!("Transaction.execute running async helper / prepped params / using positional, size = {}", params_vec_vec.len());
-                    tx.exec_batch(stmt, params_vec_vec)
-                };
+                    log::trace!("Transaction.execute running async helper / prepped params");
 
-                result_fut
-                    .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    let result_fut = if let Some(named_params) = params_named_vec_vec {
+                        log::trace!("Transaction.execute running async helper / prepped params / using named, size = {}", named_params.len());
+                        tx.exec_batch(stmt, named_params)
+                    } else {
+                        log::trace!("Transaction.execute running async helper / prepped params / using positional, size = {}", params_vec_vec.len());
+                        tx.exec_batch(stmt, params_vec_vec)
+                    };
 
-                log::trace!("Transaction.execute running async helper / got results");
+                    result_fut
+                        .await
+                        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
+                    Ok(())
+
+                }.await;
                 lock.replace(tx);
+                let _ = exe_res?;
+                log::trace!("Transaction.execute running async helper / got results");
 
                 Ok(())
             },
@@ -195,11 +222,40 @@ impl MysqlTransaction {
         realm.js_null_create()
     }
     pub(crate) fn rollback<R: JsRealmAdapter + 'static>(
-        &self,
-        runtime: &R::JsRuntimeAdapterType,
+        &mut self,
+        _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
     ) -> Result<R::JsValueAdapterType, JsError> {
-        self.execute(runtime, realm, "ROLLBACK", &[])
+        if !self.closed {
+            let con_arc = self.tx.clone();
+
+            self.closed = true;
+
+            realm.js_promise_create_resolving_async(
+                async move {
+                    log::trace!("MysqlTransaction.rollback running async helper");
+                    let lock_fut = con_arc.lock();
+                    let lock = &mut *lock_fut.await;
+                    let tx = lock.take().ok_or_else(|| {
+                        JsError::new_str("MysqlTransaction.rollback: invalid state")
+                    })?;
+
+                    log::trace!("MysqlTransaction.rollback called, tx.id={}", tx.id());
+
+                    let res = tx
+                        .rollback()
+                        .await
+                        .map_err(|e| JsError::new_string(format!("{:?}", e)));
+
+                    // in helper thread here
+
+                    res
+                },
+                move |realm, _val: ()| realm.js_null_create(),
+            )
+        } else {
+            realm.js_null_create()
+        }
     }
 }
 

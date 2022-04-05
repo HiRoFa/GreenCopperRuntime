@@ -170,12 +170,12 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
     JsProxy::new(&["greco", "db", "mysql"], "Transaction")
 
         .add_method("commit", |runtime, realm, id, _args| {
-            with_transaction( &id, |tx| {
+            with_transaction_mut( &id, |tx| {
                 tx.commit(runtime, realm)
             })
         })
         .add_method("rollback", |runtime, realm, id, _args| {
-            with_transaction( &id, |tx| {
+            with_transaction_mut( &id, |tx| {
                 tx.rollback(runtime, realm)
             })
         })
@@ -198,7 +198,7 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
                 let params = &args[1];
                 let row_consumer = &args[2];
 
-                with_transaction_mut( &id, |tx| {
+                with_transaction( &id, |tx| {
                     tx.query(runtime, realm, query.as_str(), params, row_consumer)
                 })
             }

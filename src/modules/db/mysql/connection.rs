@@ -529,25 +529,6 @@ impl MysqlConnection {
                     .await
                     .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
 
-                //conn.start_transaction()
-                /*
-                                log::trace!("start_transaction, running 'SET AUTOCOMMIT = 0'");
-                                conn.query_drop("SET AUTOCOMMIT = 0")
-                                    .await
-                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
-
-                                log::trace!(
-                                    "start_transaction, running 'SET TRANSACTION ISOLATION LEVEL READ COMMITTED'"
-                                );
-                                conn.query_drop("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
-                                    .await
-                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
-
-                                log::trace!("start_transaction, running 'START TRANSACTION'");
-                                conn.query_drop("START TRANSACTION")
-                                    .await
-                                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
-                */
                 let tx_instance = MysqlTransaction::new(tx)?;
 
                 Ok(tx_instance)
