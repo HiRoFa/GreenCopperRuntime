@@ -1,5 +1,6 @@
 use crate::modules::db::mysql::connection::parse_params;
 use futures::lock::Mutex;
+use hirofa_utils::js_utils::adapters::proxies::JsProxyInstanceId;
 use hirofa_utils::js_utils::adapters::JsRealmAdapter;
 use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade};
 use hirofa_utils::js_utils::JsError;
@@ -29,6 +30,7 @@ impl MysqlTransaction {
         &mut self,
         _runtime: &R::JsRuntimeAdapterType,
         realm: &R,
+        proxy_instance_id: JsProxyInstanceId,
     ) -> Result<R::JsValueAdapterType, JsError> {
         log::trace!("MysqlTransaction.commit called, setting to closed");
 
@@ -56,7 +58,17 @@ impl MysqlTransaction {
 
                 res
             },
-            move |realm, _val: ()| realm.js_null_create(),
+            move |realm, _val: ()| {
+                // dispatch commit event
+                let _ = realm.js_proxy_dispatch_event(
+                    &["greco", "db", "mysql"],
+                    "Transaction",
+                    &proxy_instance_id,
+                    "commit",
+                    &realm.js_null_create()?,
+                )?;
+                realm.js_null_create()
+            },
         )
     }
     /// query method
