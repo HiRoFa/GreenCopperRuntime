@@ -144,7 +144,13 @@ impl FileSystemModuleLoader {
                 if self.file_exists(normalized.as_str()) {
                     Some(normalized)
                 } else {
-                    None
+                    // todo support other module extensions
+                    let ts_opt = format!("{}.ts", normalized);
+                    if self.file_exists(ts_opt.as_str()) {
+                        Some(ts_opt)
+                    } else {
+                        None
+                    }
                 }
             }
             Err(e) => {
