@@ -211,6 +211,39 @@ impl PinSet {
         Ok(())
     }
 
+    pub fn run_pwm_sequence(
+        &self,
+        frequency: u64,
+        duty_cycle: f64,
+        pulse_count: usize,
+        pwm_stop_receiver: std::sync::mpsc::Receiver<bool>,
+    ) -> Result<(), String> {
+        let period = Duration::from_micros(1000000u64 / frequency);
+        let on_time = period.div_f64(100f64 / duty_cycle);
+        let off_time = period.sub(on_time);
+        let mut ct = 0;
+        while pulse_count == 0 || ct < pulse_count {
+            if pwm_stop_receiver.try_recv().is_ok() {
+                break;
+            } else {
+                std::thread::sleep(off_time);
+
+                if let Some(err) = self.set_state_index(0, 1).err() {
+                    return Err(format!("An error occurred in the pwm sequence: {}", err));
+                }
+                std::thread::sleep(on_time);
+                if let Some(err) = self.set_state_index(0, 0).err() {
+                    return Err(format!("An error occurred in the pwm sequence: {}", err));
+                }
+            }
+            if pulse_count > 0 {
+                ct += 1;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn start_pwm_sequence(
         &self,
         frequency: u64,

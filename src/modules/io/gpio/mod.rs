@@ -285,36 +285,43 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                 })
                 .add_method("softPwm", |_runtime, realm: &R, instance_id, args: &[R::JsValueAdapterType]| {
 
-                    if args.len() != 2 || !args[0].js_is_i32() || !(args[1].js_is_i32() || args[1].js_is_f64()) {
-                        return Err(JsError::new_str("softPwm expects 2 args, (duration: Number, dutyCycle: Number) both in ms"));
+                    if args.len() < 2 || !args[0].js_is_i32() || !(args[1].js_is_i32() || args[1].js_is_f64()) {
+                        return Err(JsError::new_str("softPwm2 expects 2 or 3 args, (duration: number, dutyCycle: number, pulseCount?: number)"));
                     }
 
-                    // todo read args
                     let frequency = args[0].js_to_i32() as u64;
                     let duty_cycle = if args[1].js_is_f64() {
                         args[1].js_to_f64()
                     } else {
                         args[1].js_to_i32() as f64
                     };
+                    let pulse_count = if args[2].js_is_null_or_undefined() {
+                        0 as usize
+                    } else if args[2].js_is_f64() {
+                        args[2].js_to_f64() as usize
+                    } else {
+                        args[2].js_to_i32() as usize
+                    };
 
-                    PIN_SET_HANDLES.with(move |rc| {
+                    let receiver = PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
                         let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");
 
                         // stop if running
                         if let Some(stopper) = pin_set_handle.pwm_stop_sender.take() {
-                            stopper.send(true).expect("could not stop")
+                            stopper.send(true).expect("could not stop");
                         }
 
+                        // set new stopper
                         let (sender, receiver) = sync_channel(1);
                         let _ = pin_set_handle.pwm_stop_sender.replace(sender);
-                        pin_set_handle.do_with_void(move |pin_set: &PinSet| {
-                            pin_set.start_pwm_sequence(frequency, duty_cycle, receiver);
-                        });
-
+                        receiver
                     });
 
-                    realm.js_null_create()
+                    wrap_prom(realm, &instance_id, move |pin_set| {
+                        pin_set.run_pwm_sequence(frequency, duty_cycle, pulse_count, receiver).map_err(|e| { JsError::new_string(e) })?;
+                        Ok(JsValueFacade::Null)
+                    })
 
                 })
                 .add_method("softPwmOff", |_runtime, realm, instance_id, _args| {
