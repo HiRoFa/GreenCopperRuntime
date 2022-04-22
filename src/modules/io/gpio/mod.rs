@@ -309,7 +309,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
                         // stop if running
                         if let Some(stopper) = pin_set_handle.pwm_stop_sender.take() {
-                            stopper.send(true).expect("could not stop");
+                            let _ = stopper.try_send(true);
                         }
 
                         // set new stopper
@@ -328,9 +328,8 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
                         let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");
-                        if let Some(stopper) = &pin_set_handle.pwm_stop_sender {
-                            stopper.send(true).expect("could not stop");
-                            pin_set_handle.pwm_stop_sender.take();
+                        if let Some(stopper) = pin_set_handle.pwm_stop_sender.take() {
+                            let _ = stopper.try_send(true);
                         }
                     });
                     realm.js_null_create()
