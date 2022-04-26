@@ -221,6 +221,14 @@ impl PinSet {
         let period = Duration::from_micros(1000000u64 / frequency);
         let on_time = period.div_f64(100f64 / duty_cycle);
         let off_time = period.sub(on_time);
+
+        log::trace!(
+            "run_pwm_sequence period = {:?}, on_time = {:?} , off_time={:?}",
+            period,
+            on_time,
+            off_time
+        );
+
         let mut ct = 0;
         while pulse_count == 0 || ct < pulse_count {
             if pwm_stop_receiver.try_recv().is_ok() {
