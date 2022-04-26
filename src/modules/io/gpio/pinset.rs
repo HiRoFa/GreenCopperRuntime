@@ -6,9 +6,9 @@ use hirofa_utils::eventloop::EventLoop;
 use hirofa_utils::task_manager::TaskManager;
 use std::cell::RefCell;
 use std::future::Future;
-use std::ops::Sub;
+use std::ops::{Div, Sub};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 thread_local! {
     static PIN_SET: RefCell<PinSet> = RefCell::new(PinSet::new());
@@ -174,7 +174,7 @@ impl PinSet {
         Ok(())
     }
     pub fn set_state_index(&self, pin_idx: usize, state: u8) -> Result<(), String> {
-        log::trace!("PinSet.set_state_index: idx: {}, state: {}", pin_idx, state);
+        //log::trace!("PinSet.set_state_index: idx: {}, state: {}", pin_idx, state);
 
         let handle = &self.output_handles[pin_idx];
         handle.set_value(state).map_err(|e| format!("{}", e))?;
@@ -229,6 +229,8 @@ impl PinSet {
             off_time
         );
 
+        let start = Instant::now();
+
         let mut ct = 0;
         while pulse_count == 0 || ct < pulse_count {
             if pwm_stop_receiver.try_recv().is_ok() {
@@ -244,10 +246,21 @@ impl PinSet {
                     return Err(format!("An error occurred in the pwm sequence: {}", err));
                 }
             }
-            if pulse_count > 0 {
-                ct += 1;
-            }
+
+            ct += 1;
         }
+
+        let end = Instant::now();
+        let total_time = end.duration_since(start);
+        let pulse_time = total_time.div(ct as u32);
+        let hz = 1000 / pulse_time.as_millis();
+        log::debug!(
+            "run_pwm_sequence ended pulse_ct={} total_time={:?} pulse_time={:?} freq={}hz",
+            ct,
+            total_time,
+            pulse_time,
+            hz
+        );
 
         Ok(())
     }
