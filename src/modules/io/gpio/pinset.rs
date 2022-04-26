@@ -254,6 +254,13 @@ impl PinSet {
         let on_time = period.div_f64(100f64 / duty_cycle);
         let off_time = period.sub(on_time);
 
+        log::trace!(
+            "start_pwm_sequence period = {:?}, on_time = {:?} , off_time={:?}",
+            period,
+            on_time,
+            off_time
+        );
+
         loop {
             if pwm_stop_receiver.try_recv().is_ok() {
                 break;
