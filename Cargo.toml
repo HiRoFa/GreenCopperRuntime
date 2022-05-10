@@ -14,7 +14,9 @@ default = ["all"]
 crypto = ["uuid"]
 jwt = ["jwt-simple", "uuid", "serde", "serde_json"]
 
-all = ["io", "db", "com", "features", "util", "crypto", "jwt"]
+all = ["io", "db", "com", "features", "util", "crypto", "jwt", "htmldom"]
+
+htmldom = ["kuchiki", "html5ever"]
 
 io = ["gpio", "fs"]
 db = ["mysql"]
@@ -67,6 +69,9 @@ uuid = {version="1.0.0-alpha.1", features=["v4", "serde"], optional = true}
 jwt-simple = {version="0.10", optional = true}
 serde = {version="1.0", optional = true}
 serde_json = {version="1.0", optional = true}
+
+kuchiki = {version="0.8.1", optional = true}
+html5ever = {version="0.25.2", optional = true}
 
 [dev-dependencies]
 quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime'}

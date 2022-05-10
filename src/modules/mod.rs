@@ -10,6 +10,9 @@ pub mod jwt;
 pub mod lib;
 pub mod util;
 
+#[cfg(any(feature = "all", feature = "htmldom"))]
+pub mod htmldom;
+
 pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     //com::init(builder);
     let builder = db::init(builder);
@@ -19,5 +22,7 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     let builder = crypto::init(builder);
     #[cfg(any(feature = "all", feature = "jwt"))]
     let builder = jwt::init(builder);
+    #[cfg(any(feature = "all", feature = "htmldom"))]
+    let builder = htmldom::init(builder);
     util::init(builder)
 }
