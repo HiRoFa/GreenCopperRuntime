@@ -5,7 +5,7 @@
 //! e.g.
 //! ```javascript
 //!  async function test(){
-//!     let htmlMod = await import("greco://htmldom");
+//!     let htmlMod = await import("greco://htmldom"); // or if you use ts: "https://raw.githubusercontent.com/HiRoFa/GreenCopperRuntime/main/modules/dom/htmldom.ts"
 //!     let parser = new htmlMod.DOMParser();
 //!     let html = '<html data-foo="abc"><head></head><body><p>hello world</p></body></html>';
 //!     let doc = parser.parseFromString(html);
