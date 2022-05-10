@@ -5,17 +5,15 @@
 //! e.g.
 //! ```javascript
 //!  async function test(){
-//!             let htmlMod = await import("greco://htmldom");
-//!             let parser = new htmlMod.DOMParser();
-//!             let html = '<html data-foo="abc"><head></head><body><p>hello world</p></body></html>';
-//!             let doc = parser.parseFromString(html);
-//!             let res = "";
-//!             res += "attr=" + doc.documentElement.getAttribute("data-foo") + "\n";
-//!             res += "html:\n" + doc.documentElement.outerHTML;
-//!             
-//!             return res;
-//!         };
-//!         test()
+//!     let htmlMod = await import("greco://htmldom");
+//!     let parser = new htmlMod.DOMParser();
+//!     let html = '<html data-foo="abc"><head></head><body><p>hello world</p></body></html>';
+//!     let doc = parser.parseFromString(html);
+//!     let res = "";
+//!     console.log("attr = %s", doc.documentElement.getAttribute("data-foo"));
+//!     console.log("outerHTML = %s", doc.documentElement.outerHTML);
+//! };
+//! test()
 //! ```
 //!
 
