@@ -296,7 +296,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                         args[1].js_to_i32() as f64
                     };
                     let pulse_count = if args[2].js_is_null_or_undefined() {
-                        0 as usize
+                        0_usize
                     } else if args[2].js_is_f64() {
                         args[2].js_to_f64() as usize
                     } else {
