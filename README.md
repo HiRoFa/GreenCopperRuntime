@@ -37,7 +37,7 @@ GreenCopperRuntime provides script pre-processing for:
 
 The following features are optionally added by specifying them in your Cargo.toml
 
-* [x] HTML Dom
+* [x] [HTML Dom](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/modules/htmldom/index.html) (Work in progress)
 * [ ] crypto
   * [x] crypto.randomUUID()
   * [ ] crypto.subtle
