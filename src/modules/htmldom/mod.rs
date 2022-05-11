@@ -28,7 +28,7 @@ use html5ever::Namespace;
 use html5ever::QualName;
 use kuchiki::iter::{Elements, NodeIterator, Siblings};
 use kuchiki::traits::TendrilSink;
-use kuchiki::NodeRef;
+use kuchiki::{parse_html, NodeRef};
 use std::cell::RefCell;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/DOMParser
@@ -300,19 +300,44 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 realm.js_string_create(s.to_string().as_str())
             })
         })
-        .add_getter("innerHTML", |_rt, realm: &R, id| {
-            with_node(&id, |node| {
-                let mut buf = vec![];
-                for child in node.children() {
-                    child
-                        .serialize(&mut buf)
-                        .map_err(|err| JsError::new_string(format!("serialize failed: {}", err)))?;
+        .add_getter_setter(
+            "innerHTML",
+            |_rt, realm: &R, id| {
+                with_node(&id, |node| {
+                    let mut buf = vec![];
+                    for child in node.children() {
+                        child.serialize(&mut buf).map_err(|err| {
+                            JsError::new_string(format!("serialize failed: {}", err))
+                        })?;
+                    }
+
+                    let s = String::from_utf8_lossy(&buf);
+                    realm.js_string_create(s.to_string().as_str())
+                })
+            },
+            |_rt, _realm: &R, id, val| {
+                if !val.js_is_string() {
+                    return Err(JsError::new_str("innerHTML should be a string"));
                 }
 
-                let s = String::from_utf8_lossy(&buf);
-                realm.js_string_create(s.to_string().as_str())
-            })
-        })
+                let html = val.js_to_str()?;
+
+                with_node(&id, |node| {
+                    while let Some(child) = node.first_child() {
+                        // todo do i need to do this recursively?
+                        child.detach();
+                        child.parent().take();
+                    }
+
+                    let document_frag = parse_html().one(html);
+                    let body = document_frag.first_child().unwrap().last_child().unwrap();
+                    while let Some(new_child) = body.first_child() {
+                        node.append(new_child);
+                    }
+                });
+                Ok(())
+            },
+        )
         .add_method("setAttribute", |_rt, realm, id, args| {
             if !args.len() == 2 || !args[0].js_is_string() || !args[1].js_is_string() {
                 return Err(JsError::new_str("setAttribute expects two string args"));
@@ -643,10 +668,18 @@ pub mod tests {
             nodeList = body.children;
             res += "\nchildren:"
             for (let node of nodeList) {
-                res += "\nnode.tagName = " + node.tagName;
+                res += "\nnode.tagName = " + node.tagName + "["+node.innerHTML+"]";
             }
             
             res += "\nbody.innerHTML=" + body.innerHTML;
+            
+            body.innerHTML = "";
+            
+            res += "\nbody.outerHTML=" + body.outerHTML;
+            
+            body.innerHTML = "<span>two </span><span>spans</span>";
+            
+            res += "\nbody.outerHTML=" + body.outerHTML;
             
             return res;
         };
