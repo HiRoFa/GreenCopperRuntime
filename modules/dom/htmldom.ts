@@ -13,6 +13,7 @@ export type Node = {
 export type NodeList = {
     length: number,
     item: (index: number) => Node,
+    forEach: (callbackFn: (element: Node, index: number, list: NodeList), thisArg: any) => {}
 };
 
 export type ElementList = {
@@ -59,7 +60,8 @@ export type Document = Element & {
     body: Element,
     documentElement: Element,
     createElement: (localName: string) => Element,
-    createTextNode: (data: string) => TextNode
+    createTextNode: (data: string) => TextNode,
+    getElementById: (id: string) => Element
 };
 
 export type GrecoDOMParser {
