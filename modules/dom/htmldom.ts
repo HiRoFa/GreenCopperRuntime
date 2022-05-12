@@ -13,13 +13,13 @@ export type Node = {
 export type NodeList = Iterable<Node> & {
     length: number,
     item: (index: number) => Node,
-    forEach: (callbackFn: (element: Node, index: number, list: NodeList), thisArg: any) => void
+    forEach: (callbackFn: (element: Node, index: number, list: NodeList) => void, thisArg: any) => void
 };
 
 export type ElementList = Iterable<Element> & {
     length: number,
     item: (index: number) => Element,
-    forEach: (callbackFn: (element: Element, index: number, list: ElementList), thisArg: any) => void
+    forEach: (callbackFn: (element: Element, index: number, list: ElementList) => void, thisArg: any) => void
 };
 
 export type TextNode = Node & {
@@ -65,9 +65,9 @@ export type Document = Element & {
     getElementById: (id: string) => Element
 };
 
-export type GrecoDOMParser {
-    parseFromString: (html: string | Uint8Array, mimeType: string = "text/html") => Document,
-    parseFromStringAsync: (html: string | Uint8Array, mimeType: string = "text/html") => Promise<Document>;
+export type GrecoDOMParser = {
+    parseFromString: (html: string | Uint8Array, mimeType: string) => Document,
+    parseFromStringAsync: (html: string | Uint8Array, mimeType: string) => Promise<Document>;
 };
 
 export const DOMParser: GrecoDOMParser = grecoDom.DOMParser;
