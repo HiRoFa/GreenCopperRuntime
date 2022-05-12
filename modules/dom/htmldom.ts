@@ -10,15 +10,16 @@ export type Node = {
     ownerDocument: Document
 };
 
-export type NodeList = {
+export type NodeList = Iterable<Node> & {
     length: number,
     item: (index: number) => Node,
-    forEach: (callbackFn: (element: Node, index: number, list: NodeList), thisArg: any) => {}
+    forEach: (callbackFn: (element: Node, index: number, list: NodeList), thisArg: any) => void
 };
 
-export type ElementList = {
+export type ElementList = Iterable<Element> & {
     length: number,
     item: (index: number) => Element,
+    forEach: (callbackFn: (element: Element, index: number, list: ElementList), thisArg: any) => void
 };
 
 export type TextNode = Node & {
