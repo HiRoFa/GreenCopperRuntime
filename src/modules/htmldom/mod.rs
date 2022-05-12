@@ -224,6 +224,12 @@ fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapt
 
 fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "Node")
+        .set_finalizer(|rt, realm, id| {
+            NODES.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
         .add_getter("childNodes", |_rt, realm: &R, id| {
             with_node(&id, |node| register_node_list(realm, node.children()))
         })
@@ -685,6 +691,12 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
 fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "NodeList")
+        .set_finalizer(|rt, realm, id| {
+            NODELISTS.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
         .add_getter("length", |_rt, realm: &R, id| {
             with_node_list(&id, |node_list| {
                 realm.js_i32_create(node_list.clone().count() as i32)
@@ -741,6 +753,12 @@ fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapter
 
 fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "ElementList")
+        .set_finalizer(|rt, realm, id| {
+            ELEMENTLISTS.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
         .add_getter("length", |_rt, realm: &R, id| {
             with_node_list(&id, |node_list| {
                 realm.js_i32_create(node_list.clone().count() as i32)
@@ -803,6 +821,12 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
     realm: &R,
 ) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "SelectElementList")
+        .set_finalizer(|rt, realm, id| {
+            SELECTELEMENTLISTS.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
         .add_getter("length", |_rt, realm: &R, id| {
             with_select_element_list(&id, |select_base| {
                 let select_res = select_base.node.select(select_base.selectors.as_str());
