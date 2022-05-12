@@ -409,7 +409,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             //
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
                 return Err(JsError::new_str(
-                    "appendChremoveChildild expects a single Node argument",
+                    "removeChild expects a single Node argument",
                 ));
             }
             let p_data = realm.js_proxy_instance_get_info(&args[0])?;
@@ -427,6 +427,43 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     child.detach();
                     let _ = child.parent().take();
                     Ok(args[0].clone())
+                }
+            })
+        })
+        .add_method("replaceChild", |_rt, realm, id, args| {
+            //
+            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
+            {
+                return Err(JsError::new_str(
+                    "replaceChild expects two Node arguments (newChild, oldChild)",
+                ));
+            }
+
+            let p_data_new_child = realm.js_proxy_instance_get_info(&args[0])?;
+            if !p_data_new_child.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "replaceChild expects two Node arguments (newChild, oldChild)",
+                ));
+            }
+
+            let new_child = with_node(&p_data_new_child.1, |child| child.clone());
+
+            let p_data_old_child = realm.js_proxy_instance_get_info(&args[1])?;
+            if !p_data_old_child.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "replaceChild expects two Node arguments (newChild, oldChild)",
+                ));
+            }
+
+            let old_child = with_node(&p_data_old_child.1, |child| child.clone());
+
+            with_node(&id, |node| match node.as_element() {
+                None => Err(JsError::new_str("Node was not an Element")),
+                Some(_element) => {
+                    old_child.insert_before(new_child);
+                    old_child.detach();
+                    let _ = old_child.parent().take();
+                    Ok(args[1].clone())
                 }
             })
         })
