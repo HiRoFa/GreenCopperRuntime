@@ -17,7 +17,6 @@
 //! ```
 //!
 
-use futures::SinkExt;
 use hirofa_utils::auto_id_map::AutoIdMap;
 use hirofa_utils::js_utils::adapters::proxies::JsProxy;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
@@ -27,9 +26,9 @@ use hirofa_utils::js_utils::JsError;
 use html5ever::LocalName;
 use html5ever::Namespace;
 use html5ever::QualName;
-use kuchiki::iter::{Descendants, Elements, NodeIterator, Select, Siblings};
+use kuchiki::iter::{Elements, NodeIterator, Siblings};
 use kuchiki::traits::TendrilSink;
-use kuchiki::{parse_html, NodeRef, Selectors};
+use kuchiki::{parse_html, NodeRef};
 use std::cell::RefCell;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/DOMParser
@@ -224,7 +223,7 @@ fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapt
 
 fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "Node")
-        .set_finalizer(|rt, realm, id| {
+        .set_finalizer(|_rt, _realm, id| {
             NODES.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
@@ -637,7 +636,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
         .add_method("createElement", |_rt, realm, id, args| {
             //
 
-            if args.len() < 1 || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].js_is_string() {
                 return Err(JsError::new_str(
                     "createElement expects a single string argument",
                 ));
@@ -663,10 +662,36 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Err(e) => Err(e),
             }
         })
+        .add_method("getElementById", |_rt, realm, id, args| {
+            //
+
+            if args.is_empty() || !args[0].js_is_string() {
+                return Err(JsError::new_str(
+                    "getElementById expects a single string argument",
+                ));
+            }
+
+            let id_attr = args[0].js_to_str()?;
+
+            let res = with_node(&id, |node| match node.as_document() {
+                None => Err(JsError::new_str("not a Document")),
+                Some(_document) => {
+                    let node_res = node.select_first(format!("#{}", id_attr).as_str());
+                    Ok(node_res)
+                }
+            });
+            match res {
+                Ok(node_res) => match node_res {
+                    Ok(node) => register_node(realm, node.as_node().clone()),
+                    Err(_) => realm.js_null_create(),
+                },
+                Err(e) => Err(e),
+            }
+        })
         .add_method("createTextNode", |_rt, realm, id, args| {
             //
 
-            if args.len() < 1 || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].js_is_string() {
                 return Err(JsError::new_str(
                     "createTextNode expects a single string argument",
                 ));
@@ -691,7 +716,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
 fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "NodeList")
-        .set_finalizer(|rt, realm, id| {
+        .set_finalizer(|_rt, _realm, id| {
             NODELISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
@@ -753,7 +778,7 @@ fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapter
 
 fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "ElementList")
-        .set_finalizer(|rt, realm, id| {
+        .set_finalizer(|_rt, _realm, id| {
             ELEMENTLISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
@@ -821,7 +846,7 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
     realm: &R,
 ) -> Result<R::JsValueAdapterType, JsError> {
     let proxy = JsProxy::new(&["greco", "htmldom"], "SelectElementList")
-        .set_finalizer(|rt, realm, id| {
+        .set_finalizer(|_rt, _realm, id| {
             SELECTELEMENTLISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
@@ -936,10 +961,14 @@ pub mod tests {
         async function test(){
             let htmlMod = await import("greco://htmldom");
             let parser = new htmlMod.DOMParser();
-            let html = '<html data-foo="abc"><head></head><body class="bodyc1 bodyc2">text<p>hello</p><p class="worldly">world</p></body></html>';
+            let html = '<html data-foo="abc"><head></head><body class="bodyc1 bodyc2">text<p id="helloId">hello</p><p class="worldly">world</p></body></html>';
             let doc = parser.parseFromString(html);
             let res = "";
-            res += "attr=" + doc.documentElement.getAttribute("data-foo") + "\n";
+            
+            let helloNode = doc.getElementById("helloId");
+            res += helloNode?"\nhelloNode.innerHTML = "+helloNode.innerHTML:"\nhello node not found";
+            
+            res += "\nattr=" + doc.documentElement.getAttribute("data-foo") + "\n";
             res += "html:\n" + doc.documentElement.outerHTML;
             
             let body = doc.documentElement.lastChild;
