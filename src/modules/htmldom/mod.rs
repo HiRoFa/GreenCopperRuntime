@@ -329,6 +329,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                         child.parent().take();
                     }
 
+                    // todo actually use fragment and don't get a full html doc? or is there another faster way..?
                     let document_frag = parse_html().one(html);
                     let body = document_frag.first_child().unwrap().last_child().unwrap();
                     while let Some(new_child) = body.first_child() {
@@ -464,6 +465,76 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     old_child.detach();
                     let _ = old_child.parent().take();
                     Ok(args[1].clone())
+                }
+            })
+        })
+        .add_method("insertBefore", |_rt, realm, id, args| {
+            //
+            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
+            {
+                return Err(JsError::new_str(
+                    "insertBefore expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let p_data_new_node = realm.js_proxy_instance_get_info(&args[0])?;
+            if !p_data_new_node.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "insertBefore expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let new_node = with_node(&p_data_new_node.1, |child| child.clone());
+
+            let p_data_reference_node = realm.js_proxy_instance_get_info(&args[1])?;
+            if !p_data_reference_node.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "insertBefore expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let reference_node = with_node(&p_data_reference_node.1, |child| child.clone());
+
+            with_node(&id, |node| match node.as_element() {
+                None => Err(JsError::new_str("Node was not an Element")),
+                Some(_element) => {
+                    reference_node.insert_before(new_node);
+                    Ok(args[0].clone())
+                }
+            })
+        })
+        .add_method("insertAfter", |_rt, realm, id, args| {
+            //
+            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
+            {
+                return Err(JsError::new_str(
+                    "insertAfter expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let p_data_new_node = realm.js_proxy_instance_get_info(&args[0])?;
+            if !p_data_new_node.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "insertAfter expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let new_node = with_node(&p_data_new_node.1, |child| child.clone());
+
+            let p_data_reference_node = realm.js_proxy_instance_get_info(&args[1])?;
+            if !p_data_reference_node.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str(
+                    "insertAfter expects two Node arguments (newNode, referenceNode)",
+                ));
+            }
+
+            let reference_node = with_node(&p_data_reference_node.1, |child| child.clone());
+
+            with_node(&id, |node| match node.as_element() {
+                None => Err(JsError::new_str("Node was not an Element")),
+                Some(_element) => {
+                    reference_node.insert_after(new_node);
+                    Ok(args[0].clone())
                 }
             })
         })
