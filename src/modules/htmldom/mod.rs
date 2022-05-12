@@ -205,13 +205,20 @@ fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapt
     let proxy = JsProxy::new(&["greco", "htmldom"], "DOMParser")
         .set_constructor(|_rt, _realm, _id, _args| Ok(()))
         .add_method("parseFromString", |_rt, realm: &R, _instance_id, args| {
-            if !args.len() == 1 || !args[0].js_is_string() {
+            if !args.len() == 1 || !(args[0].js_is_string() || args[0].js_is_typed_array()) {
                 Err(JsError::new_str(
                     "parseFromString expects a single string arg",
                 ))
             } else {
-                let html = args[0].js_to_str()?;
-                let doc = parse_from_string(html);
+                let doc = if args[0].js_is_string() {
+                    let html = args[0].js_to_str()?;
+                    parse_from_string(html)
+                } else {
+                    let bytes = realm.js_typed_array_detach_buffer(&args[0])?;
+                    let html = String::from_utf8_lossy(bytes.as_slice());
+                    parse_from_string(html.to_string().as_str())
+                };
+
                 register_node(realm, doc)
             }
         })
