@@ -417,21 +417,55 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_getter("className", |_rt, realm, id| {
-            //
+        .add_method("equals", |_rt, realm, id, args| {
+            if args.len() != 1 || !args[0].js_is_proxy_instance() {
+                return Err(JsError::new_str("equals expects a single Node arg"));
+            }
+
+            let p_data = realm.js_proxy_instance_get_info(&args[0])?;
+            if !p_data.0.eq("greco.htmldom.Node") {
+                return Err(JsError::new_str("equals expects a single Node argument"));
+            }
+
+            let compare_node = with_node(&p_data.1, |child| child.clone());
+
             with_node(&id, |node| {
                 //
-                if let Some(element) = node.as_element() {
-                    let attrs = &mut *element.attributes.borrow_mut();
-                    match attrs.get("class") {
-                        None => realm.js_string_create(""),
-                        Some(attr) => realm.js_string_create(attr),
-                    }
-                } else {
-                    realm.js_undefined_create()
-                }
+                realm.js_boolean_create(node.eq(&compare_node))
             })
         })
+        .add_getter_setter(
+            "className",
+            |_rt, realm, id| {
+                //
+                with_node(&id, |node| {
+                    //
+                    if let Some(element) = node.as_element() {
+                        let attrs = &mut *element.attributes.borrow_mut();
+                        match attrs.get("class") {
+                            None => realm.js_string_create(""),
+                            Some(attr) => realm.js_string_create(attr),
+                        }
+                    } else {
+                        realm.js_undefined_create()
+                    }
+                })
+            },
+            |_rt, _realm, id, value| {
+                //
+                with_node(&id, |node| {
+                    //
+                    if let Some(element) = node.as_element() {
+                        let attrs = &mut *element.attributes.borrow_mut();
+                        if value.js_is_string() {
+                            let cn = value.js_to_string()?;
+                            attrs.insert("class", cn);
+                        }
+                    }
+                    Ok(())
+                })
+            },
+        )
         .add_method("getAttribute", |_rt, realm, id, args| {
             if !args.len() == 1 || !args[0].js_is_string() {
                 return Err(JsError::new_str("getAttribute expects one string arg"));
