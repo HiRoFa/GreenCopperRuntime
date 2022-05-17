@@ -396,12 +396,19 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             },
         )
         .add_method("setAttribute", |_rt, realm, id, args| {
-            if !args.len() == 2 || !args[0].js_is_string() || !args[1].js_is_string() {
+            if !args.len() == 2
+                || !args[0].js_is_string()
+                || !(args[1].js_is_string() || args[1].js_is_null_or_undefined())
+            {
                 return Err(JsError::new_str("setAttribute expects two string args"));
             }
 
             let local_name = args[0].js_to_str()?;
-            let value = args[1].js_to_string()?;
+            let value = if args[1].js_is_string() {
+                Some(args[1].js_to_string()?)
+            } else {
+                None
+            };
 
             with_node(&id, |node| {
                 //
@@ -410,8 +417,11 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     Some(element) => {
                         let attrs = &mut *element.attributes.borrow_mut();
 
-                        attrs.insert(local_name, value);
-
+                        if let Some(value) = value {
+                            attrs.insert(local_name, value);
+                        } else {
+                            attrs.remove(local_name);
+                        }
                         realm.js_null_create()
                     }
                 }
