@@ -553,7 +553,8 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             })
         })
         .add_method("removeChild", |_rt, realm, id, args| {
-            //
+            // todo, calling this twice by mistake leads to other children being removed
+
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
                 return Err(JsError::new_str(
                     "removeChild expects a single Node argument",
