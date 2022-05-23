@@ -570,7 +570,9 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             let child = with_node(&p_data.1, |child| child.clone());
 
             with_node(&id, |node| match node.as_element() {
+
                 None => Err(JsError::new_str("Node was not an Element")),
+
                 Some(_element) => {
                     child.detach();
                     let _ = child.parent().take();
@@ -837,7 +839,7 @@ fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdap
             })
         })
         .add_getter("length", |_rt, realm: &R, id| {
-            with_node_list(&id, |node_list| {
+            with_element_list(&id, |node_list| {
                 realm.js_i32_create(node_list.clone().count() as i32)
             })
         })
