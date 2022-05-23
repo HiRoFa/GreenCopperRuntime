@@ -570,7 +570,6 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             let child = with_node(&p_data.1, |child| child.clone());
 
             with_node(&id, |node| match node.as_element() {
-
                 None => Err(JsError::new_str("Node was not an Element")),
 
                 Some(_element) => {
