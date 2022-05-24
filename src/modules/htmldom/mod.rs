@@ -356,6 +356,14 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 realm.js_string_create(s.to_string().as_str())
             })
         })
+        .add_method("encodeHTML", |_rt, realm: &R, id, _args| {
+            with_node(&id, |node| {
+                let mut buf = vec![];
+                node.serialize(&mut buf)
+                    .map_err(|err| JsError::new_string(format!("serialize failed: {}", err)))?;
+                realm.js_typed_array_uint8_create(buf)
+            })
+        })
         .add_getter_setter(
             "innerHTML",
             |_rt, realm: &R, id| {
