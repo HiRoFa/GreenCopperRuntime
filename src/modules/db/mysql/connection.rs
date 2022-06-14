@@ -281,7 +281,8 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
                 }
                 JsValueType::Object => {
                     if item.js_is_typed_array() {
-                        let buf = realm.js_typed_array_detach_buffer(item)?;
+                        let buf = realm.js_typed_array_copy_buffer(item)?;
+                        //let buf = realm.js_typed_array_detach_buffer(item)?;
                         params_vec.push(buf.into());
                     } else {
                         let json_str = realm.js_json_stringify(item, None)?;
