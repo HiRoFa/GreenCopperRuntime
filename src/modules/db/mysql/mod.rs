@@ -293,7 +293,6 @@ pub mod tests {
 
     #[test]
     fn _test_params() {
-
         simple_logging::log_to_stderr(LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
