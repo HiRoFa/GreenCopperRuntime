@@ -500,13 +500,15 @@ impl MysqlConnection {
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
 
-                log::trace!("Connection.execute running async helper / got results");
+                let affected_rows  = con.affected_rows();
 
-                Ok(())
+                    log::trace!("Connection.execute running async helper / got results");
+
+                Ok(affected_rows)
             },
-            |realm, _val| {
+            |realm, affected_rows| {
                 //
-                realm.js_null_create()
+                realm.js_f64_create(affected_rows as f64)
             },
         )
     }

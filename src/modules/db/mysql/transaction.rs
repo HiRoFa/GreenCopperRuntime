@@ -211,15 +211,16 @@ impl MysqlTransaction {
                     Ok(())
 
                 }.await;
+                let rows_affected = tx.affected_rows();
                 lock.replace(tx);
                 let _ = exe_res?;
                 log::trace!("Transaction.execute running async helper / got results");
 
-                Ok(())
+                Ok(rows_affected)
             },
-            |realm, _val| {
+            |realm, rows_affected| {
                 //
-                realm.js_null_create()
+                realm.js_f64_create(rows_affected as f64)
             },
         )
     }
