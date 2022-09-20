@@ -1,13 +1,13 @@
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter,  JsValueAdapter};
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::facades::{JsRuntimeBuilder};
-use hirofa_utils::js_utils::JsError;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use std::str;
 use csv::Trim;
+use hirofa_utils::js_utils::adapters::proxies::JsProxy;
+use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::JsValueFacade;
+use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use hirofa_utils::js_utils::modules::NativeModuleLoader;
+use hirofa_utils::js_utils::JsError;
+use std::str;
 
-struct ParsersModuleLoader{}
+struct ParsersModuleLoader {}
 
 impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for ParsersModuleLoader {
     fn has_module(&self, _realm: &R, module_name: &str) -> bool {
@@ -23,7 +23,9 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for ParsersModuleLoader 
         realm: &R,
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
-        init_exports(realm).ok().expect("init parsers exports failed")
+        init_exports(realm)
+            .ok()
+            .expect("init parsers exports failed")
     }
 }
 
@@ -39,7 +41,6 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
     Ok(vec![("CsvParser", csv_parser_res)])
 }
-
 
 pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> JsProxy<R> {
     JsProxy::new(&["greco", "parsers"], "CsvParser")
