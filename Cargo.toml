@@ -14,8 +14,10 @@ default = ["all"]
 crypto = ["uuid"]
 jwt = ["jwt-simple", "uuid", "serde", "serde_json"]
 
-all = ["io", "db", "com", "features", "util", "crypto", "jwt", "htmldom"]
+all = ["io", "db", "com", "features", "util", "crypto", "jwt", "htmldom", "parsers"]
 
+parsers = ["csvparser"]
+csvparser = ["csv"]
 htmldom = ["kuchiki", "html5ever"]
 
 io = ["gpio", "fs"]
@@ -64,6 +66,7 @@ gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true
 futures = {version = "0.3"}
 mysql_lib = {package="mysql_async", version = "0.29",  optional = true}
 lru = {version = "0.7.0", optional = true}
+csv = {version = "1.1.6", optional = true}
 
 uuid = {version="1.0.0-alpha.1", features=["v4", "serde"], optional = true}
 jwt-simple = {version="0.10", optional = true}

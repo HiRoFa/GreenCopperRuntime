@@ -9,6 +9,8 @@ pub mod io;
 pub mod jwt;
 pub mod lib;
 pub mod util;
+#[cfg(any(feature = "all", feature = "parsers"))]
+pub mod parsers;
 
 #[cfg(any(feature = "all", feature = "htmldom"))]
 pub mod htmldom;
@@ -24,5 +26,7 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     let builder = jwt::init(builder);
     #[cfg(any(feature = "all", feature = "htmldom"))]
     let builder = htmldom::init(builder);
+    #[cfg(any(feature = "all", feature = "parsers"))]
+        let builder = parsers::init(builder);
     util::init(builder)
 }
