@@ -90,7 +90,11 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
                     let cached_h_function = if let JsValueFacade::JsFunction { cached_function } = cb_h_func { cached_function } else { panic!("function was not a function") };
                     let cached_r_function = if let JsValueFacade::JsFunction { cached_function } = cb_r_func { cached_function } else { panic!("function was not a function") };
 
-                    let val: Vec<JsValueFacade> = rdr.headers().map_err(|e| JsError::new_string(format!("{}", e)))?.iter().map(|h| {
+                    let headers = rdr.headers().map_err(|e| JsError::new_string(format!("{}", e)))?;
+
+                    log::trace!("greco::parsers::CsvParser headers: {:?}", headers);
+
+                    let val: Vec<JsValueFacade> = headers.iter().map(|h| {
                         JsValueFacade::new_str(h)
                     }).collect();
 
@@ -110,7 +114,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
 
                         let _ = cached_r_function.js_invoke_function(&*rti, vec![jsvf_record]);
 
-                        println!("{:?}", record);
+                        log::trace!("greco::parsers::CsvParser row: {:?}", record);
                     }
 
 
