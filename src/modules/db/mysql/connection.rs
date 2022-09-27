@@ -1,7 +1,6 @@
 use crate::modules::db::mysql::store_transaction;
 use crate::modules::db::mysql::transaction::MysqlTransaction;
 use cached::proc_macro::cached;
-use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
@@ -17,8 +16,7 @@ struct PoolRef {
 
 impl Drop for PoolRef {
     fn drop(&mut self) {
-        // todo do this async but make sure it happens
-        let _ = block_on(self.pool.take().unwrap().disconnect());
+        let _ = tokio::spawn(self.pool.take().unwrap().disconnect());
     }
 }
 
