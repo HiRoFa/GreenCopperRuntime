@@ -49,14 +49,13 @@ impl MysqlTransaction {
 
                 log::trace!("MysqlTransaction.commit called, tx.id={}", tx.id());
 
-                let res = tx
+                tx
                     .commit()
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)));
+                    .map_err(|e| JsError::new_string(format!("{:?}", e)))
 
                 // in helper thread here
 
-                res
             },
             move |realm, _val: ()| {
                 // dispatch commit event
@@ -213,7 +212,7 @@ impl MysqlTransaction {
                 }.await;
                 let rows_affected = tx.affected_rows();
                 lock.replace(tx);
-                let _ = exe_res?;
+                exe_res?;
                 log::trace!("Transaction.execute running async helper / got results");
 
                 Ok(rows_affected)
@@ -255,14 +254,14 @@ impl MysqlTransaction {
 
                     log::trace!("MysqlTransaction.rollback called, tx.id={}", tx.id());
 
-                    let res = tx
+                     tx
                         .rollback()
                         .await
-                        .map_err(|e| JsError::new_string(format!("{:?}", e)));
+                        .map_err(|e| JsError::new_string(format!("{:?}", e)))
 
                     // in helper thread here
 
-                    res
+
                 },
                 move |realm, _val: ()| realm.js_null_create(),
             )

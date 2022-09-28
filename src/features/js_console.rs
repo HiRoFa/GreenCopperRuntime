@@ -175,8 +175,7 @@ fn parse_field_value<R: JsRealmAdapter>(
         #[allow(clippy::or_fun_call)]
         let mut i_val: String = value
             .js_to_string()
-            .or::<String>(Ok("".to_string()))
-            .unwrap();
+            .unwrap_or("".to_string());
 
         // remove chars behind .
         if let Some(i) = i_val.find('.') {

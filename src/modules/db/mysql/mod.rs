@@ -288,12 +288,12 @@ pub mod tests {
     use hirofa_utils::js_utils::facades::values::JsValueFacade;
     use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use hirofa_utils::js_utils::Script;
-    use log::LevelFilter;
+    //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    #[test]
+    //#[test]
     fn _test_params() {
-        simple_logging::log_to_stderr(LevelFilter::Info);
+        //simple_logging::log_to_stderr(LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
