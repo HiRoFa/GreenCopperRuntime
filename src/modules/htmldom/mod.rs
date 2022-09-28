@@ -128,7 +128,6 @@ fn register_node<R: JsRealmAdapter>(
     realm: &R,
     node: NodeRef,
 ) -> Result<R::JsValueAdapterType, JsError> {
-
     // todo need native quickjs stuff here..
     // keep separate map with NodeRef as key
     // point at JsValueRef (dont increment refcount for those)
