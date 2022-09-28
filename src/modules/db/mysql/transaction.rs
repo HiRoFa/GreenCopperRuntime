@@ -49,13 +49,11 @@ impl MysqlTransaction {
 
                 log::trace!("MysqlTransaction.commit called, tx.id={}", tx.id());
 
-                tx
-                    .commit()
+                tx.commit()
                     .await
                     .map_err(|e| JsError::new_string(format!("{:?}", e)))
 
                 // in helper thread here
-
             },
             move |realm, _val: ()| {
                 // dispatch commit event
@@ -254,14 +252,11 @@ impl MysqlTransaction {
 
                     log::trace!("MysqlTransaction.rollback called, tx.id={}", tx.id());
 
-                     tx
-                        .rollback()
+                    tx.rollback()
                         .await
                         .map_err(|e| JsError::new_string(format!("{:?}", e)))
 
                     // in helper thread here
-
-
                 },
                 move |realm, _val: ()| realm.js_null_create(),
             )
