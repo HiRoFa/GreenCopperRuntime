@@ -128,6 +128,13 @@ fn register_node<R: JsRealmAdapter>(
     realm: &R,
     node: NodeRef,
 ) -> Result<R::JsValueAdapterType, JsError> {
+
+    // todo need native quickjs stuff here..
+    // keep separate map with NodeRef as key
+    // point at JsValueRef (dont increment refcount for those)
+    // remove on finalize (dont decrement refcount :))
+    // reuse here to create a new JsValueAdapter (and then increment refcount)
+
     let id = NODES.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.insert(node)
