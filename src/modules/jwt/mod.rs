@@ -219,14 +219,16 @@ async fn generate_key(
     let key_bytes = if !args.is_empty() && args[0].is_string() {
         let alg = JwtAlgo::from_str(args[0].get_str())?;
         match alg {
-            RS512 => Ok::<Vec<u8>, JsError>(RS512KeyPair::generate(4096)
-                .map_err(|err| {
-                    JsError::new_string(format!("could not create RS512 keypair {}", err))
-                })?
-                .to_der()
-                .map_err(|err| {
-                    JsError::new_string(format!("could not create RS512 keypair2 {}", err))
-                })?),
+            RS512 => Ok::<Vec<u8>, JsError>(
+                RS512KeyPair::generate(4096)
+                    .map_err(|err| {
+                        JsError::new_string(format!("could not create RS512 keypair {}", err))
+                    })?
+                    .to_der()
+                    .map_err(|err| {
+                        JsError::new_string(format!("could not create RS512 keypair2 {}", err))
+                    })?,
+            ),
             EdDSA => Ok(Ed25519KeyPair::generate().to_bytes()),
         }?
     } else {
