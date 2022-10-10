@@ -9,6 +9,7 @@ use mysql_lib::consts::{ColumnFlags, ColumnType};
 use mysql_lib::prelude::Queryable;
 use mysql_lib::{from_value, Conn, IsolationLevel, Pool, Row, TxOpts, Value};
 use std::sync::Arc;
+use futures::executor::block_on;
 
 struct PoolRef {
     pool: Option<Pool>,
@@ -16,7 +17,17 @@ struct PoolRef {
 
 impl Drop for PoolRef {
     fn drop(&mut self) {
-        let _ = tokio::spawn(self.pool.take().unwrap().disconnect());
+        if let Some(pool) = self.pool.take() {
+
+            std::thread::spawn(|| {
+                let _ = block_on(pool.disconnect());
+            });
+            // todo use add_helper_task_async;
+            //let _ = QuickJsRuntimeFacade::add_helper_task_async(async move {
+            //    let _ = pool.disconnect().await;
+            //});
+        }
+
     }
 }
 
