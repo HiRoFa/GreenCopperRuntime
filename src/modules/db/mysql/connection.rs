@@ -1,6 +1,7 @@
 use crate::modules::db::mysql::store_transaction;
 use crate::modules::db::mysql::transaction::MysqlTransaction;
 use cached::proc_macro::cached;
+use futures::executor::block_on;
 use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
 use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade, TypedArrayType};
 use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
@@ -9,7 +10,6 @@ use mysql_lib::consts::{ColumnFlags, ColumnType};
 use mysql_lib::prelude::Queryable;
 use mysql_lib::{from_value, Conn, IsolationLevel, Pool, Row, TxOpts, Value};
 use std::sync::Arc;
-use futures::executor::block_on;
 
 struct PoolRef {
     pool: Option<Pool>,
@@ -18,7 +18,6 @@ struct PoolRef {
 impl Drop for PoolRef {
     fn drop(&mut self) {
         if let Some(pool) = self.pool.take() {
-
             std::thread::spawn(|| {
                 let _ = block_on(pool.disconnect());
             });
@@ -27,7 +26,6 @@ impl Drop for PoolRef {
             //    let _ = pool.disconnect().await;
             //});
         }
-
     }
 }
 
