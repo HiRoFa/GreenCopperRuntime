@@ -403,3 +403,35 @@ pub async fn do_fetch(
         Err(JsError::new_str("Missing mandatory url argument"))
     }
 }
+
+#[cfg(test)]
+pub mod tests{
+    use futures::executor::block_on;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+    use hirofa_utils::js_utils::facades::values::JsValueFacade;
+    use hirofa_utils::js_utils::Script;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::facades::QuickjsRuntimeFacadeInner;
+
+    #[test]
+    fn test_fetch_1(){
+        let rt = crate::init_greco_rt(QuickJsRuntimeBuilder::new()).build();
+        let rti = rt.js_get_runtime_facade_inner().upgrade().expect("huh");
+        let mut res = block_on(rt.js_eval(None, Script::new("test_fetch_1.js", r#"
+            (async () => {
+                let res = await fetch("https://httpbin.org/post", {method: "POST", headers:{"Content-Type": "application/json"}, body: JSON.stringify({obj: 1})});
+                return res.text();
+            })();
+        "#))).expect("script failed");
+        if let JsValueFacade::JsPromise {cached_promise} = res {
+            res = block_on(cached_promise.js_get_promise_result(&*rti)).expect("promise timed out").expect("promise failed");
+        }
+
+        let str = res.stringify();
+
+        println!("res: {}", str);
+
+        assert!(str.contains("\"json\": {\n    \"obj\": 1\n  }"))
+
+    }
+}
