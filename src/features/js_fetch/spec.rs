@@ -367,6 +367,10 @@ pub async fn do_fetch(
 
         let mut request = client.request(method, url);
 
+        if let Some(body) = fetch_init.body {
+            request = request.body(body.text);
+        }
+
         for header in &fetch_init.headers.map {
             for val in header.1 {
                 request = request.header(header.0, val);
