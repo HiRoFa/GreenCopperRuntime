@@ -990,7 +990,24 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
 }
 
 pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
-    builder.js_native_module_loader(HtmlDomModuleLoader {})
+
+    builder.js_realm_adapter_init_hook(|_rt, _realm| {
+
+        // init
+        // document.createElement (moet Element of SVGElement of HTMLDivElement of HTMLTableElement etc etc teruggeven)
+        // document.createElementNS
+        // document.createTextNode
+        // document.createComment
+        // document.createCDATASection
+        // Element
+        // SVGElement
+
+
+        Ok(())
+    })
+
+    .js_native_module_loader(HtmlDomModuleLoader {})
+
 }
 
 #[cfg(test)]
