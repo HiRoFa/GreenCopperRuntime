@@ -145,7 +145,7 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for MysqlModuleLoader {
         realm: &R,
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
-        init_exports(realm).ok().expect("init mysql exports failed")
+        init_exports(realm).expect("init mysql exports failed")
     }
 }
 

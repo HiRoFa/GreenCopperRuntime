@@ -212,7 +212,7 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for FsModuleLoader {
         realm: &R,
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
-        init_exports(realm).ok().expect("init fs exports failed")
+        init_exports(realm).expect("init fs exports failed")
     }
 }
 

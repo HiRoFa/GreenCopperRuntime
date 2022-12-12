@@ -216,10 +216,9 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for CacheModuleLoader {
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
         init_region_proxy(realm)
-            .ok()
             .expect("init cache region failed");
 
-        init_exports(realm).ok().expect("init cache exports failed")
+        init_exports(realm).expect("init cache exports failed")
     }
 }
 

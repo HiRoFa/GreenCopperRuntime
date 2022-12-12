@@ -24,7 +24,6 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for ParsersModuleLoader 
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
         init_exports(realm)
-            .ok()
             .expect("init parsers exports failed")
     }
 }
@@ -67,7 +66,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
 
                 let rti_weak = realm.js_get_runtime_facade_inner();
 
-                realm.js_promise_create_resolving(move || {
+                realm.js_promise_create_resolving_async(  async move {
                     //
 
                     let rti = match rti_weak.upgrade() {
@@ -98,7 +97,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
                         JsValueFacade::new_str(h)
                     }).collect();
 
-                    let _ = cached_h_function.js_invoke_function(&*rti, vec![JsValueFacade::Array {val}]);
+                    let _ = cached_h_function.js_invoke_function(&*rti, vec![JsValueFacade::Array {val}]).await;
 
                     for result in rdr.records() {
                         // The iterator yields Result<StringRecord, Error>, so we check the
@@ -112,7 +111,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
 
                         let jsvf_record = JsValueFacade::Array {val};
 
-                        let _ = cached_r_function.js_invoke_function(&*rti, vec![jsvf_record]);
+                        let _ = cached_r_function.js_invoke_function(&*rti, vec![jsvf_record]).await;
 
                         log::trace!("greco::parsers::CsvParser row: {:?}", record);
                     }
@@ -139,13 +138,12 @@ pub mod tests {
 
     #[test]
     fn test_csv() {
-        //simple_logging::log_to_stderr(LevelFilter::Info);
+        //simple_logging::log_to_stderr(log::LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
 
-        //simple_logging::log_to_stderr(log::LevelFilter::Trace);
 
         let script = Script::new(
             "test_parsers.js",
