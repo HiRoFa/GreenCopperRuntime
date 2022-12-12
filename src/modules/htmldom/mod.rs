@@ -68,23 +68,19 @@ impl<R: JsRealmAdapter> NativeModuleLoader<R> for HtmlDomModuleLoader {
         vec![
             (
                 "DOMParser",
-                init_dom_parser_proxy(realm)
-                    .expect("failed to init DOMParser proxy"),
+                init_dom_parser_proxy(realm).expect("failed to init DOMParser proxy"),
             ),
             (
                 "Node",
-                init_node_proxy(realm)
-                    .expect("failed to init Node proxy"),
+                init_node_proxy(realm).expect("failed to init Node proxy"),
             ),
             (
                 "NodeList",
-                init_nodelist_proxy(realm)
-                    .expect("failed to init NodeList proxy"),
+                init_nodelist_proxy(realm).expect("failed to init NodeList proxy"),
             ),
             (
                 "ElementList",
-                init_elementlist_proxy(realm)
-                    .expect("failed to init ElementList proxy"),
+                init_elementlist_proxy(realm).expect("failed to init ElementList proxy"),
             ),
             (
                 "SelectElementList",

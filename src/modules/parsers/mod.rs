@@ -23,8 +23,7 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for ParsersModuleLoader 
         realm: &R,
         _module_name: &str,
     ) -> Vec<(&str, R::JsValueAdapterType)> {
-        init_exports(realm)
-            .expect("init parsers exports failed")
+        init_exports(realm).expect("init parsers exports failed")
     }
 }
 
@@ -143,7 +142,6 @@ pub mod tests {
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
-
 
         let script = Script::new(
             "test_parsers.js",
