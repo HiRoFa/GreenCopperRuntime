@@ -149,7 +149,7 @@ impl ManagedCache {
 fn cache_cleanup() {
     let mut to_clean = vec![];
     {
-        let lock: &mut ManagedCache = &mut *CACHE.lock("cache_cleanup").unwrap();
+        let lock: &mut ManagedCache = &mut CACHE.lock("cache_cleanup").unwrap();
         let keys: Vec<(String, String)> = lock.regions.keys().cloned().collect();
         for key in keys {
             let weak_opt = lock.regions.get(&key);
