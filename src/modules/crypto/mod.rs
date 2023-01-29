@@ -10,6 +10,9 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     })
 }
 
+// todo simple hashes
+// https://www.geeksforgeeks.org/node-js-crypto-createhash-method/?ref=lbp
+
 fn init_crypto_proxy<R: JsRealmAdapter>(realm: &R) -> Result<(), JsError> {
     let crypto_proxy =
         JsProxy::new(&[], "crypto").add_static_method("randomUUID", |_rt, realm: &R, _args| {
