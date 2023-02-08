@@ -77,9 +77,9 @@ impl CppPreProcessor {
             let ctx = &mut *self.ctx.borrow_mut();
 
             ctx.macros
-                .insert(format!("${{{}}}", key), value.to_string());
-            ctx.macros.insert(format!("${}", key), value.to_string());
-            ctx.macros.insert(format!("__{}", key), value.to_string());
+                .insert(format!("${{{key}}}"), value.to_string());
+            ctx.macros.insert(format!("${key}"), value.to_string());
+            ctx.macros.insert(format!("__{key}"), value.to_string());
         }
         self
     }
@@ -120,7 +120,7 @@ impl ScriptPreProcessor for CppPreProcessor {
         let src = script.get_code();
 
         let res = process_str(src, &mut self.ctx.borrow_mut())
-            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e}")))?;
 
         script.set_code(res);
         Ok(())

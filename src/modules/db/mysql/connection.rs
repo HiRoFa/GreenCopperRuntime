@@ -70,13 +70,11 @@ pub fn get_con_pool_wrapper(
 ) -> Result<PoolWrapper, JsError> {
     let con_str = if let Some(db) = db_opt {
         format!(
-            "mysql://{}:{}@{}:{}/{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
-            user, pass, host, port, db
+            "mysql://{user}:{pass}@{host}:{port}/{db}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800"
         )
     } else {
         format!(
-            "mysql://{}:{}@{}:{}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800",
-            user, pass, host, port
+            "mysql://{user}:{pass}@{host}:{port}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800"
         )
     };
 
@@ -107,7 +105,7 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
         let stmt = connection
             .prep(query)
             .await
-            .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
         let blobs: Vec<bool> = stmt
             .columns()
@@ -152,7 +150,7 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
 
         let mut result = result_fut
             .await
-            .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
         log::trace!("Connection.query running async helper / got results");
 
@@ -165,7 +163,7 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
 
             //let cols = result.columns().is_some()
 
-            for row_res in result_set.map_err(|e| JsError::new_string(format!("{:?}", e)))? {
+            for row_res in result_set.map_err(|e| JsError::new_string(format!("{e:?}")))? {
                 log::trace!("mysql::query / 2 / row");
 
                 let mut esvf_row = vec![];
@@ -423,7 +421,7 @@ impl MysqlConnection {
 
                 let con = con
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                 Ok(run_query::<Conn, R>(
                     con,
@@ -480,7 +478,7 @@ impl MysqlConnection {
 
                 let mut con = con
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                 log::trace!("Connection.execute running async helper / got con");
 
@@ -489,7 +487,7 @@ impl MysqlConnection {
                 let stmt = con
                     .prep(query)
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                 log::trace!("Connection.execute running async helper / prepped stmt");
 
@@ -505,7 +503,7 @@ impl MysqlConnection {
 
                 result_fut
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                 let affected_rows  = con.affected_rows();
 
@@ -537,7 +535,7 @@ impl MysqlConnection {
 
                 let tx = tx_fut
                     .await
-                    .map_err(|err| JsError::new_string(format!("{:?}", err)))?;
+                    .map_err(|err| JsError::new_string(format!("{err:?}")))?;
 
                 let tx_instance = MysqlTransaction::new(tx)?;
 

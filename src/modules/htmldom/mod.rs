@@ -348,7 +348,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             with_node(&id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
-                    .map_err(|err| JsError::new_string(format!("serialize failed: {}", err)))?;
+                    .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
                 let s = String::from_utf8_lossy(&buf);
                 realm.js_string_create(s.to_string().as_str())
             })
@@ -357,7 +357,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             with_node(&id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
-                    .map_err(|err| JsError::new_string(format!("serialize failed: {}", err)))?;
+                    .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
                 realm.js_typed_array_uint8_create(buf)
             })
         })
@@ -368,7 +368,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     let mut buf = vec![];
                     for child in node.children() {
                         child.serialize(&mut buf).map_err(|err| {
-                            JsError::new_string(format!("serialize failed: {}", err))
+                            JsError::new_string(format!("serialize failed: {err}"))
                         })?;
                     }
 
@@ -734,7 +734,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             let res = with_node(&id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
-                    let node_res = node.select_first(format!("#{}", id_attr).as_str());
+                    let node_res = node.select_first(format!("#{id_attr}").as_str());
                     Ok(node_res)
                 }
             });
@@ -1101,7 +1101,6 @@ pub mod tests {
         let rti = rt.js_get_runtime_facade_inner().upgrade().unwrap();
         if let JsValueFacade::JsPromise { cached_promise } = promise {
             let prom_res = block_on(cached_promise.js_get_promise_result(&*rti))
-                .ok()
                 .expect("promise timed out");
 
             match prom_res {

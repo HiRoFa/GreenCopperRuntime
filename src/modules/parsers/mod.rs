@@ -56,7 +56,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
                     args[0].js_to_string()?
                 } else {
                     let buf = realm.js_typed_array_copy_buffer(&args[0])?;
-                    String::from_utf8(buf).map_err(|e| JsError::new_string(format!("{}", e)))?
+                    String::from_utf8(buf).map_err(|e| JsError::new_string(format!("{e}")))?
                 };
                 let cb_h_func = realm.to_js_value_facade(&args[1])?;
                 let cb_r_func = realm.to_js_value_facade(&args[2])?;
@@ -86,7 +86,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
                     let cached_h_function = if let JsValueFacade::JsFunction { cached_function } = cb_h_func { cached_function } else { panic!("function was not a function") };
                     let cached_r_function = if let JsValueFacade::JsFunction { cached_function } = cb_r_func { cached_function } else { panic!("function was not a function") };
 
-                    let headers = rdr.headers().map_err(|e| JsError::new_string(format!("{}", e)))?;
+                    let headers = rdr.headers().map_err(|e| JsError::new_string(format!("{e}")))?;
 
                     log::trace!("greco::parsers::CsvParser headers: {:?}", headers);
 
@@ -99,7 +99,7 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
                     for result in rdr.records() {
                         // The iterator yields Result<StringRecord, Error>, so we check the
                         // error here.
-                        let record = result.map_err(|e| JsError::new_string(format!("{}", e)))?;
+                        let record = result.map_err(|e| JsError::new_string(format!("{e}")))?;
 
                         // fill val from record
                         let val: Vec<JsValueFacade> = record.iter().map(|h| {

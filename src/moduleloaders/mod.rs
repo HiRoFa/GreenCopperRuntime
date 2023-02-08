@@ -40,7 +40,7 @@ pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
     };
 
     let url = Url::parse(ref_path.as_str()).map_err(|e| {
-        JsError::new_string(format!("failed to parse Url [{}] due to : {}", ref_path, e))
+        JsError::new_string(format!("failed to parse Url [{ref_path}] due to : {e}"))
     })?;
     let path = if let Some(stripped) = name.strip_prefix('/') {
         stripped.to_string()
@@ -77,7 +77,7 @@ pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
     if let Some(host) = url.host_str() {
         res = res.add(host);
         if let Some(port) = url.port() {
-            res = res.add(format!(":{}", port).as_str());
+            res = res.add(format!(":{port}").as_str());
         }
     }
     res = res.add("/");
@@ -107,15 +107,15 @@ impl FileSystemModuleLoader {
 
         let path = self.get_real_fs_path(filename);
         if !path.exists() {
-            return Err(format!("File not found: {}", filename));
+            return Err(format!("File not found: {filename}"));
         }
         let path = path.canonicalize().unwrap();
         if !path.starts_with(&self.base_path) {
-            return Err(format!("File not allowed: {}", filename));
+            return Err(format!("File not allowed: {filename}"));
         }
 
         fs::read_to_string(path)
-            .map_err(|e| format!("failed to read: {}, caused by: {}", filename, e))
+            .map_err(|e| format!("failed to read: {filename}, caused by: {e}"))
     }
 
     fn file_exists(&self, filename: &str) -> bool {
@@ -145,7 +145,7 @@ impl FileSystemModuleLoader {
                     Some(normalized)
                 } else {
                     // todo support other module extensions
-                    let ts_opt = format!("{}.ts", normalized);
+                    let ts_opt = format!("{normalized}.ts");
                     if self.file_exists(ts_opt.as_str()) {
                         Some(ts_opt)
                     } else {
@@ -423,7 +423,7 @@ mod tests {
     fn test_fs() {
         let loader = FileSystemModuleLoader::new("./modules");
         let path = Path::new("./modules").canonicalize().unwrap();
-        println!("path = {:?}", path);
+        println!("path = {path:?}");
         assert!(loader
             .normalize_file_path("file:///test.es", "utils/assertions.mes")
             .is_some());

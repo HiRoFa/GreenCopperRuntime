@@ -61,7 +61,7 @@ fn require<T: JsRealmAdapter>(
             || name.starts_with("../")
             || name.starts_with('/'))
         {
-            cur_path = format!("file:///node_modules/{}/foo.js", name);
+            cur_path = format!("file:///node_modules/{name}/foo.js");
         }
 
         log::debug!("require: {} -> {}", cur_path, name);
@@ -115,8 +115,7 @@ fn require<T: JsRealmAdapter>(
         } else {
             log::error!("module not found: {} -> {}", cur_path, name);
             Err(JsError::new_string(format!(
-                "module not found: {} -> {}",
-                cur_path, name
+                "module not found: {cur_path} -> {name}"
             )))
         }
     }

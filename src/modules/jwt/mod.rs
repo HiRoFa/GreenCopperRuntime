@@ -131,7 +131,7 @@ fn create<R: JsRealmAdapter + 'static>(
         realm.js_promise_create_resolving(
             move || {
                 let custom: Value = serde_json::from_str(payload_json.as_str()).map_err(|er| {
-                    JsError::new_string(format!("could not parse json payload {}", er))
+                    JsError::new_string(format!("could not parse json payload {er}"))
                 })?;
 
                 // todo parse  duration from headers?
@@ -143,19 +143,18 @@ fn create<R: JsRealmAdapter + 'static>(
                         let key =
                             Ed25519KeyPair::from_bytes(key_bytes.as_slice()).map_err(|err| {
                                 JsError::new_string(format!(
-                                    "could not create key from bytes {}",
-                                    err
+                                    "could not create key from bytes {err}"
                                 ))
                             })?;
                         key.sign(claims)
-                            .map_err(|err| JsError::new_string(format!("{}", err)))?
+                            .map_err(|err| JsError::new_string(format!("{err}")))?
                     }
                     RS512 => {
                         let key = RS512KeyPair::from_der(key_bytes.as_slice()).map_err(|err| {
-                            JsError::new_string(format!("could not create key from bytes {}", err))
+                            JsError::new_string(format!("could not create key from bytes {err}"))
                         })?;
                         key.sign(claims)
-                            .map_err(|err| JsError::new_string(format!("{}", err)))?
+                            .map_err(|err| JsError::new_string(format!("{err}")))?
                     }
                 };
 
@@ -185,24 +184,24 @@ async fn verify(_this: JsValueFacade, args: Vec<JsValueFacade>) -> Result<JsValu
         let parsed_claims = match alg {
             EdDSA => {
                 let key = Ed25519KeyPair::from_bytes(key_bytes.as_slice()).map_err(|err| {
-                    JsError::new_string(format!("could not create key from bytes {}", err))
+                    JsError::new_string(format!("could not create key from bytes {err}"))
                 })?;
                 key.public_key()
                     .verify_token::<Value>(token, None)
-                    .map_err(|err| JsError::new_string(format!("{}", err)))?
+                    .map_err(|err| JsError::new_string(format!("{err}")))?
             }
             RS512 => {
                 let key = RS512KeyPair::from_der(key_bytes.as_slice()).map_err(|err| {
-                    JsError::new_string(format!("could not create key from bytes {}", err))
+                    JsError::new_string(format!("could not create key from bytes {err}"))
                 })?;
                 key.public_key()
                     .verify_token::<Value>(token, None)
-                    .map_err(|err| JsError::new_string(format!("could not verify token{}", err)))?
+                    .map_err(|err| JsError::new_string(format!("could not verify token{err}")))?
             }
         };
 
         let payload_json = serde_json::to_string(&parsed_claims)
-            .map_err(|err| JsError::new_string(format!("could not serialize claims {}", err)))?;
+            .map_err(|err| JsError::new_string(format!("could not serialize claims {err}")))?;
 
         Ok(JsValueFacade::JsonStr { json: payload_json })
     } else {
@@ -222,11 +221,11 @@ async fn generate_key(
             RS512 => Ok::<Vec<u8>, JsError>(
                 RS512KeyPair::generate(4096)
                     .map_err(|err| {
-                        JsError::new_string(format!("could not create RS512 keypair {}", err))
+                        JsError::new_string(format!("could not create RS512 keypair {err}"))
                     })?
                     .to_der()
                     .map_err(|err| {
-                        JsError::new_string(format!("could not create RS512 keypair2 {}", err))
+                        JsError::new_string(format!("could not create RS512 keypair2 {err}"))
                     })?,
             ),
             EdDSA => Ok(Ed25519KeyPair::generate().to_bytes()),
@@ -293,7 +292,7 @@ pub mod tests {
             match prom_res {
                 Ok(res) => {
                     let s = res.get_str();
-                    println!("jwt test res was {}", s);
+                    println!("jwt test res was {s}");
                 }
                 Err(err) => {
                     panic!("prmise was rejected {}", err.stringify());

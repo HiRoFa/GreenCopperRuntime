@@ -361,9 +361,9 @@ pub async fn do_fetch(
 
         let client = reqwest::ClientBuilder::new()
             .build()
-            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e}")))?;
         let method = reqwest::Method::from_str(fetch_init.method.as_str())
-            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e}")))?;
 
         let mut request = client.request(method, url);
 
@@ -381,14 +381,14 @@ pub async fn do_fetch(
 
         let reqwest_resp = response_fut
             .await
-            .map_err(|e| JsError::new_string(format!("{}", e)))?;
+            .map_err(|e| JsError::new_string(format!("{e}")))?;
 
         let response: Response = Response {
             body: Body {
                 text: reqwest_resp
                     .text()
                     .await
-                    .map_err(|e| JsError::new_string(format!("{}", e)))?,
+                    .map_err(|e| JsError::new_string(format!("{e}")))?,
             },
             headers: Headers::new(),
             ok: false,
@@ -430,7 +430,7 @@ pub mod tests {
 
         let str = res.stringify();
 
-        println!("res: {}", str);
+        println!("res: {str}");
 
         assert!(str.contains("\"json\": {\n    \"obj\": 1\n  }"))
     }

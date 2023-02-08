@@ -100,14 +100,14 @@ impl PinSet {
                     EventRequestFlags::BOTH_EDGES,
                     "PinSet_read-input",
                 )
-                .map_err(|e| format!("{}", e))?;
+                .map_err(|e| format!("{e}"))?;
 
             let handler_arc = handler_arc.clone();
 
-            let _ = self.input_task_manager.add_task_async(async move {
+            let _ignore = self.input_task_manager.add_task_async(async move {
                 log::trace!("PinSet running async helper");
                 let async_event_handle_res =
-                    AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{}", e));
+                    AsyncLineEventHandle::new(event_handle).map_err(|e| format!("{e}"));
                 let mut async_event_handle = match async_event_handle_res {
                     Ok(handle) => handle,
                     Err(e) => {
@@ -116,7 +116,7 @@ impl PinSet {
                     }
                 };
                 while let Some(evt) = async_event_handle.next().await {
-                    let evt_res = evt.map_err(|e| format!("{}", e));
+                    let evt_res = evt.map_err(|e| format!("{e}"));
                     match evt_res {
                         Ok(evt) => {
                             log::trace!("GPIO Event @{} : {:?}", pin, evt);
@@ -147,10 +147,10 @@ impl PinSet {
             pins.len()
         );
         // chip_name = "/dev/gpiochip0"
-        let mut chip = Chip::new(chip_name).map_err(|e| format!("{}", e))?;
+        let mut chip = Chip::new(chip_name).map_err(|e| format!("{e}"))?;
 
         for x in pins {
-            let line = chip.get_line(*x).map_err(|e| format!("{}", e))?;
+            let line = chip.get_line(*x).map_err(|e| format!("{e}"))?;
 
             match mode {
                 PinMode::In => {
@@ -159,7 +159,7 @@ impl PinSet {
                 PinMode::Out => {
                     let handle = line
                         .request(LineRequestFlags::OUTPUT, 0, "PinSet_set-output")
-                        .map_err(|e| format!("{}", e))?;
+                        .map_err(|e| format!("{e}"))?;
                     self.output_handles.push(handle)
                 }
             };
@@ -177,21 +177,21 @@ impl PinSet {
         //log::trace!("PinSet.set_state_index: idx: {}, state: {}", pin_idx, state);
 
         let handle = &self.output_handles[pin_idx];
-        handle.set_value(state).map_err(|e| format!("{}", e))?;
+        handle.set_value(state).map_err(|e| format!("{e}"))?;
 
         Ok(())
     }
     pub fn get_state(&self) -> Result<Vec<u8>, String> {
         let mut ret = vec![];
         for handle in &self.output_handles {
-            ret.push(handle.get_value().map_err(|ex| format!("{}", ex))?);
+            ret.push(handle.get_value().map_err(|ex| format!("{ex}"))?);
         }
         Ok(ret)
     }
     pub fn get_state_index(&self, index: usize) -> Result<u8, String> {
         self.output_handles[index]
             .get_value()
-            .map_err(|ex| format!("{}", ex))
+            .map_err(|ex| format!("{ex}"))
     }
     pub fn sequence(
         &self,
@@ -239,11 +239,11 @@ impl PinSet {
                 std::thread::sleep(off_time);
 
                 if let Some(err) = self.set_state_index(0, 1).err() {
-                    return Err(format!("An error occurred in the pwm sequence: {}", err));
+                    return Err(format!("An error occurred in the pwm sequence: {err}"));
                 }
                 std::thread::sleep(on_time);
                 if let Some(err) = self.set_state_index(0, 0).err() {
-                    return Err(format!("An error occurred in the pwm sequence: {}", err));
+                    return Err(format!("An error occurred in the pwm sequence: {err}"));
                 }
             }
 

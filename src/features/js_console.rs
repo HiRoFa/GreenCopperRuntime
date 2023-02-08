@@ -74,7 +74,7 @@ pub fn install_realm<R: JsRealmAdapter>(realm_adapter: &R) -> Result<(), JsError
 fn stringify_log_obj<R: JsRealmAdapter>(realm: &R, arg: &R::JsValueAdapterType) -> String {
     match realm.js_json_stringify(arg, None) {
         Ok(r) => r,
-        Err(e) => format!("Error: {}", e),
+        Err(e) => format!("Error: {e}"),
     }
 }
 
@@ -193,7 +193,7 @@ fn parse_field_value<R: JsRealmAdapter>(
                 if let Ok(ct) = ct_res {
                     // and if so, make i_val longer
                     while i_val.len() < ct {
-                        i_val = format!("0{}", i_val);
+                        i_val = format!("0{i_val}");
                     }
                 }
             }
@@ -266,7 +266,7 @@ fn parse_line<R: JsRealmAdapter>(realm_adapter: &R, args: &[R::JsValueAdapterTyp
         JsValueType::Object => stringify_log_obj(realm_adapter, &args[0]),
         JsValueType::Function => stringify_log_obj(realm_adapter, &args[0]),
         JsValueType::Array => stringify_log_obj(realm_adapter, &args[0]),
-        _ => args[0].js_to_string().unwrap_or_else(|e| format!("{}", e)),
+        _ => args[0].js_to_string().unwrap_or_else(|e| format!("{e}")),
     };
 
     let mut field_code = String::new();

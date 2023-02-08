@@ -51,7 +51,7 @@ impl MysqlTransaction {
 
                 tx.commit()
                     .await
-                    .map_err(|e| JsError::new_string(format!("{:?}", e)))
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))
 
                 // in helper thread here
             },
@@ -187,7 +187,7 @@ impl MysqlTransaction {
                     let stmt = tx
                         .prep(query)
                         .await
-                        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                     log::trace!("Transaction.execute running async helper / prepped stmt");
 
@@ -203,7 +203,7 @@ impl MysqlTransaction {
 
                     result_fut
                         .await
-                        .map_err(|e| JsError::new_string(format!("{:?}", e)))?;
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                     Ok(())
 
@@ -254,7 +254,7 @@ impl MysqlTransaction {
 
                     tx.rollback()
                         .await
-                        .map_err(|e| JsError::new_string(format!("{:?}", e)))
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))
 
                     // in helper thread here
                 },
