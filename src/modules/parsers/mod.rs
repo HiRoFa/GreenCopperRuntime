@@ -52,13 +52,11 @@ pub(crate) fn create_csv_parser_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -
 
                 // get data, func_ref as JsValueFacade, move to producer
 
-                // convert vec<u8> to string here
-                // todo move bytes and read direct instead of to string first (require Either i guess)
                 let data = if args[0].js_is_string() {
                     args[0].js_to_string()?
                 } else {
-                    let buf = realm.js_typed_array_detach_buffer(&args[0])?;
-                    str::from_utf8(&buf).map_err(|e| JsError::new_string(format!("{}", e)))?.to_string()
+                    let buf = realm.js_typed_array_copy_buffer(&args[0])?;
+                    String::from_utf8(buf).map_err(|e| JsError::new_string(format!("{}", e)))?
                 };
                 let cb_h_func = realm.to_js_value_facade(&args[1])?;
                 let cb_r_func = realm.to_js_value_facade(&args[2])?;
@@ -150,14 +148,21 @@ pub mod tests {
         async function test() {
             let parsersMod = await import('greco://parsers');
 
-            let data = '"r1", "r2", "r3", "r4"\n"a", "b", 1, 2\n"c", "d", 3, 4';
+            let data = '"r 1", "r2", "r3", "r4"\n"a", "b", 1, 2\n"c", "d", 3, 4';
+
+            let ret = "";
 
             await parsersMod.CsvParser.parse(data, (headers) => {
                 console.log("headers: " + headers.join("-"));
+                ret += "headers: " + headers.join("-") + "\n";
             }, (row) => {
                 console.log("row: " + row.join("-"));
+                ret += "row: " + row.join("-") + "\n"
+
             });
             console.log("parser done");
+
+            return ret;
 
         }
 

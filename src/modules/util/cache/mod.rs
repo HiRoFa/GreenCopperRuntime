@@ -174,7 +174,7 @@ lazy_static! {
     static ref CACHE: Arc<DebugMutex<ManagedCache>> = {
         // start cleanup thread
         thread::spawn(|| loop {
-            thread::sleep(Duration::from_secs(60));
+            thread::sleep(Duration::from_secs(300));
             cache_cleanup();
         });
         Arc::new(DebugMutex::new(ManagedCache::new(), "CACHE"))
@@ -182,7 +182,17 @@ lazy_static! {
     };
 }
 
-// todo better to impl regions in Cache with a CacheHandle which can be used as our per_thread instance (drop region when all handles drop?)
+
+/* todo, reimpl
+CACHE > mutex > HashMap<regionId: string, Arc<CacheRegion>>
+
+Drop for CacheRegion > remove from CACHE HashMap
+
+getRegion > get or add to CACHE hashMap
+
+CacheRegion > RwLock<LRUMap>? does LRU have a non mut get/peek?
+
+ */
 
 thread_local! {
     static CACHES: RefCell<AutoIdMap<Arc<DebugMutex<CacheRegion>>>> = RefCell::new(AutoIdMap::new());
