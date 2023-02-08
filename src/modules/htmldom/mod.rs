@@ -1100,8 +1100,8 @@ pub mod tests {
             .expect("script failed");
         let rti = rt.js_get_runtime_facade_inner().upgrade().unwrap();
         if let JsValueFacade::JsPromise { cached_promise } = promise {
-            let prom_res = block_on(cached_promise.js_get_promise_result(&*rti))
-                .expect("promise timed out");
+            let prom_res =
+                block_on(cached_promise.js_get_promise_result(&*rti)).expect("promise timed out");
 
             match prom_res {
                 Ok(prom_str_res) => {

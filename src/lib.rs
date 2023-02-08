@@ -103,9 +103,7 @@ pub mod tests {
     fn test_abstract() {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
-            println!(
-                "thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}"
-            );
+            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
             log::error!(
                 "thread panic occurred: {}\nbacktrace: {:?}",
                 panic_info,
@@ -145,9 +143,7 @@ pub mod tests {
     pub fn init_test_greco_rt() -> impl JsRuntimeFacade {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
-            println!(
-                "thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}"
-            );
+            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
             log::error!(
                 "thread panic occurred: {}\nbacktrace: {:?}",
                 panic_info,

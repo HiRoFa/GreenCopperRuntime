@@ -114,8 +114,7 @@ impl FileSystemModuleLoader {
             return Err(format!("File not allowed: {filename}"));
         }
 
-        fs::read_to_string(path)
-            .map_err(|e| format!("failed to read: {filename}, caused by: {e}"))
+        fs::read_to_string(path).map_err(|e| format!("failed to read: {filename}, caused by: {e}"))
     }
 
     fn file_exists(&self, filename: &str) -> bool {

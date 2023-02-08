@@ -76,8 +76,7 @@ impl CppPreProcessor {
         {
             let ctx = &mut *self.ctx.borrow_mut();
 
-            ctx.macros
-                .insert(format!("${{{key}}}"), value.to_string());
+            ctx.macros.insert(format!("${{{key}}}"), value.to_string());
             ctx.macros.insert(format!("${key}"), value.to_string());
             ctx.macros.insert(format!("__{key}"), value.to_string());
         }
