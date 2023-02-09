@@ -12,6 +12,9 @@ pub mod lib;
 pub mod parsers;
 pub mod util;
 
+#[cfg(any(feature = "all", feature = "encoding"))]
+pub mod encoding;
+
 #[cfg(any(feature = "all", feature = "htmldom"))]
 pub mod htmldom;
 
@@ -28,5 +31,7 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     let builder = htmldom::init(builder);
     #[cfg(any(feature = "all", feature = "parsers"))]
     let builder = parsers::init(builder);
+    #[cfg(any(feature = "all", feature = "encoding"))]
+    let builder = encoding::init(builder);
     util::init(builder)
 }

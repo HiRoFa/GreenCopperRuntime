@@ -14,8 +14,9 @@ default = ["all"]
 crypto = ["uuid"]
 jwt = ["jwt-simple", "uuid", "serde", "serde_json"]
 
-all = ["io", "db", "com", "features", "util", "crypto", "jwt", "htmldom", "parsers"]
+all = ["io", "db", "com", "features", "util", "crypto", "jwt", "htmldom", "parsers", "encoding"]
 
+encoding = ["base64"]
 parsers = ["csvparser"]
 csvparser = ["csv"]
 htmldom = ["kuchiki", "html5ever"]
@@ -77,6 +78,7 @@ serde_json = {version="1.0", optional = true}
 
 kuchiki = {version="0.8.1", optional = true}
 html5ever = {version="0.25.2", optional = true}
+base64 = {version="0.21.0", optional=true}
 #kuchiki = {git="https://github.com/kuchiki-rs/kuchiki#f92e4c047fdc30619555da282ac7ccce1d313aa6", optional = true}
 #html5ever = {version="0.26", optional = true}
 
