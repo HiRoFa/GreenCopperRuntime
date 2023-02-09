@@ -43,7 +43,7 @@ pub(crate) fn create_base64_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> Js
         .add_static_method("encode", |_runtime, realm: &R, args| {
             // todo async
 
-            if args.len() < 1 || !args[0].js_is_typed_array() {
+            if args.is_empty() || !args[0].js_is_typed_array() {
                 Err(JsError::new_str("encode expects a single type array arg"))
             } else {
                 let bytes = realm.js_typed_array_copy_buffer(&args[0])?;
@@ -60,7 +60,7 @@ pub(crate) fn create_base64_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> Js
         .add_static_method("encodeSync", |_runtime, realm: &R, args| {
             // todo async
 
-            if args.len() < 1 || !args[0].js_is_typed_array() {
+            if args.is_empty() || !args[0].js_is_typed_array() {
                 Err(JsError::new_str("encode expects a single type array arg"))
             } else {
                 let bytes = realm.js_typed_array_copy_buffer(&args[0])?;
@@ -73,7 +73,7 @@ pub(crate) fn create_base64_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> Js
         .add_static_method("decode", |_runtime, realm: &R, args| {
             // todo async
 
-            if args.len() < 1 || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].js_is_string() {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
                 let s = args[0].js_to_string()?;
@@ -95,7 +95,7 @@ pub(crate) fn create_base64_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> Js
         .add_static_method("decodeSync", |_runtime, realm: &R, args| {
             // todo async
 
-            if args.len() < 1 || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].js_is_string() {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
                 let s = args[0].js_to_str()?;
