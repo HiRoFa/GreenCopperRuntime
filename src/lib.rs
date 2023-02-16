@@ -5,6 +5,7 @@ use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
 #[allow(unused_imports)]
 #[macro_use]
 extern crate lazy_static;
+extern crate core;
 
 #[cfg(any(
     feature = "all",

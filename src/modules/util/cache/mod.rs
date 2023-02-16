@@ -21,7 +21,7 @@
 //!
 //! ```javascript
 //! import * as grecoCache from 'greco://cache';
-//! let options = {
+//! const options = {
 //!     items: 100000
 //! };
 //! const cacheRegion = grecoCache.getRegion('my_cache_region_id', options);
@@ -270,9 +270,10 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsErr
                         _ => Err(JsError::new_str("unexpected cached jsvf type")),
                     }
                 } else {
-                    let init_func = args[1].clone();
+                    let key_arg = &args[0];
+                    let init_func = &args[1];
 
-                    let init_result = realm.js_function_invoke(None, &init_func, &[])?;
+                    let init_result = realm.js_function_invoke(None, init_func, &[key_arg])?;
 
                     if init_result.js_is_promise() {
                         let then = realm.js_function_create(
@@ -295,6 +296,27 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsErr
                 }
             })
         })
+        .add_method("put", |_rt, realm: &R, instance_id, args| {
+            if args.len() != 2
+                || !args[0].js_is_string()
+                || !(args[1].js_is_string()
+                    || args[1].js_is_i32()
+                    || args[1].js_is_bool()
+                    || args[1].js_is_f64())
+            {
+                return Err(JsError::new_str(
+                    "put requires two arguments, key:string and value:string|boolean|i32|f64",
+                ));
+            }
+
+            let key = args[0].js_to_str()?;
+            let val = realm.to_js_value_facade(&args[1])?;
+
+            with_cache_region(instance_id, move |cache_region| {
+                cache_region.put(key, val);
+            });
+            realm.js_null_create()
+        })
         .add_method("remove", |_rt, realm, instance_id, args| {
             if args.len() != 1 || !args[0].js_is_string() {
                 return Err(JsError::new_str(
@@ -306,8 +328,8 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsErr
 
             with_cache_region(instance_id, |region| {
                 region.remove(key.as_str());
-                realm.js_null_create()
-            })
+            });
+            realm.js_null_create()
         })
         .set_finalizer(|_rt, _realm, instance_id| {
             //
@@ -370,4 +392,124 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
     // add greco://cache module (machine local cache)
     // config per region, every region is a LRUCache
     builder.js_native_module_loader(CacheModuleLoader {})
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::init_greco_rt;
+    use backtrace::Backtrace;
+    use hirofa_utils::js_utils::facades::values::JsValueFacade;
+    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
+    use hirofa_utils::js_utils::Script;
+    use log::LevelFilter;
+    use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use std::panic;
+
+    #[tokio::test]
+    async fn my_test() {
+        panic::set_hook(Box::new(|panic_info| {
+            let backtrace = Backtrace::new();
+            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
+            log::error!(
+                "thread panic occurred: {}\nbacktrace: {:?}",
+                panic_info,
+                backtrace
+            );
+        }));
+
+        simple_logging::log_to_file("greco_rt.log", LevelFilter::Info)
+            .ok()
+            .unwrap();
+
+        let mut builder = QuickJsRuntimeBuilder::new();
+
+        builder = init_greco_rt(builder);
+
+        let rt = builder.build();
+
+        let res = rt
+            .js_eval(
+                None,
+                Script::new(
+                    "test_cache.js",
+                    r#"
+            
+            async function initItem(key) {
+                return await new Promise((res, rej) => {
+                    setTimeout(() => {res("abc " + key);}, 1000);                
+                });
+            }
+            
+            async function testCache(){
+                let grecoCache = await import("greco://cache");
+                const options = {
+                    items: 100000
+                };
+                const cacheRegion = grecoCache.getRegion('my_cache_region_id', options);
+                
+                const t1 = new Date();
+                                
+                const key = "123"
+                
+                const a = await cacheRegion.get(key, initItem);
+                
+                const t2 = new Date();
+                
+                const b = await cacheRegion.get(key, initItem);
+                
+                const t3 = new Date();
+                
+                const c = await cacheRegion.get(key, initItem);
+                
+                const t4 = new Date();
+                
+                const d = await cacheRegion.get(key, initItem);
+                
+                for (let x = 0; x < 1000; x++) {
+                    let xRes = await cacheRegion.get(key, initItem);
+                }
+                
+                const t5 = new Date();
+                
+                
+                
+                return `s = ${t1.getTime()}
+                a = ${a} @ t2 after ${t2.getTime() - t1.getTime()}ms
+                b = ${b} @ t3 after ${t3.getTime() - t2.getTime()}ms
+                c = ${c} @ t4 after ${t4.getTime() - t3.getTime()}ms
+                d = ${d} @ t5 after ${t5.getTime() - t4.getTime()}ms
+                `;
+                
+            } 
+            
+            testCache()
+            
+        "#,
+                ),
+            )
+            .await
+            .expect("script failed");
+
+        let rti = rt.js_get_runtime_facade_inner().upgrade().unwrap();
+
+        match res {
+            JsValueFacade::JsPromise { cached_promise } => {
+                let prom_res = cached_promise
+                    .js_get_promise_result(&*rti)
+                    .await
+                    .expect("prom timed out");
+                match prom_res {
+                    Ok(r) => {
+                        println!("prom resolved to {:?}", r);
+                    }
+                    Err(e) => {
+                        println!("prom errored to {:?}", e);
+                    }
+                }
+            }
+            _ => {
+                panic!("that was not a promise...")
+            }
+        }
+    }
 }
