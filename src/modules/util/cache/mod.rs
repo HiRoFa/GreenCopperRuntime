@@ -363,19 +363,33 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
             let cache = &mut *CACHE.lock("getRegion").unwrap();
 
-            // todo get options items/idle/ttl
+            let items_ref = realm.js_object_get_property(&args[1], "items")?;
+            let items = if items_ref.js_is_i32() {
+                items_ref.js_to_i32() as usize
+            } else {
+                100000
+            };
+            let idle_ref = realm.js_object_get_property(&args[1], "idle")?;
+            let ttl_ref = realm.js_object_get_property(&args[1], "ttl")?;
 
             let cache_id = args[0].js_to_string()?;
-            let max_idle = Duration::from_secs(3600);
-            let ttl = Duration::from_secs(86400);
-            let max_items = 100000;
+            let idle = Duration::from_secs(if idle_ref.js_is_i32() {
+                idle_ref.js_to_i32() as u64
+            } else {
+                3600
+            });
+            let ttl = Duration::from_secs(if ttl_ref.js_is_i32() {
+                ttl_ref.js_to_i32() as u64
+            } else {
+                86400
+            });
 
             let region = cache.get_or_create_region(
                 realm.js_get_realm_id(),
                 cache_id.as_str(),
-                max_idle,
+                idle,
                 ttl,
-                max_items,
+                items,
             );
 
             let instance_id = CACHES.with(|rc| {
