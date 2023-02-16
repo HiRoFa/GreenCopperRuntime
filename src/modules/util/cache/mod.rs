@@ -250,7 +250,7 @@ fn cache_add<R: JsRealmAdapter + 'static>(
 fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsError> {
     let proxy = JsProxy::new(&["greco", "util", "cache"], "Region")
         .add_method("get", |_rt, realm: &R, instance_id, args| {
-            if args.len() != 2 || !args[0].js_is_string() || !args[1].js_is_function() {
+            if args.len() < 2 || !args[0].js_is_string() || !args[1].js_is_function() {
                 return Err(JsError::new_str(
                     "get requires two arguments, key:string and init:function",
                 ));
@@ -270,10 +270,13 @@ fn init_region_proxy<R: JsRealmAdapter + 'static>(realm: &R) -> Result<(), JsErr
                         _ => Err(JsError::new_str("unexpected cached jsvf type")),
                     }
                 } else {
-                    let key_arg = &args[0];
                     let init_func = &args[1];
 
-                    let init_result = realm.js_function_invoke(None, init_func, &[key_arg])?;
+                    let init_result = if args.len() > 2 {
+                        realm.js_function_invoke(None, init_func, &[&args[0], &args[2]])?
+                    } else {
+                        realm.js_function_invoke(None, init_func, &[&args[0]])?
+                    };
 
                     if init_result.js_is_promise() {
                         let then = realm.js_function_create(
@@ -359,6 +362,8 @@ fn init_exports<R: JsRealmAdapter + 'static>(
             }
 
             let cache = &mut *CACHE.lock("getRegion").unwrap();
+
+            // todo get options items/idle/ttl
 
             let cache_id = args[0].js_to_string()?;
             let max_idle = Duration::from_secs(3600);
