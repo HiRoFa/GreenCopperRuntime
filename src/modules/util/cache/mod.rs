@@ -147,6 +147,7 @@ impl ManagedCache {
 }
 
 fn cache_cleanup() {
+    log::debug!("cache_cleanup");
     let mut to_clean = vec![];
     {
         let lock: &mut ManagedCache = &mut CACHE.lock("cache_cleanup").unwrap();
@@ -155,7 +156,7 @@ fn cache_cleanup() {
             let weak_opt = lock.regions.get(&key);
             if let Some(weak) = weak_opt {
                 if let Some(cache_arc) = weak.upgrade() {
-                    to_clean.push(cache_arc.clone());
+                    to_clean.push((key, cache_arc.clone()));
                 } else {
                     lock.regions.remove(&key);
                 }
@@ -164,9 +165,21 @@ fn cache_cleanup() {
             }
         }
     }
-    for cache_to_clean in to_clean {
+    for (key, cache_to_clean) in to_clean {
         let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
+        log::debug!(
+            "cache_cleanup clean {}.{} len_before={}",
+            key.0,
+            key.1,
+            cache_lock.lru_cache.len()
+        );
         cache_lock.invalidate_stale();
+        log::debug!(
+            "cache_cleanup clean {}.{} len_after={}",
+            key.0,
+            key.1,
+            cache_lock.lru_cache.len()
+        );
     }
 }
 
@@ -174,7 +187,7 @@ lazy_static! {
     static ref CACHE: Arc<DebugMutex<ManagedCache>> = {
         // start cleanup thread
         thread::spawn(|| loop {
-            thread::sleep(Duration::from_secs(300));
+            thread::sleep(Duration::from_secs(30));
             cache_cleanup();
         });
         Arc::new(DebugMutex::new(ManagedCache::new(), "CACHE"))
@@ -423,6 +436,7 @@ pub mod tests {
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use std::panic;
+    use std::time::Duration;
 
     #[tokio::test]
     async fn my_test() {
@@ -436,7 +450,7 @@ pub mod tests {
             );
         }));
 
-        simple_logging::log_to_file("greco_rt.log", LevelFilter::Info)
+        simple_logging::log_to_file("greco_rt.log", LevelFilter::Debug)
             .ok()
             .unwrap();
 
@@ -530,5 +544,7 @@ pub mod tests {
                 panic!("that was not a promise...")
             }
         }
+
+        std::thread::sleep(Duration::from_secs(65));
     }
 }
