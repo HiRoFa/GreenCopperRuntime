@@ -95,16 +95,12 @@ impl CacheRegion {
     fn invalidate_stale(&mut self) {
         let min_last_used = Instant::now().sub(self.max_idle);
         let min_created = Instant::now().sub(self.ttl);
-        loop {
-            if let Some(lru) = self.lru_cache.peek_lru() {
-                if lru.1.last_used.lt(&min_last_used) || lru.1.created.lt(&min_created) {
-                    // invalidate
-                    let _ = self.lru_cache.pop_lru();
-                } else {
-                    // oldest was still valid, break of search
-                    break;
-                }
+        while let Some(lru) = self.lru_cache.peek_lru() {
+            if lru.1.last_used.lt(&min_last_used) || lru.1.created.lt(&min_created) {
+                // invalidate
+                let _ = self.lru_cache.pop_lru();
             } else {
+                // oldest was still valid, break of search
                 break;
             }
         }
@@ -438,7 +434,6 @@ pub mod tests {
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use std::panic;
-    use std::time::Duration;
 
     #[tokio::test]
     async fn my_test() {
@@ -535,10 +530,10 @@ pub mod tests {
                     .expect("prom timed out");
                 match prom_res {
                     Ok(r) => {
-                        println!("prom resolved to {:?}", r);
+                        println!("prom resolved to {r:?}");
                     }
                     Err(e) => {
-                        println!("prom errored to {:?}", e);
+                        println!("prom errored to {e:?}");
                     }
                 }
             }
@@ -547,6 +542,6 @@ pub mod tests {
             }
         }
 
-        std::thread::sleep(Duration::from_secs(95));
+        //std::thread::sleep(Duration::from_secs(35));
     }
 }
