@@ -104,6 +104,8 @@ impl CacheRegion {
                     // oldest was still valid, break of search
                     break;
                 }
+            } else {
+                break;
             }
         }
     }
@@ -545,6 +547,6 @@ pub mod tests {
             }
         }
 
-        std::thread::sleep(Duration::from_secs(65));
+        std::thread::sleep(Duration::from_secs(95));
     }
 }
