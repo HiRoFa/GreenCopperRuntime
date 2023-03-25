@@ -115,7 +115,7 @@ impl ScriptPreProcessor for CppPreProcessor {
         }
 
         log::debug!("CppPreProcessor > {}", script.get_path());
-        println!("CppPreProcessor > {}", script.get_path());
+        //println!("CppPreProcessor > {}", script.get_path());
 
         let src = script.get_code();
 
