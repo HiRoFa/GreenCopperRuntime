@@ -115,6 +115,7 @@ impl ScriptPreProcessor for CppPreProcessor {
         }
 
         log::debug!("CppPreProcessor > {}", script.get_path());
+        println!("CppPreProcessor > {}", script.get_path());
 
         let src = script.get_code();
 
@@ -128,11 +129,34 @@ impl ScriptPreProcessor for CppPreProcessor {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::preprocessors::cpp::CppPreProcessor;
     use crate::tests::init_test_greco_rt;
     use futures::executor::block_on;
     use hirofa_utils::js_utils::facades::values::JsValueFacade;
     use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::Script;
+    use hirofa_utils::js_utils::{Script, ScriptPreProcessor};
+
+    #[test]
+    fn test_ifdef_script_only() {
+        let cpp = CppPreProcessor::new()
+            .default_extensions()
+            .env_vars()
+            .def("TEST_AUTOMATION", "true");
+
+        let mut script = Script::new(
+            "testifdef.js",
+            r#"
+// #ifdef $TEST_AUTOMATION
+1
+// #else
+2
+// #endif
+"#,
+        );
+        cpp.process(&mut script).unwrap();
+        assert_eq!("\n1\n", script.get_code());
+    }
 
     #[test]
     fn test_ifdef() {
