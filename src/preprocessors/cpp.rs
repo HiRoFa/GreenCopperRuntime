@@ -147,11 +147,11 @@ mod tests {
         let mut script = Script::new(
             "testifdef.js",
             r#"
-// #ifdef $TEST_AUTOMATION
+#ifdef $TEST_AUTOMATION
 1
-// #else
+#else
 2
-// #endif
+#endif
 "#,
         );
         cpp.process(&mut script).unwrap();
