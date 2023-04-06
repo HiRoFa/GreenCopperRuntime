@@ -337,6 +337,19 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Some(node) => register_node(realm, node),
             }
         })
+        .add_getter("firstElementChild", |_rt, realm: &R, id| {
+            let ret_node = with_node(&id, |node| {
+                let mut fc = node.first_child();
+                while fc.is_some() && fc.as_ref().unwrap().as_element().is_none() {
+                    fc = fc.unwrap().next_sibling();
+                }
+                fc
+            });
+            match ret_node {
+                None => realm.js_null_create(),
+                Some(node) => register_node(realm, node),
+            }
+        })
         .add_getter("lastChild", |_rt, realm: &R, id| {
             let ret_node = with_node(&id, |node| node.last_child());
             match ret_node {
