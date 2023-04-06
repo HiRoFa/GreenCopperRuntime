@@ -247,6 +247,12 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Some(rc) => realm.js_string_create(rc.borrow().as_str()),
             })
         })
+        .add_getter("nodeName", |_rt, realm: &R, id| {
+            with_node(&id, |node| match node.as_element() {
+                None => realm.js_null_create(),
+                Some(element) => realm.js_string_create(&element.name.local),
+            })
+        })
         .add_getter("documentElement", |_rt, realm: &R, id| {
             let ret_node = with_node(&id, |node| node.first_child());
             match ret_node {
