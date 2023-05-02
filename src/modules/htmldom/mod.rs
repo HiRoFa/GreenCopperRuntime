@@ -463,6 +463,40 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
+        .add_method("setAttributeNS", |_rt, realm, id, args| {
+            if !args.len() == 3
+                || !args[0].js_is_string()
+                || !(args[1].js_is_string())
+                || !(args[2].js_is_string() || args[2].js_is_null_or_undefined())
+            {
+                return Err(JsError::new_str("setAttributeNS expects three string args"));
+            }
+
+            let _namespace = args[0].js_to_str()?;
+            let local_name = args[1].js_to_str()?;
+            let value = if args[2].js_is_string() {
+                Some(args[2].js_to_string()?)
+            } else {
+                None
+            };
+
+            with_node(&id, |node| {
+                //
+                match node.as_element() {
+                    None => Err(JsError::new_str("not an Element")),
+                    Some(element) => {
+                        let attrs = &mut *element.attributes.borrow_mut();
+
+                        if let Some(value) = value {
+                            attrs.insert(local_name, value);
+                        } else {
+                            attrs.remove(local_name);
+                        }
+                        realm.js_null_create()
+                    }
+                }
+            })
+        })
         .add_method("equals", |_rt, realm, id, args| {
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
                 return Err(JsError::new_str("equals expects a single Node arg"));
