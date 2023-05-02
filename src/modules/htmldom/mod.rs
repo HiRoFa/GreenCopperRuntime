@@ -724,11 +724,36 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             let res = with_node(&id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
-                    // todo create some static consts for ns/qualname
+                    let q_name =
+                        QualName::new(None, Namespace::from(""), LocalName::from(tag_name));
+                    let new_node = NodeRef::new_element(q_name, vec![]);
+                    Ok(new_node)
+                }
+            });
+            match res {
+                Ok(node) => register_node(realm, node),
+                Err(e) => Err(e),
+            }
+        })
+        .add_method("createElementNS", |_rt, realm, id, args| {
+            //
+
+            if args.is_empty() || !args[0].js_is_string() || !args[1].js_is_string() {
+                return Err(JsError::new_str(
+                    "createElementNS expects a two string arguments",
+                ));
+            }
+
+            let namespace_uri = args[0].js_to_str()?;
+            let qualified_name = args[1].js_to_str()?;
+
+            let res = with_node(&id, |node| match node.as_document() {
+                None => Err(JsError::new_str("not a Document")),
+                Some(_document) => {
                     let q_name = QualName::new(
                         None,
-                        Namespace::from("http://www.w3.org/1999/xhtml"),
-                        LocalName::from(tag_name),
+                        Namespace::from(namespace_uri),
+                        LocalName::from(qualified_name),
                     );
                     let new_node = NodeRef::new_element(q_name, vec![]);
                     Ok(new_node)
@@ -1051,11 +1076,15 @@ pub mod tests {
         async function test(){
             let htmlMod = await import("greco://htmldom");
             let parser = new htmlMod.DOMParser();
-            let html = '<html data-foo="abc"><head></head><body class="bodyc1 bodyc2">text<p id="helloId">hello</p><p class="worldly">world</p></body></html>';
+            let html = '<html xmlns:svg="http://www.w3.org/2000/svg" data-foo="abc"><head></head><body class="bodyc1 bodyc2">text<p id="helloId">hello</p><p class="worldly">world</p></body></html>';
             let doc = parser.parseFromString(html);
             let res = "";
             
             let helloNode = doc.getElementById("helloId");
+            
+            const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+            helloNode.appendChild(svg);
+            
             res += helloNode?"\nhelloNode.innerHTML = "+helloNode.innerHTML:"\nhello node not found";
             
             res += "\nattr=" + doc.documentElement.getAttribute("data-foo") + "\n";
