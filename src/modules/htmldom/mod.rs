@@ -875,7 +875,7 @@ fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapter
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, false)
+    realm.js_proxy_install(proxy, true)
 }
 
 fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
@@ -941,7 +941,7 @@ fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdap
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, false)
+    realm.js_proxy_install(proxy, true)
 }
 
 fn init_select_elementlist_proxy<R: JsRealmAdapter>(
@@ -1021,7 +1021,7 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, false)
+    realm.js_proxy_install(proxy, true)
 }
 
 pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
