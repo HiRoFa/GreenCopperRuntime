@@ -222,7 +222,7 @@ fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapt
         .add_method("parseFromStringAsync", |_rt, realm, _instance_id, _args| {
             realm.js_null_create()
         });
-    realm.js_proxy_install(proxy, false)
+    realm.js_proxy_install(proxy, true)
 }
 
 fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
