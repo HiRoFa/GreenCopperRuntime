@@ -813,7 +813,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Err(e) => Err(e),
             }
         });
-    realm.js_proxy_install(proxy, false)
+    realm.js_proxy_install(proxy, true)
 }
 
 fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
