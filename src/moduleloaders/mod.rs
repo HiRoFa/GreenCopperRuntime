@@ -55,7 +55,7 @@ pub fn normalize_path(ref_path: &str, name: &str) -> Result<String, JsError> {
 
     // remove ./
     // remove ..
-    let mut path_parts: Vec<String> = path.split('/').into_iter().map(|s| s.to_string()).collect();
+    let mut path_parts: Vec<String> = path.split('/').map(|s| s.to_string()).collect();
 
     let mut x = 1;
     while x < path_parts.len() {

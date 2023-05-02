@@ -380,6 +380,18 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 realm.js_typed_array_uint8_create(buf)
             })
         })
+        .add_method("getBoundingClientRect", |_rt, realm: &R, id, _args| {
+            with_node(&id, |node| {
+                let width = get_num_attr(node, "width", 800)?;
+                let height = get_num_attr(node, "height", 600)?;
+
+                let ret_obj = realm.js_object_create()?;
+                realm.js_object_set_property(&ret_obj, "width", &realm.js_i32_create(width)?)?;
+                realm.js_object_set_property(&ret_obj, "height", &realm.js_i32_create(height)?)?;
+
+                Ok(ret_obj)
+            })
+        })
         .add_getter_setter(
             "innerHTML",
             |_rt, realm: &R, id| {
@@ -814,6 +826,40 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             }
         });
     realm.js_proxy_install(proxy, true)
+}
+
+fn get_num_attr(node: &NodeRef, attr_name: &str, default_value: i32) -> Result<i32, JsError> {
+    let mut cur_node = node.clone();
+
+    loop {
+        if let Some(element_data) = cur_node.as_element() {
+            let attrs = element_data.attributes.borrow();
+            let attr = attrs.get(attr_name);
+
+            if let Some(attr_str) = attr {
+                if !attr_str.eq("100%") {
+                    if attr_str.ends_with("px") {
+                        if let Some(n) = &attr_str[0..attr_str.len() - 2].parse::<i32>().ok() {
+                            return Ok(*n);
+                        }
+                    }
+
+                    if let Some(n) = &attr_str.parse::<i32>().ok() {
+                        return Ok(*n);
+                    }
+                }
+            }
+        } else {
+            return Err(JsError::new_str("Not an Element"));
+        }
+
+        if let Some(p) = cur_node.parent() {
+            cur_node = p;
+        } else {
+            break;
+        }
+    }
+    Ok(default_value)
 }
 
 fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
