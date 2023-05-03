@@ -243,53 +243,53 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             })
         })
         .getter("childNodes", |_rt, realm, id| {
-            with_node(&id, |node| register_node_list(realm, node.children()))
+            with_node(id, |node| register_node_list(realm, node.children()))
         })
         .getter("children", |_rt, realm, id| {
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 register_element_list(realm, node.children().elements())
             })
         })
         .getter("nodeValue", |_rt, realm, id| {
-            with_node(&id, |node| match node.as_text() {
+            with_node(id, |node| match node.as_text() {
                 None => realm.create_null(),
                 Some(rc) => realm.create_string(rc.borrow().as_str()),
             })
         })
         .getter("nodeName", |_rt, realm, id| {
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => realm.create_null(),
                 Some(element) => realm.create_string(&element.name.local.to_uppercase()),
             })
         })
         .getter("documentElement", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.first_child());
+            let ret_node = with_node(id, |node| node.first_child());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("tagName", |_rt, realm, id| {
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => realm.create_null(),
                 Some(element) => realm.create_string(&element.name.local),
             })
         })
         .getter("localName", |_rt, realm, id| {
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => realm.create_null(),
                 Some(element) => realm.create_string(&element.name.local),
             })
         })
         .getter("parentElement", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.parent());
+            let ret_node = with_node(id, |node| node.parent());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("ownerDocument", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| {
+            let ret_node = with_node(id, |node| {
                 let mut upper = node.clone();
                 while let Some(parent) = upper.parent() {
                     upper = parent;
@@ -306,21 +306,21 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             }
         })
         .getter("previousSibling", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.previous_sibling());
+            let ret_node = with_node(id, |node| node.previous_sibling());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("nextSibling", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.next_sibling());
+            let ret_node = with_node(id, |node| node.next_sibling());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("nextElementSibling", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| {
+            let ret_node = with_node(id, |node| {
                 let mut next = node.next_sibling();
                 while next.is_some() && next.as_ref().unwrap().as_element().is_none() {
                     next = next.unwrap().next_sibling();
@@ -333,7 +333,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             }
         })
         .getter("previousElementSibling", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| {
+            let ret_node = with_node(id, |node| {
                 let mut prev = node.previous_sibling();
                 while prev.is_some() && prev.as_ref().unwrap().as_element().is_none() {
                     prev = prev.unwrap().previous_sibling();
@@ -346,14 +346,14 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             }
         })
         .getter("firstChild", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.first_child());
+            let ret_node = with_node(id, |node| node.first_child());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("firstElementChild", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| {
+            let ret_node = with_node(id, |node| {
                 let mut fc = node.first_child();
                 while fc.is_some() && fc.as_ref().unwrap().as_element().is_none() {
                     fc = fc.unwrap().next_sibling();
@@ -366,14 +366,14 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             }
         })
         .getter("lastChild", |_rt, realm, id| {
-            let ret_node = with_node(&id, |node| node.last_child());
+            let ret_node = with_node(id, |node| node.last_child());
             match ret_node {
                 None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
         .getter("outerHTML", |_rt, realm, id| {
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
                     .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
@@ -382,7 +382,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             })
         })
         .method("encodeHTML", |_rt, realm, id, _args| {
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
                     .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
@@ -390,7 +390,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             })
         })
         .method("getBoundingClientRect", |_rt, realm, id, _args| {
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 let width = get_num_attr(node, "width", 800)?;
                 let height = get_num_attr(node, "height", 600)?;
 
@@ -404,7 +404,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         .getter_setter(
             "innerHTML",
             |_rt, realm, id| {
-                with_node(&id, |node| {
+                with_node(id, |node| {
                     let mut buf = vec![];
                     for child in node.children() {
                         child.serialize(&mut buf).map_err(|err| {
@@ -423,7 +423,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
                 let html = val.js_to_str()?;
 
-                with_node(&id, |node| {
+                with_node(id, |node| {
                     while let Some(child) = node.first_child() {
                         // todo do i need to do this recursively?
                         child.detach();
@@ -455,7 +455,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 None
             };
 
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 //
                 match node.as_element() {
                     None => Err(JsError::new_str("not an Element")),
@@ -489,7 +489,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 None
             };
 
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 //
                 match node.as_element() {
                     None => Err(JsError::new_str("not an Element")),
@@ -518,7 +518,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let compare_node = with_node(&p_data.1, |child| child.clone());
 
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 //
                 realm.create_boolean(node.eq(&compare_node))
             })
@@ -527,7 +527,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             "className",
             |_rt, realm, id| {
                 //
-                with_node(&id, |node| {
+                with_node(id, |node| {
                     //
                     if let Some(element) = node.as_element() {
                         let attrs = &mut *element.attributes.borrow_mut();
@@ -542,7 +542,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             },
             |_rt, _realm, id, value| {
                 //
-                with_node(&id, |node| {
+                with_node(id, |node| {
                     //
                     if let Some(element) = node.as_element() {
                         let attrs = &mut *element.attributes.borrow_mut();
@@ -562,7 +562,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let local_name = args[0].js_to_str()?;
 
-            with_node(&id, |node| {
+            with_node(id, |node| {
                 //
                 match node.as_element() {
                     None => Err(JsError::new_str("not an Element")),
@@ -583,7 +583,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let selectors = args[0].js_to_str()?;
 
-            let res = with_node(&id, |node| {
+            let res = with_node(id, |node| {
                 //
                 let result = node.select_first(selectors);
                 match result {
@@ -601,7 +601,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("querySelectorAll expects one string arg"));
             }
             let selectors = args[0].js_to_string()?;
-            let elements = with_node(&id, |node| SelectBase {
+            let elements = with_node(id, |node| SelectBase {
                 selectors,
                 node: node.clone(),
             });
@@ -623,7 +623,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let child = with_node(&p_data.1, |child| child.clone());
 
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => Err(JsError::new_str("Node was not an Element")),
                 Some(_element) => {
                     node.append(child);
@@ -648,7 +648,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let child = with_node(&p_data.1, |child| child.clone());
 
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => Err(JsError::new_str("Node was not an Element")),
 
                 Some(_element) => {
@@ -685,7 +685,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let old_child = with_node(&p_data_old_child.1, |child| child.clone());
 
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => Err(JsError::new_str("Node was not an Element")),
                 Some(_element) => {
                     old_child.insert_before(new_child);
@@ -722,7 +722,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let reference_node = with_node(&p_data_reference_node.1, |child| child.clone());
 
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => Err(JsError::new_str("Node was not an Element")),
                 Some(_element) => {
                     reference_node.insert_before(new_node);
@@ -757,7 +757,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let reference_node = with_node(&p_data_reference_node.1, |child| child.clone());
 
-            with_node(&id, |node| match node.as_element() {
+            with_node(id, |node| match node.as_element() {
                 None => Err(JsError::new_str("Node was not an Element")),
                 Some(_element) => {
                     reference_node.insert_after(new_node);
@@ -776,7 +776,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let tag_name = args[0].js_to_str()?;
 
-            let res = with_node(&id, |node| match node.as_document() {
+            let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
                     let q_name =
@@ -802,7 +802,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             let namespace_uri = args[0].js_to_str()?;
             let qualified_name = args[1].js_to_str()?;
 
-            let res = with_node(&id, |node| match node.as_document() {
+            let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
                     let q_name = QualName::new(
@@ -830,7 +830,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let id_attr = args[0].js_to_str()?;
 
-            let res = with_node(&id, |node| match node.as_document() {
+            let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
                     let node_res = node.select_first(format!("#{id_attr}").as_str());
@@ -856,7 +856,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
             let content = args[0].js_to_string()?;
 
-            let res = with_node(&id, |node| match node.as_document() {
+            let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
                     let new_node = NodeRef::new_text(content);
@@ -916,7 +916,7 @@ fn init_nodelist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapte
             })
         })
         .getter("length", |_rt, realm, id| {
-            with_node_list(&id, |node_list| {
+            with_node_list(id, |node_list| {
                 realm.create_i32(node_list.clone().count() as i32)
             })
         })
@@ -929,7 +929,7 @@ fn init_nodelist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapte
 
             let obj = realm.create_object()?;
 
-            let node_list_ref = RefCell::new(with_node_list(&id, |node_list| node_list.clone()));
+            let node_list_ref = RefCell::new(with_node_list(id, |node_list| node_list.clone()));
 
             let next_func = realm.create_function(
                 "next",
@@ -980,7 +980,7 @@ fn init_elementlist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAda
             })
         })
         .getter("length", |_rt, realm, id| {
-            with_element_list(&id, |node_list| {
+            with_element_list(id, |node_list| {
                 realm.create_i32(node_list.clone().count() as i32)
             })
         })
@@ -994,7 +994,7 @@ fn init_elementlist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAda
             let obj = realm.create_object()?;
 
             let element_list_ref =
-                RefCell::new(with_element_list(&id, |element_list| element_list.clone()));
+                RefCell::new(with_element_list(id, |element_list| element_list.clone()));
 
             let next_func = realm.create_function(
                 "next",
@@ -1050,7 +1050,7 @@ fn init_select_elementlist_proxy(
             })
         })
         .getter("length", |_rt, realm, id| {
-            with_select_element_list(&id, |select_base| {
+            with_select_element_list(id, |select_base| {
                 let select_res = select_base.node.select(select_base.selectors.as_str());
                 match select_res {
                     Ok(select) => realm.create_i32(select.count() as i32),
@@ -1067,7 +1067,7 @@ fn init_select_elementlist_proxy(
 
             let obj = realm.create_object()?;
 
-            let select_opt_ref = RefCell::new(with_select_element_list(&id, |select_base| {
+            let select_opt_ref = RefCell::new(with_select_element_list(id, |select_base| {
                 let select_res = select_base.node.select(select_base.selectors.as_str());
                 match select_res {
                     Ok(select) => Some(select),

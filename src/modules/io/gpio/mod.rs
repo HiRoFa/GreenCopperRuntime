@@ -226,7 +226,7 @@ fn init_exports(
                         states.push(state_ref.js_to_i32() as u8);
                     }
 
-                    wrap_prom(realm, &instance_id, move |pin_set| {
+                    wrap_prom(realm, instance_id, move |pin_set| {
 
                         pin_set.set_state(states.as_slice()).map_err(|e| {JsError::new_string(e)})?;
                         Ok(JsValueFacade::Null)
@@ -279,7 +279,7 @@ fn init_exports(
                     let step_delay =args[1].js_to_i32();
                     let repeats = args[2].js_to_i32();
 
-                    wrap_prom(realm, &instance_id, move |pin_set| {
+                    wrap_prom(realm, instance_id, move |pin_set| {
                         pin_set.sequence(steps, step_delay, repeats).map_err(|err| {JsError::new_string(err)})?;
                         Ok(JsValueFacade::Null)
                     })
@@ -307,7 +307,7 @@ fn init_exports(
 
                     let receiver = PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
-                        let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");
+                        let pin_set_handle = handles.get_mut(instance_id).expect("no such handle");
 
                         // stop if running
                         if let Some(stopper) = pin_set_handle.pwm_stop_sender.take() {
@@ -320,7 +320,7 @@ fn init_exports(
                         receiver
                     });
 
-                    wrap_prom(realm, &instance_id, move |pin_set| {
+                    wrap_prom(realm, instance_id, move |pin_set| {
                         pin_set.run_pwm_sequence(frequency, duty_cycle, pulse_count, receiver).map_err(|e| { JsError::new_string(e) })?;
                         Ok(JsValueFacade::Null)
                     })
@@ -329,7 +329,7 @@ fn init_exports(
                 .method("softPwmOff", |_runtime, realm, instance_id, _args| {
                     PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
-                        let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");
+                        let pin_set_handle = handles.get_mut(instance_id).expect("no such handle");
                         if let Some(stopper) = pin_set_handle.pwm_stop_sender.take() {
                             let _ = stopper.try_send(true);
                         }

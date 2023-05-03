@@ -173,17 +173,17 @@ pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> Js
     JsProxy::new().namespace(&["greco", "db", "mysql"]).name("Transaction")
         .event_target()
         .method("commit", |runtime, realm, id, _args| {
-            with_transaction_mut( &id, |tx| {
+            with_transaction_mut( id, |tx| {
                 tx.commit(runtime, realm, *id)
             })
         })
         .method("rollback", |runtime, realm, id, _args| {
-            with_transaction_mut( &id, |tx| {
+            with_transaction_mut( id, |tx| {
                 tx.rollback(runtime, realm)
             })
         })
         .method("close", |runtime, realm, id, _args| {
-            with_transaction( &id, |tx| {
+            with_transaction( id, |tx| {
                 tx.close_tx(runtime, realm)
             })
         })
@@ -201,7 +201,7 @@ pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> Js
                 let params = &args[1];
                 let row_consumer = &args[2];
 
-                with_transaction( &id, |tx| {
+                with_transaction( id, |tx| {
                     tx.query(runtime, realm, query.as_str(), params, row_consumer)
                 })
             }
@@ -219,7 +219,7 @@ pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> Js
 
                 let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
-                with_transaction( &id, |tx| {
+                with_transaction( id, |tx| {
                     tx.execute(runtime, realm, query.as_str(), &params)
                 })
             }
@@ -239,7 +239,7 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
         })
         .method("transaction", |_runtime, realm, id, _args| {
             // todo options like isolation/readonly
-            with_connection( &id, |con| {
+            with_connection( id, |con| {
                  con.start_transaction(realm)
             })
         })
@@ -256,7 +256,7 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
                 let params = &args[1];
                 let row_consumer = &args[2];
 
-                with_connection( &id, |con| {
+                with_connection( id, |con| {
                     con.query(runtime, realm, query.as_str(), params, row_consumer)
                 })
             }
@@ -274,7 +274,7 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
 
                 let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
-                with_connection( &id, |con| {
+                with_connection( id, |con| {
                     con.execute(runtime, realm, query.as_str(), &params)
                 })
             }

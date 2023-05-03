@@ -39,7 +39,7 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
         })
         .method("text", |_rt, realm, instance_id, _args| {
             //
-            let response = with_response(&instance_id, |response| response.clone())
+            let response = with_response(instance_id, |response| response.clone())
                 .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
             realm.create_resolving_promise_async(
@@ -50,7 +50,7 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
         })
         .method("json", |_rt, realm, instance_id, _args| {
             //
-            let response = with_response(&instance_id, |response| response.clone())
+            let response = with_response(instance_id, |response| response.clone())
                 .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
             realm.create_resolving_promise_async(
