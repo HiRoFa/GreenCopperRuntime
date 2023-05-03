@@ -18,17 +18,18 @@
 //!
 
 use hirofa_utils::auto_id_map::AutoIdMap;
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use hirofa_utils::js_utils::JsError;
 use html5ever::LocalName;
 use html5ever::Namespace;
 use html5ever::QualName;
 use kuchiki::iter::{Elements, NodeIterator, Siblings};
 use kuchiki::traits::TendrilSink;
 use kuchiki::{parse_html, NodeRef};
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+use quickjs_runtime::jsutils::jsproxies::JsProxy;
+use quickjs_runtime::jsutils::modules::NativeModuleLoader;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use std::cell::RefCell;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/DOMParser
@@ -45,12 +46,16 @@ use std::cell::RefCell;
 
 struct HtmlDomModuleLoader {}
 
-impl<R: JsRealmAdapter> NativeModuleLoader<R> for HtmlDomModuleLoader {
-    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
+impl NativeModuleLoader for HtmlDomModuleLoader {
+    fn has_module(&self, _realm: &QuickJsRealmAdapter, module_name: &str) -> bool {
         module_name.eq("greco://htmldom")
     }
 
-    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        _module_name: &str,
+    ) -> Vec<&str> {
         vec![
             "DOMParser",
             "Node",
@@ -62,9 +67,9 @@ impl<R: JsRealmAdapter> NativeModuleLoader<R> for HtmlDomModuleLoader {
 
     fn get_module_exports(
         &self,
-        realm: &R,
+        realm: &QuickJsRealmAdapter,
         _module_name: &str,
-    ) -> Vec<(&str, R::JsValueAdapterType)> {
+    ) -> Vec<(&str, QuickJsValueAdapter)> {
         vec![
             (
                 "DOMParser",
@@ -115,10 +120,10 @@ fn with_node<R, C: FnOnce(&NodeRef) -> R>(proxy_instance_id: &usize, consumer: C
     })
 }
 
-fn register_node<R: JsRealmAdapter>(
-    realm: &R,
+fn register_node(
+    realm: &QuickJsRealmAdapter,
     node: NodeRef,
-) -> Result<R::JsValueAdapterType, JsError> {
+) -> Result<QuickJsValueAdapter, JsError> {
     // todo need native quickjs stuff here..
     // keep separate map with NodeRef as key
     // point at JsValueRef (dont increment refcount for those)
@@ -129,40 +134,40 @@ fn register_node<R: JsRealmAdapter>(
         let map = &mut *rc.borrow_mut();
         map.insert(node)
     });
-    realm.js_proxy_instantiate_with_id(&["greco", "htmldom"], "Node", id)
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "Node", id)
 }
 
-fn register_node_list<R: JsRealmAdapter>(
-    realm: &R,
+fn register_node_list(
+    realm: &QuickJsRealmAdapter,
     node_list: NodeList,
-) -> Result<R::JsValueAdapterType, JsError> {
+) -> Result<QuickJsValueAdapter, JsError> {
     let id = NODELISTS.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.insert(node_list)
     });
-    realm.js_proxy_instantiate_with_id(&["greco", "htmldom"], "NodeList", id)
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "NodeList", id)
 }
 
-fn register_element_list<R: JsRealmAdapter>(
-    realm: &R,
+fn register_element_list(
+    realm: &QuickJsRealmAdapter,
     element_list: ElementList,
-) -> Result<R::JsValueAdapterType, JsError> {
+) -> Result<QuickJsValueAdapter, JsError> {
     let id = ELEMENTLISTS.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.insert(element_list)
     });
-    realm.js_proxy_instantiate_with_id(&["greco", "htmldom"], "ElementList", id)
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "ElementList", id)
 }
 
-fn register_select_element_list<R: JsRealmAdapter>(
-    realm: &R,
+fn register_select_element_list(
+    realm: &QuickJsRealmAdapter,
     select_element_list: SelectElementList,
-) -> Result<R::JsValueAdapterType, JsError> {
+) -> Result<QuickJsValueAdapter, JsError> {
     let id = SELECTELEMENTLISTS.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.insert(select_element_list)
     });
-    realm.js_proxy_instantiate_with_id(&["greco", "htmldom"], "SelectElementList", id)
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "SelectElementList", id)
 }
 
 fn with_node_list<R, C: FnOnce(&NodeList) -> R>(proxy_instance_id: &usize, consumer: C) -> R {
@@ -198,20 +203,22 @@ fn parse_from_string(html: &str) -> NodeRef {
     kuchiki::parse_html().one(html)
 }
 
-fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
-    let proxy = JsProxy::new(&["greco", "htmldom"], "DOMParser")
-        .set_constructor(|_rt, _realm, _id, _args| Ok(()))
-        .add_method("parseFromString", |_rt, realm: &R, _instance_id, args| {
-            if !args.len() == 1 || !(args[0].js_is_string() || args[0].js_is_typed_array()) {
+fn init_dom_parser_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    let proxy = JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("DOMParser")
+        .constructor(|_rt, _realm, _id, _args| Ok(()))
+        .method("parseFromString", |_rt, realm, _instance_id, args| {
+            if !args.len() == 1 || !(args[0].is_string() || args[0].js_is_typed_array()) {
                 Err(JsError::new_str(
                     "parseFromString expects a single string arg",
                 ))
             } else {
-                let doc = if args[0].js_is_string() {
+                let doc = if args[0].is_string() {
                     let html = args[0].js_to_str()?;
                     parse_from_string(html)
                 } else {
-                    let bytes = realm.js_typed_array_detach_buffer(&args[0])?;
+                    let bytes = realm.detach_typed_array_buffer(&args[0])?;
                     let html = String::from_utf8_lossy(bytes.as_slice());
                     parse_from_string(html.to_string().as_str())
                 };
@@ -219,67 +226,69 @@ fn init_dom_parser_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapt
                 register_node(realm, doc)
             }
         })
-        .add_method("parseFromStringAsync", |_rt, realm, _instance_id, _args| {
-            realm.js_null_create()
+        .method("parseFromStringAsync", |_rt, realm, _instance_id, _args| {
+            realm.create_null()
         });
-    realm.js_proxy_install(proxy, true)
+    realm.install_proxy(proxy, true)
 }
 
-fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
-    let proxy = JsProxy::new(&["greco", "htmldom"], "Node")
-        .set_finalizer(|_rt, _realm, id| {
+fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    let proxy = JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("Node")
+        .finalizer(|_rt, _realm, id| {
             NODES.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
             })
         })
-        .add_getter("childNodes", |_rt, realm: &R, id| {
+        .getter("childNodes", |_rt, realm, id| {
             with_node(&id, |node| register_node_list(realm, node.children()))
         })
-        .add_getter("children", |_rt, realm: &R, id| {
+        .getter("children", |_rt, realm, id| {
             with_node(&id, |node| {
                 register_element_list(realm, node.children().elements())
             })
         })
-        .add_getter("nodeValue", |_rt, realm: &R, id| {
+        .getter("nodeValue", |_rt, realm, id| {
             with_node(&id, |node| match node.as_text() {
-                None => realm.js_null_create(),
-                Some(rc) => realm.js_string_create(rc.borrow().as_str()),
+                None => realm.create_null(),
+                Some(rc) => realm.create_string(rc.borrow().as_str()),
             })
         })
-        .add_getter("nodeName", |_rt, realm: &R, id| {
+        .getter("nodeName", |_rt, realm, id| {
             with_node(&id, |node| match node.as_element() {
-                None => realm.js_null_create(),
-                Some(element) => realm.js_string_create(&element.name.local.to_uppercase()),
+                None => realm.create_null(),
+                Some(element) => realm.create_string(&element.name.local.to_uppercase()),
             })
         })
-        .add_getter("documentElement", |_rt, realm: &R, id| {
+        .getter("documentElement", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.first_child());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("tagName", |_rt, realm: &R, id| {
+        .getter("tagName", |_rt, realm, id| {
             with_node(&id, |node| match node.as_element() {
-                None => realm.js_null_create(),
-                Some(element) => realm.js_string_create(&element.name.local),
+                None => realm.create_null(),
+                Some(element) => realm.create_string(&element.name.local),
             })
         })
-        .add_getter("localName", |_rt, realm: &R, id| {
+        .getter("localName", |_rt, realm, id| {
             with_node(&id, |node| match node.as_element() {
-                None => realm.js_null_create(),
-                Some(element) => realm.js_string_create(&element.name.local),
+                None => realm.create_null(),
+                Some(element) => realm.create_string(&element.name.local),
             })
         })
-        .add_getter("parentElement", |_rt, realm: &R, id| {
+        .getter("parentElement", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.parent());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("ownerDocument", |_rt, realm: &R, id| {
+        .getter("ownerDocument", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| {
                 let mut upper = node.clone();
                 while let Some(parent) = upper.parent() {
@@ -292,25 +301,25 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             });
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("previousSibling", |_rt, realm: &R, id| {
+        .getter("previousSibling", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.previous_sibling());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("nextSibling", |_rt, realm: &R, id| {
+        .getter("nextSibling", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.next_sibling());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("nextElementSibling", |_rt, realm: &R, id| {
+        .getter("nextElementSibling", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| {
                 let mut next = node.next_sibling();
                 while next.is_some() && next.as_ref().unwrap().as_element().is_none() {
@@ -319,11 +328,11 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 next
             });
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("previousElementSibling", |_rt, realm: &R, id| {
+        .getter("previousElementSibling", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| {
                 let mut prev = node.previous_sibling();
                 while prev.is_some() && prev.as_ref().unwrap().as_element().is_none() {
@@ -332,18 +341,18 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 prev
             });
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("firstChild", |_rt, realm: &R, id| {
+        .getter("firstChild", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.first_child());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("firstElementChild", |_rt, realm: &R, id| {
+        .getter("firstElementChild", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| {
                 let mut fc = node.first_child();
                 while fc.is_some() && fc.as_ref().unwrap().as_element().is_none() {
@@ -352,49 +361,49 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 fc
             });
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("lastChild", |_rt, realm: &R, id| {
+        .getter("lastChild", |_rt, realm, id| {
             let ret_node = with_node(&id, |node| node.last_child());
             match ret_node {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_getter("outerHTML", |_rt, realm: &R, id| {
+        .getter("outerHTML", |_rt, realm, id| {
             with_node(&id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
                     .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
                 let s = String::from_utf8_lossy(&buf);
-                realm.js_string_create(s.to_string().as_str())
+                realm.create_string(s.to_string().as_str())
             })
         })
-        .add_method("encodeHTML", |_rt, realm: &R, id, _args| {
+        .method("encodeHTML", |_rt, realm, id, _args| {
             with_node(&id, |node| {
                 let mut buf = vec![];
                 node.serialize(&mut buf)
                     .map_err(|err| JsError::new_string(format!("serialize failed: {err}")))?;
-                realm.js_typed_array_uint8_create(buf)
+                realm.create_typed_array_uint8(buf)
             })
         })
-        .add_method("getBoundingClientRect", |_rt, realm: &R, id, _args| {
+        .method("getBoundingClientRect", |_rt, realm, id, _args| {
             with_node(&id, |node| {
                 let width = get_num_attr(node, "width", 800)?;
                 let height = get_num_attr(node, "height", 600)?;
 
-                let ret_obj = realm.js_object_create()?;
-                realm.js_object_set_property(&ret_obj, "width", &realm.js_i32_create(width)?)?;
-                realm.js_object_set_property(&ret_obj, "height", &realm.js_i32_create(height)?)?;
+                let ret_obj = realm.create_object()?;
+                realm.set_object_property(&ret_obj, "width", &realm.create_i32(width)?)?;
+                realm.set_object_property(&ret_obj, "height", &realm.create_i32(height)?)?;
 
                 Ok(ret_obj)
             })
         })
-        .add_getter_setter(
+        .getter_setter(
             "innerHTML",
-            |_rt, realm: &R, id| {
+            |_rt, realm, id| {
                 with_node(&id, |node| {
                     let mut buf = vec![];
                     for child in node.children() {
@@ -404,11 +413,11 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     }
 
                     let s = String::from_utf8_lossy(&buf);
-                    realm.js_string_create(s.to_string().as_str())
+                    realm.create_string(s.to_string().as_str())
                 })
             },
-            |_rt, _realm: &R, id, val| {
-                if !val.js_is_string() {
+            |_rt, _realm, id, val| {
+                if !val.is_string() {
                     return Err(JsError::new_str("innerHTML should be a string"));
                 }
 
@@ -431,16 +440,16 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Ok(())
             },
         )
-        .add_method("setAttribute", |_rt, realm, id, args| {
+        .method("setAttribute", |_rt, realm, id, args| {
             if !args.len() == 2
-                || !args[0].js_is_string()
-                || !(args[1].js_is_string() || args[1].js_is_null_or_undefined())
+                || !args[0].is_string()
+                || !(args[1].is_string() || args[1].is_null_or_undefined())
             {
                 return Err(JsError::new_str("setAttribute expects two string args"));
             }
 
             let local_name = args[0].js_to_str()?;
-            let value = if args[1].js_is_string() {
+            let value = if args[1].is_string() {
                 Some(args[1].js_to_string()?)
             } else {
                 None
@@ -458,23 +467,23 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                         } else {
                             attrs.remove(local_name);
                         }
-                        realm.js_null_create()
+                        realm.create_null()
                     }
                 }
             })
         })
-        .add_method("setAttributeNS", |_rt, realm, id, args| {
+        .method("setAttributeNS", |_rt, realm, id, args| {
             if !args.len() == 3
-                || !args[0].js_is_string()
-                || !(args[1].js_is_string())
-                || !(args[2].js_is_string() || args[2].js_is_null_or_undefined())
+                || !args[0].is_string()
+                || !(args[1].is_string())
+                || !(args[2].is_string() || args[2].is_null_or_undefined())
             {
                 return Err(JsError::new_str("setAttributeNS expects three string args"));
             }
 
             let _namespace = args[0].js_to_str()?;
             let local_name = args[1].js_to_str()?;
-            let value = if args[2].js_is_string() {
+            let value = if args[2].is_string() {
                 Some(args[2].js_to_string()?)
             } else {
                 None
@@ -492,17 +501,17 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                         } else {
                             attrs.remove(local_name);
                         }
-                        realm.js_null_create()
+                        realm.create_null()
                     }
                 }
             })
         })
-        .add_method("equals", |_rt, realm, id, args| {
+        .method("equals", |_rt, realm, id, args| {
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
                 return Err(JsError::new_str("equals expects a single Node arg"));
             }
 
-            let p_data = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data = realm.get_proxy_instance_info(&args[0])?;
             if !p_data.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str("equals expects a single Node argument"));
             }
@@ -511,10 +520,10 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
             with_node(&id, |node| {
                 //
-                realm.js_boolean_create(node.eq(&compare_node))
+                realm.create_boolean(node.eq(&compare_node))
             })
         })
-        .add_getter_setter(
+        .getter_setter(
             "className",
             |_rt, realm, id| {
                 //
@@ -523,11 +532,11 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     if let Some(element) = node.as_element() {
                         let attrs = &mut *element.attributes.borrow_mut();
                         match attrs.get("class") {
-                            None => realm.js_string_create(""),
-                            Some(attr) => realm.js_string_create(attr),
+                            None => realm.create_string(""),
+                            Some(attr) => realm.create_string(attr),
                         }
                     } else {
-                        realm.js_undefined_create()
+                        realm.create_undefined()
                     }
                 })
             },
@@ -537,7 +546,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     //
                     if let Some(element) = node.as_element() {
                         let attrs = &mut *element.attributes.borrow_mut();
-                        if value.js_is_string() {
+                        if value.is_string() {
                             let cn = value.js_to_string()?;
                             attrs.insert("class", cn);
                         }
@@ -546,8 +555,8 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 })
             },
         )
-        .add_method("getAttribute", |_rt, realm, id, args| {
-            if !args.len() == 1 || !args[0].js_is_string() {
+        .method("getAttribute", |_rt, realm, id, args| {
+            if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("getAttribute expects one string arg"));
             }
 
@@ -560,15 +569,15 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     Some(element) => {
                         let attrs = &mut *element.attributes.borrow_mut();
                         match attrs.get(local_name) {
-                            None => realm.js_null_create(),
-                            Some(attr) => realm.js_string_create(attr),
+                            None => realm.create_null(),
+                            Some(attr) => realm.create_string(attr),
                         }
                     }
                 }
             })
         })
-        .add_method("querySelector", |_rt, realm, id, args| {
-            if !args.len() == 1 || !args[0].js_is_string() {
+        .method("querySelector", |_rt, realm, id, args| {
+            if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("querySelector expects one string arg"));
             }
 
@@ -583,12 +592,12 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             });
             match res {
-                None => realm.js_null_create(),
+                None => realm.create_null(),
                 Some(node) => register_node(realm, node),
             }
         })
-        .add_method("querySelectorAll", |_rt, realm, id, args| {
-            if !args.len() == 1 || !args[0].js_is_string() {
+        .method("querySelectorAll", |_rt, realm, id, args| {
+            if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("querySelectorAll expects one string arg"));
             }
             let selectors = args[0].js_to_string()?;
@@ -598,14 +607,14 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             });
             register_select_element_list(realm, elements)
         })
-        .add_method("appendChild", |_rt, realm, id, args| {
+        .method("appendChild", |_rt, realm, id, args| {
             //
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
                 return Err(JsError::new_str(
                     "appendChild expects a single Node argument",
                 ));
             }
-            let p_data = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data = realm.get_proxy_instance_info(&args[0])?;
             if !p_data.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "appendChild expects a single Node argument",
@@ -622,7 +631,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_method("removeChild", |_rt, realm, id, args| {
+        .method("removeChild", |_rt, realm, id, args| {
             // todo, calling this twice by mistake leads to other children being removed
 
             if args.len() != 1 || !args[0].js_is_proxy_instance() {
@@ -630,7 +639,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                     "removeChild expects a single Node argument",
                 ));
             }
-            let p_data = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data = realm.get_proxy_instance_info(&args[0])?;
             if !p_data.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "removeChild expects a single Node argument",
@@ -649,7 +658,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_method("replaceChild", |_rt, realm, id, args| {
+        .method("replaceChild", |_rt, realm, id, args| {
             //
             if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
             {
@@ -658,7 +667,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 ));
             }
 
-            let p_data_new_child = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data_new_child = realm.get_proxy_instance_info(&args[0])?;
             if !p_data_new_child.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "replaceChild expects two Node arguments (newChild, oldChild)",
@@ -667,7 +676,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
             let new_child = with_node(&p_data_new_child.1, |child| child.clone());
 
-            let p_data_old_child = realm.js_proxy_instance_get_info(&args[1])?;
+            let p_data_old_child = realm.get_proxy_instance_info(&args[1])?;
             if !p_data_old_child.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "replaceChild expects two Node arguments (newChild, oldChild)",
@@ -686,7 +695,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_method("insertBefore", |_rt, realm, id, args| {
+        .method("insertBefore", |_rt, realm, id, args| {
             //
             if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
             {
@@ -695,7 +704,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 ));
             }
 
-            let p_data_new_node = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data_new_node = realm.get_proxy_instance_info(&args[0])?;
             if !p_data_new_node.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "insertBefore expects two Node arguments (newNode, referenceNode)",
@@ -704,7 +713,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
             let new_node = with_node(&p_data_new_node.1, |child| child.clone());
 
-            let p_data_reference_node = realm.js_proxy_instance_get_info(&args[1])?;
+            let p_data_reference_node = realm.get_proxy_instance_info(&args[1])?;
             if !p_data_reference_node.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "insertBefore expects two Node arguments (newNode, referenceNode)",
@@ -721,7 +730,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_method("insertAfter", |_rt, realm, id, args| {
+        .method("insertAfter", |_rt, realm, id, args| {
             //
             if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
             {
@@ -730,7 +739,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 ));
             }
 
-            let p_data_new_node = realm.js_proxy_instance_get_info(&args[0])?;
+            let p_data_new_node = realm.get_proxy_instance_info(&args[0])?;
             if !p_data_new_node.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "insertAfter expects two Node arguments (newNode, referenceNode)",
@@ -739,7 +748,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
 
             let new_node = with_node(&p_data_new_node.1, |child| child.clone());
 
-            let p_data_reference_node = realm.js_proxy_instance_get_info(&args[1])?;
+            let p_data_reference_node = realm.get_proxy_instance_info(&args[1])?;
             if !p_data_reference_node.0.eq("greco.htmldom.Node") {
                 return Err(JsError::new_str(
                     "insertAfter expects two Node arguments (newNode, referenceNode)",
@@ -756,10 +765,10 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 }
             })
         })
-        .add_method("createElement", |_rt, realm, id, args| {
+        .method("createElement", |_rt, realm, id, args| {
             //
 
-            if args.is_empty() || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].is_string() {
                 return Err(JsError::new_str(
                     "createElement expects a single string argument",
                 ));
@@ -781,10 +790,10 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Err(e) => Err(e),
             }
         })
-        .add_method("createElementNS", |_rt, realm, id, args| {
+        .method("createElementNS", |_rt, realm, id, args| {
             //
 
-            if args.is_empty() || !args[0].js_is_string() || !args[1].js_is_string() {
+            if args.is_empty() || !args[0].is_string() || !args[1].is_string() {
                 return Err(JsError::new_str(
                     "createElementNS expects a two string arguments",
                 ));
@@ -810,10 +819,10 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Err(e) => Err(e),
             }
         })
-        .add_method("getElementById", |_rt, realm, id, args| {
+        .method("getElementById", |_rt, realm, id, args| {
             //
 
-            if args.is_empty() || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].is_string() {
                 return Err(JsError::new_str(
                     "getElementById expects a single string argument",
                 ));
@@ -831,15 +840,15 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
             match res {
                 Ok(node_res) => match node_res {
                     Ok(node) => register_node(realm, node.as_node().clone()),
-                    Err(_) => realm.js_null_create(),
+                    Err(_) => realm.create_null(),
                 },
                 Err(e) => Err(e),
             }
         })
-        .add_method("createTextNode", |_rt, realm, id, args| {
+        .method("createTextNode", |_rt, realm, id, args| {
             //
 
-            if args.is_empty() || !args[0].js_is_string() {
+            if args.is_empty() || !args[0].is_string() {
                 return Err(JsError::new_str(
                     "createTextNode expects a single string argument",
                 ));
@@ -859,7 +868,7 @@ fn init_node_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType
                 Err(e) => Err(e),
             }
         });
-    realm.js_proxy_install(proxy, true)
+    realm.install_proxy(proxy, true)
 }
 
 fn get_num_attr(node: &NodeRef, attr_name: &str, default_value: i32) -> Result<i32, JsError> {
@@ -896,51 +905,53 @@ fn get_num_attr(node: &NodeRef, attr_name: &str, default_value: i32) -> Result<i
     Ok(default_value)
 }
 
-fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
-    let proxy = JsProxy::new(&["greco", "htmldom"], "NodeList")
-        .set_finalizer(|_rt, _realm, id| {
+fn init_nodelist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    let proxy = JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("NodeList")
+        .finalizer(|_rt, _realm, id| {
             NODELISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
             })
         })
-        .add_getter("length", |_rt, realm: &R, id| {
+        .getter("length", |_rt, realm, id| {
             with_node_list(&id, |node_list| {
-                realm.js_i32_create(node_list.clone().count() as i32)
+                realm.create_i32(node_list.clone().count() as i32)
             })
         })
-        .add_method("Symbol.iterator", |_rt, realm, id, _args| {
+        .method("Symbol.iterator", |_rt, realm, id, _args| {
             //
             // this should be considered a hack, it only works in quicksj, we need Iterable support in utils::JsProxy
 
             // return an object with a next func, (clone NodeList and move to clusure)
             // next func should return an object with {done: false|true, value: null | nextVal}
 
-            let obj = realm.js_object_create()?;
+            let obj = realm.create_object()?;
 
             let node_list_ref = RefCell::new(with_node_list(&id, |node_list| node_list.clone()));
 
-            let next_func = realm.js_function_create(
+            let next_func = realm.create_function(
                 "next",
-                move |realm: &R, _this, _args| {
+                move |realm, _this, _args| {
                     //
-                    let ret_obj = realm.js_object_create()?;
+                    let ret_obj = realm.create_object()?;
                     let node_list = &mut *node_list_ref.borrow_mut();
                     match node_list.next() {
                         None => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(true)?,
+                                &realm.create_boolean(true)?,
                             )?;
                         }
                         Some(node) => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(false)?,
+                                &realm.create_boolean(false)?,
                             )?;
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "value",
                                 &register_node(realm, node)?,
@@ -951,62 +962,64 @@ fn init_nodelist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapter
                 },
                 0,
             )?;
-            realm.js_object_set_property(&obj, "next", &next_func)?;
+            realm.set_object_property(&obj, "next", &next_func)?;
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, true)
+    realm.install_proxy(proxy, true)
 }
 
-fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdapterType, JsError> {
-    let proxy = JsProxy::new(&["greco", "htmldom"], "ElementList")
-        .set_finalizer(|_rt, _realm, id| {
+fn init_elementlist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    let proxy = JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("ElementList")
+        .finalizer(|_rt, _realm, id| {
             ELEMENTLISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
             })
         })
-        .add_getter("length", |_rt, realm: &R, id| {
+        .getter("length", |_rt, realm, id| {
             with_element_list(&id, |node_list| {
-                realm.js_i32_create(node_list.clone().count() as i32)
+                realm.create_i32(node_list.clone().count() as i32)
             })
         })
-        .add_method("Symbol.iterator", |_rt, realm, id, _args| {
+        .method("Symbol.iterator", |_rt, realm, id, _args| {
             //
             // this should be considered a hack, it only works in quicksj, we need Iterable support in utils::JsProxy
 
             // return an object with a next func, (clone NodeList and move to clusure)
             // next func should return an object with {done: false|true, value: null | nextVal}
 
-            let obj = realm.js_object_create()?;
+            let obj = realm.create_object()?;
 
             let element_list_ref =
                 RefCell::new(with_element_list(&id, |element_list| element_list.clone()));
 
-            let next_func = realm.js_function_create(
+            let next_func = realm.create_function(
                 "next",
-                move |realm: &R, _this, _args| {
+                move |realm, _this, _args| {
                     //
-                    let ret_obj = realm.js_object_create()?;
+                    let ret_obj = realm.create_object()?;
                     let element_list = &mut *element_list_ref.borrow_mut();
 
                     let next = element_list.next();
 
                     match next {
                         None => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(true)?,
+                                &realm.create_boolean(true)?,
                             )?;
                         }
                         Some(node) => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(false)?,
+                                &realm.create_boolean(false)?,
                             )?;
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "value",
                                 &register_node(realm, node.as_node().clone())?,
@@ -1017,40 +1030,42 @@ fn init_elementlist_proxy<R: JsRealmAdapter>(realm: &R) -> Result<R::JsValueAdap
                 },
                 0,
             )?;
-            realm.js_object_set_property(&obj, "next", &next_func)?;
+            realm.set_object_property(&obj, "next", &next_func)?;
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, true)
+    realm.install_proxy(proxy, true)
 }
 
-fn init_select_elementlist_proxy<R: JsRealmAdapter>(
-    realm: &R,
-) -> Result<R::JsValueAdapterType, JsError> {
-    let proxy = JsProxy::new(&["greco", "htmldom"], "SelectElementList")
-        .set_finalizer(|_rt, _realm, id| {
+fn init_select_elementlist_proxy(
+    realm: &QuickJsRealmAdapter,
+) -> Result<QuickJsValueAdapter, JsError> {
+    let proxy = JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("SelectElementList")
+        .finalizer(|_rt, _realm, id| {
             SELECTELEMENTLISTS.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
             })
         })
-        .add_getter("length", |_rt, realm: &R, id| {
+        .getter("length", |_rt, realm, id| {
             with_select_element_list(&id, |select_base| {
                 let select_res = select_base.node.select(select_base.selectors.as_str());
                 match select_res {
-                    Ok(select) => realm.js_i32_create(select.count() as i32),
-                    Err(_) => realm.js_i32_create(0),
+                    Ok(select) => realm.create_i32(select.count() as i32),
+                    Err(_) => realm.create_i32(0),
                 }
             })
         })
-        .add_method("Symbol.iterator", |_rt, realm, id, _args| {
+        .method("Symbol.iterator", |_rt, realm, id, _args| {
             //
             // this should be considered a hack, it only works in quicksj, we need Iterable support in utils::JsProxy
 
             // return an object with a next func, (clone NodeList and move to clusure)
             // next func should return an object with {done: false|true, value: null | nextVal}
 
-            let obj = realm.js_object_create()?;
+            let obj = realm.create_object()?;
 
             let select_opt_ref = RefCell::new(with_select_element_list(&id, |select_base| {
                 let select_res = select_base.node.select(select_base.selectors.as_str());
@@ -1060,11 +1075,11 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
                 }
             }));
 
-            let next_func = realm.js_function_create(
+            let next_func = realm.create_function(
                 "next",
-                move |realm: &R, _this, _args| {
+                move |realm, _this, _args| {
                     //
-                    let ret_obj = realm.js_object_create()?;
+                    let ret_obj = realm.create_object()?;
                     let select_opt = &mut *select_opt_ref.borrow_mut();
 
                     let next = match select_opt {
@@ -1074,19 +1089,19 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
 
                     match next {
                         None => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(true)?,
+                                &realm.create_boolean(true)?,
                             )?;
                         }
                         Some(node) => {
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "done",
-                                &realm.js_boolean_create(false)?,
+                                &realm.create_boolean(false)?,
                             )?;
-                            realm.js_object_set_property(
+                            realm.set_object_property(
                                 &ret_obj,
                                 "value",
                                 &register_node(realm, node.as_node().clone())?,
@@ -1097,14 +1112,14 @@ fn init_select_elementlist_proxy<R: JsRealmAdapter>(
                 },
                 0,
             )?;
-            realm.js_object_set_property(&obj, "next", &next_func)?;
+            realm.set_object_property(&obj, "next", &next_func)?;
 
             Ok(obj)
         });
-    realm.js_proxy_install(proxy, true)
+    realm.install_proxy(proxy, true)
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder
         .js_realm_adapter_init_hook(|_rt, _realm| {
             // init
@@ -1125,13 +1140,12 @@ pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
 pub mod tests {
     use crate::init_greco_rt;
     use futures::executor::block_on;
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::Script;
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
     use backtrace::Backtrace;
+    use quickjs_runtime::jsutils::Script;
+    use quickjs_runtime::values::JsValueFacade;
     use std::panic;
 
     #[test]
@@ -1223,13 +1237,12 @@ pub mod tests {
         test()
         "#;
 
-        let promise = block_on(rt.js_eval(None, Script::new("testhtml.js", code)))
+        let promise = block_on(rt.eval(None, Script::new("testhtml.js", code)))
             .ok()
             .expect("script failed");
-        let rti = rt.js_get_runtime_facade_inner().upgrade().unwrap();
         if let JsValueFacade::JsPromise { cached_promise } = promise {
             let prom_res =
-                block_on(cached_promise.js_get_promise_result(&*rti)).expect("promise timed out");
+                block_on(cached_promise.js_get_promise_result()).expect("promise timed out");
 
             match prom_res {
                 Ok(prom_str_res) => {

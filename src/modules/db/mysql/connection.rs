@@ -2,13 +2,14 @@ use crate::modules::db::mysql::store_transaction;
 use crate::modules::db::mysql::transaction::MysqlTransaction;
 use cached::proc_macro::cached;
 use futures::executor::block_on;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade, TypedArrayType};
-use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueType};
-use hirofa_utils::js_utils::JsError;
 use mysql_lib::consts::{ColumnFlags, ColumnType};
 use mysql_lib::prelude::Queryable;
 use mysql_lib::{from_value, Conn, IsolationLevel, Pool, Row, TxOpts, Value};
+use quickjs_runtime::jsutils::{JsError, JsValueType};
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsruntimeadapter::QuickJsRuntimeAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
+use quickjs_runtime::values::{JsValueConvertable, JsValueFacade, TypedArrayType};
 use std::sync::Arc;
 
 struct PoolRef {
@@ -87,13 +88,12 @@ pub fn get_con_pool_wrapper(
     Ok(pw)
 }
 
-pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
+pub(crate) async fn run_query<Q: Queryable>(
     mut connection: Q,
     query: String,
     params_named_vec: Option<Vec<(String, Value)>>,
     params_vec: Vec<Value>,
     row_consumer_jsvf: JsValueFacade,
-    rti: Arc<<<<R as JsRealmAdapter>::JsRuntimeAdapterType as JsRuntimeAdapter>::JsRuntimeFacadeType as JsRuntimeFacade>::JsRuntimeFacadeInnerType>,
 ) -> (Q, Result<Vec<JsValueFacade>, JsError>) {
     log::trace!("run_query: running async helper / got con");
 
@@ -238,7 +238,7 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
                 // invoke row consumer with single row data
                 // todo batch this per x rows with invoke_function_batch_sync
                 if let JsValueFacade::JsFunction { cached_function } = &row_consumer_jsvf {
-                    let row_res_jsvf_fut = cached_function.js_invoke_function(&*rti, esvf_row);
+                    let row_res_jsvf_fut = cached_function.js_invoke_function(esvf_row);
                     fut_results.push(row_res_jsvf_fut);
                 } else {
                     panic!("row_consumer was not a function");
@@ -259,9 +259,9 @@ pub(crate) async fn run_query<Q: Queryable, R: JsRealmAdapter>(
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
-    realm: &R,
-    params: &R::JsValueAdapterType,
+pub(crate) fn parse_params(
+    realm: &QuickJsRealmAdapter,
+    params: &QuickJsValueAdapter,
 ) -> Result<(Option<Vec<(String, Value)>>, Vec<Value>), JsError> {
     let mut params_vec: Vec<Value> = vec![];
     let mut params_named_vec: Option<Vec<(String, Value)>> = None;
@@ -269,8 +269,8 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
         "connection::parse_params params.type = {}",
         params.js_get_type()
     );
-    if params.js_is_array() {
-        realm.js_array_traverse_mut(params, |_index, item| {
+    if params.is_array() {
+        realm.traverse_array_mut(params, |_index, item| {
             match item.js_get_type() {
                 JsValueType::I32 => {
                     params_vec.push(item.js_to_i32().into());
@@ -286,11 +286,11 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
                 }
                 JsValueType::Object => {
                     if item.js_is_typed_array() {
-                        let buf = realm.js_typed_array_copy_buffer(item)?;
+                        let buf = realm.copy_typed_array_buffer(item)?;
                         //let buf = realm.js_typed_array_detach_buffer(item)?;
                         params_vec.push(buf.into());
                     } else {
-                        let json_str = realm.js_json_stringify(item, None)?;
+                        let json_str = realm.json_stringify(item, None)?;
                         params_vec.push(json_str.into());
                     }
                 }
@@ -305,7 +305,7 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
                     params_vec.push(Value::NULL);
                 }
                 JsValueType::Array => {
-                    let json_str = realm.js_json_stringify(item, None)?;
+                    let json_str = realm.json_stringify(item, None)?;
                     params_vec.push(json_str.into());
                 }
                 JsValueType::Error => {}
@@ -313,9 +313,9 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
 
             Ok(())
         })?;
-    } else if params.js_is_object() {
+    } else if params.is_object() {
         let mut vec = vec![];
-        realm.js_object_traverse_mut(params, |name, item| {
+        realm.traverse_object_mut(params, |name, item| {
             match item.js_get_type() {
                 JsValueType::I32 => {
                     vec.push((name.to_string(), item.js_to_i32().into()));
@@ -331,10 +331,10 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
                 }
                 JsValueType::Object => {
                     if item.js_is_typed_array() {
-                        let buf = realm.js_typed_array_copy_buffer(item)?;
+                        let buf = realm.copy_typed_array_buffer(item)?;
                         vec.push((name.to_string(), buf.into()));
                     } else {
-                        let json_str = realm.js_json_stringify(item, None)?;
+                        let json_str = realm.json_stringify(item, None)?;
                         vec.push((name.to_string(), json_str.into()));
                     }
                 }
@@ -349,7 +349,7 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
                     vec.push((name.to_string(), Value::NULL));
                 }
                 JsValueType::Array => {
-                    let json_str = realm.js_json_stringify(item, None)?;
+                    let json_str = realm.json_stringify(item, None)?;
                     vec.push((name.to_string(), json_str.into()));
                 }
                 JsValueType::Error => {}
@@ -363,10 +363,10 @@ pub(crate) fn parse_params<R: JsRealmAdapter + 'static>(
 }
 
 impl MysqlConnection {
-    pub fn new<R: JsRealmAdapter>(
-        _runtime: &R::JsRuntimeAdapterType,
-        _realm: &R,
-        args: &[R::JsValueAdapterType],
+    pub fn new(
+        _runtime: &QuickJsRuntimeAdapter,
+        _realm: &QuickJsRealmAdapter,
+        args: &[QuickJsValueAdapter],
     ) -> Result<Self, JsError> {
         // todo, actually parse args
         //url, port, user, pass, dbSchema
@@ -375,7 +375,7 @@ impl MysqlConnection {
         let port = args[1].js_to_i32() as u16;
         let user = args[2].js_to_str()?;
         let pass = args[3].js_to_str()?;
-        let db = if args[4].js_is_null_or_undefined() {
+        let db = if args[4].is_null_or_undefined() {
             None
         } else {
             Some(args[4].js_to_str()?)
@@ -387,14 +387,14 @@ impl MysqlConnection {
     }
 
     /// query method
-    pub fn query<R: JsRealmAdapter + 'static>(
+    pub fn query(
         &self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
         query: &str,
-        params: &R::JsValueAdapterType,
-        row_consumer: &R::JsValueAdapterType,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        params: &QuickJsValueAdapter,
+        row_consumer: &QuickJsValueAdapter,
+    ) -> Result<QuickJsValueAdapter, JsError> {
         // start a tx, qry, close tx
         //
         // takes three args, qry, params, consumer
@@ -405,16 +405,11 @@ impl MysqlConnection {
 
         let con = self.pool.get_pool().get_conn();
 
-        let rti = realm
-            .js_get_runtime_facade_inner()
-            .upgrade()
-            .expect("invalid state");
-
         let (params_named_vec, params_vec) = parse_params(realm, params)?;
 
         let row_consumer_jsvf = realm.to_js_value_facade(row_consumer)?;
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 log::trace!("Connection.query running async helper");
                 // in helper thread here
@@ -423,15 +418,10 @@ impl MysqlConnection {
                     .await
                     .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
-                Ok(run_query::<Conn, R>(
-                    con,
-                    query,
-                    params_named_vec,
-                    params_vec,
-                    row_consumer_jsvf,
-                    rti,
+                Ok(
+                    run_query::<Conn>(con, query, params_named_vec, params_vec, row_consumer_jsvf)
+                        .await,
                 )
-                .await)
             },
             |realm, val: (Conn, Result<Vec<JsValueFacade>, JsError>)| {
                 // reset con here
@@ -444,13 +434,13 @@ impl MysqlConnection {
         )
     }
     /// execute method
-    pub fn execute<R: JsRealmAdapter + 'static>(
+    pub fn execute(
         &self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
         query: &str,
-        params_arr: &[&R::JsValueAdapterType],
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        params_arr: &[&QuickJsValueAdapter],
+    ) -> Result<QuickJsValueAdapter, JsError> {
         log::trace!("Connection.execute: {}", query);
 
         let query = query.to_string();
@@ -471,7 +461,7 @@ impl MysqlConnection {
             }
         }
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 log::trace!("Connection.execute running async helper");
                 // in helper thread here
@@ -513,20 +503,20 @@ impl MysqlConnection {
             },
             |realm, affected_rows| {
                 //
-                realm.js_f64_create(affected_rows as f64)
+                realm.create_f64(affected_rows as f64)
             },
         )
     }
 
-    pub fn start_transaction<R: JsRealmAdapter + 'static>(
+    pub fn start_transaction(
         &self,
-        realm: &R,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        realm: &QuickJsRealmAdapter,
+    ) -> Result<QuickJsValueAdapter, JsError> {
         let mut tx_opts = TxOpts::new();
         tx_opts.with_isolation_level(IsolationLevel::ReadCommitted);
         let pool_arc = self.pool.arc.clone();
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 let mut tx_opts = TxOpts::new();
                 tx_opts.with_isolation_level(IsolationLevel::ReadCommitted);
@@ -543,7 +533,7 @@ impl MysqlConnection {
             },
             |realm, tx_instance| {
                 let instance_id = store_transaction(tx_instance);
-                realm.js_proxy_instantiate_with_id(
+                realm.instantiate_proxy_with_id(
                     &["greco", "db", "mysql"],
                     "Transaction",
                     instance_id,

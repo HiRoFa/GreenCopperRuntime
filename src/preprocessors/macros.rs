@@ -1,4 +1,4 @@
-use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
+use quickjs_runtime::jsutils::{JsError, Script, ScriptPreProcessor};
 
 pub struct MacrosPreProcessor {}
 

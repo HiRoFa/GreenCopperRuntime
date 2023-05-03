@@ -4,17 +4,9 @@
 
 # Roadmap / The plan
 
-GreenCopperRuntime is a library which abstracts several different JavaScript runtimes and adds additional features.
+GreenCopperRuntime is a library which adds additional features to a QuickJs JavaScript runtime.
 
-By using GreenCopper you can write generic code (including native features like functions and classes) for a JavaScript runtime and use it with the runtime which best suits your needs and/or platform and simply switch between runtimes when desired. This also makes it easier to switch to a more exeprimental runtime like Starlight or boa in the future.
-
-Currently we're working on the following runtimes
-* [quickjs_runtime](https://github.com/HiRoFa/quickjs_es_runtime)
-* [spidermonkey_runtime](https://github.com/HiRoFa/spidermonkey_runtime)
-
-and we're planning support for
-* [boa](https://github.com/boa-dev/boa)
-* [quickjs with msvc support](https://github.com/theduke/quickjs-rs/pull/114)
+GreenCopperRuntime is based on [quickjs_runtime](https://github.com/HiRoFa/quickjs_es_runtime)
 
 ## Other GreenCopper projects
 
@@ -31,9 +23,8 @@ GreenCopperRuntime provides implementations for abstract features of the Runtime
 
 GreenCopperRuntime provides script pre-processing for:
 * [x] cpp style preprocessing (e.g. use #ifdef $GRECO_DEBUG in code) ([DOCS](https://hirofa.github.io/GreenCopperRuntime/green_copper_runtime/preprocessors/cpp))
-* [ ] macro's which generate script before eval 
+* [ ] macros which generate script before eval 
 * [x] Typescript support is implemented as a separate optional project [typescript_utils](https://github.com/HiRoFa/typescript_utils) 
-  * [ ] JavaScript transpiling specific to the runtime used
 
 The following features are optionally added by specifying them in your Cargo.toml
 
@@ -82,43 +73,19 @@ quickjs_runtime = {git = 'https://github.com/HiRoFa/quickjs_es_runtime', branch=
 // wip
 
 GreenCopper based runtimes all split the API into two distinct halves, first of all there are your outer thread-safe API's which do not directly call the underlying runtime, These are the
-* [JsRuntimeFacade](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/facades/trait.JsRuntimeFacade.html) (represents a Runtime)
+* [QuickJsRuntimeFacade](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/facades/trait.JsRuntimeFacade.html) (represents a Runtime)
 * [JsValueFacade](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/facades/values/enum.JsValueFacade.html) (represents a Value)
 
 All of these work (with some exeptions) by adding a job to an EventLoop (a member of the JsRuntimeFacade) and getting the result async (the API returns a Future).
 
 These jobs run in a single thread per runtime and provide access to the Adapters which DO interact with the actual Runtime/Context/Value directly, these are:
-* [JsRuntimeAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRuntimeAdapter.html) (represents a Runtime)
-* [JsRealmAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRealmAdapter.html) (represents a Context or Realm)
-* [JsValueAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsValueAdapter.html) (represents a Value)
+* [QuickJsRuntimeAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRuntimeAdapter.html) (represents a Runtime)
+* [QuickJsRealmAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsRealmAdapter.html) (represents a Context or Realm)
+* [QuickJsValueAdapter](https://hirofa.github.io/GreenCopperRuntime/hirofa_utils/js_utils/adapters/trait.JsValueAdapter.html) (represents a Value)
 
-### Example 
-```rust
-use quickjs_runtime::esruntime::EsRuntime;
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
-use hirofa_utils::js_utils::Script;
-use hirofa_utils::js_utils::facades::{JsRuntimeFacade, JsValueFacade};
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter};
-use quickjs_runtime::quickjscontext::QuickJsContext;
+## Example
 
-async fn example<T: JsRuntimeFacade>(rt: &T) -> Box<dyn JsValueFacade> {
-    // add a job for the main realm (None as realm_name)
-    rt.js_loop_realm(None, |_rt_adapter, realm_adapter| {
-        let script = Script::new("example.js", "7 + 13");
-        let value_adapter= realm_adapter.js_eval(script).ok().expect("script failed");
-        // convert value_adapter to value_facade because value_adapter is not Send
-        realm_adapter.to_js_value_facade(&value_adapter)
-    }).await
-}
-
- fn main() {
-    // start a new runtime
-    let rt = EsRuntimeBuilder::new().build();
-    let val = block_on(example(&rt));
-    assert_eq!(val.js_as_i32(), 20);
-}
-
-```
+// todo
 
 ## Adding features
 

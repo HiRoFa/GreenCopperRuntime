@@ -20,13 +20,13 @@
 //! # Example
 //! ```rust
 //! use green_copper_runtime::preprocessors::cpp::CppPreProcessor;
-//! use hirofa_utils::js_utils::Script;
 //! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+//! use quickjs_runtime::jsutils::Script;
 //!
 //! let cpp = CppPreProcessor::new().default_extensions().env_vars();
 //! let rt = QuickJsRuntimeBuilder::new().script_pre_processor(cpp).build();
 //!
-//! let path = rt.eval_sync(Script::new("test.js", "let p = '$PATH'; p")).ok().expect("script failed");
+//! let path = rt.eval_sync(None, Script::new("test.js", "let p = '$PATH'; p")).ok().expect("script failed");
 //! assert!(!path.get_str().is_empty());
 //! assert_ne!(path.get_str(), "$PATH");
 //!
@@ -34,7 +34,8 @@
 //!
 
 use gpp::{process_str, Context};
-use hirofa_utils::js_utils::{JsError, Script, ScriptPreProcessor};
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::jsutils::{Script, ScriptPreProcessor};
 use std::cell::RefCell;
 use std::env;
 
@@ -133,9 +134,8 @@ mod tests {
     use crate::preprocessors::cpp::CppPreProcessor;
     use crate::tests::init_test_greco_rt;
     use futures::executor::block_on;
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::{Script, ScriptPreProcessor};
+    use quickjs_runtime::jsutils::{Script, ScriptPreProcessor};
+    use quickjs_runtime::values::JsValueFacade;
 
     #[test]
     fn test_ifdef_script_only() {
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn test_ifdef() {
         let rt = init_test_greco_rt();
-        let fut = rt.js_eval(
+        let fut = rt.eval(
             None,
             Script::new(
                 "test.es",
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn test_vars() {
         let rt = init_test_greco_rt();
-        let fut = rt.js_eval(
+        let fut = rt.eval(
             None,
             Script::new(
                 "test.es",

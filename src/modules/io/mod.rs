@@ -1,4 +1,4 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 #[cfg(any(feature = "all", feature = "io", feature = "gpio"))]
 pub mod gpio;
@@ -6,7 +6,7 @@ pub mod gpio;
 #[cfg(any(feature = "all", feature = "io", feature = "fs"))]
 pub mod fs;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     #[cfg(any(feature = "all", feature = "io", feature = "gpio"))]
     let builder = gpio::init(builder);
 

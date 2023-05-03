@@ -1,15 +1,12 @@
 use crate::features::js_fetch::spec::Response;
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
-use hirofa_utils::js_utils::JsError;
+use quickjs_runtime::jsutils::jsproxies::JsProxy;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub(crate) fn impl_for<C>(realm: &C) -> Result<(), JsError>
-where
-    C: JsRealmAdapter + 'static,
-{
+pub(crate) fn impl_for(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
     impl_response(realm)?;
     Ok(())
 }
@@ -29,42 +26,41 @@ fn with_response<C: FnOnce(&Arc<Response>) -> R, R>(id: &usize, consumer: C) -> 
     })
 }
 
-fn impl_response<C>(realm: &C) -> Result<(), JsError>
-where
-    C: JsRealmAdapter + 'static,
-{
-    let response_proxy = JsProxy::new(&[], "Response")
-        .set_finalizer(|_rt, _realm, id| {
+fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
+    let response_proxy = JsProxy::new()
+        .namespace(&[])
+        .name("Response")
+        .finalizer(|_rt, _realm, id| {
             // todo.. need to use realm id as part of key?
             RESPONSE_INSTANCES.with(|rc| {
                 let map = &mut *rc.borrow_mut();
                 map.remove(&id);
             });
         })
-        .add_method("text", |_rt, realm: &C, instance_id, _args| {
+        .method("text", |_rt, realm, instance_id, _args| {
             //
             let response = with_response(&instance_id, |response| response.clone())
                 .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
-            realm.js_promise_create_resolving_async(
+            realm.create_resolving_promise_async(
                 async move { response.text().await },
                 // todo js_string_crea2 with String
-                |realm, res| realm.js_string_create(res.as_str()),
+                |realm, res| realm.create_string(res.as_str()),
             )
         })
-        .add_method("json", |_rt, realm: &C, instance_id, _args| {
+        .method("json", |_rt, realm, instance_id, _args| {
             //
             let response = with_response(&instance_id, |response| response.clone())
                 .map_err(JsError::new_str)?;
             // todo promise may seem futile now but later we will just store bytes in body and encode to string async
-            realm.js_promise_create_resolving_async(
+            realm.create_resolving_promise_async(
                 async move { response.text().await },
                 // todo js_string_crea2 with String
-                |realm, res| realm.js_json_parse(res.as_str()),
+                |realm, res| realm.json_parse(res.as_str()),
             )
         });
 
-    realm.js_proxy_install(response_proxy, false)?;
+    realm.install_proxy(response_proxy, false)?;
 
     Ok(())
 }

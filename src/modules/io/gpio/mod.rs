@@ -50,12 +50,13 @@
 //! ```
 use crate::modules::io::gpio::pinset::{PinMode, PinSet, PinSetHandle};
 use gpio_cdev::EventType;
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsRuntimeAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::values::JsValueFacade;
-use hirofa_utils::js_utils::facades::{JsRuntimeBuilder, JsRuntimeFacadeInner, JsValueType};
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use hirofa_utils::js_utils::JsError;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+use quickjs_runtime::jsutils::jsproxies::JsProxy;
+use quickjs_runtime::jsutils::modules::NativeModuleLoader;
+use quickjs_runtime::jsutils::{JsError, JsValueType};
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
+use quickjs_runtime::values::JsValueFacade;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::sync_channel;
@@ -66,11 +67,11 @@ thread_local! {
     static PIN_SET_HANDLES: RefCell<HashMap<usize, PinSetHandle>> = RefCell::new(HashMap::new());
 }
 
-fn wrap_prom<R, L: JsRealmAdapter + 'static>(
-    realm: &L,
+fn wrap_prom<R>(
+    realm: &QuickJsRealmAdapter,
     instance_id: &usize,
     runner: R,
-) -> Result<L::JsValueAdapterType, JsError>
+) -> Result<QuickJsValueAdapter, JsError>
 where
     R: FnOnce(&mut PinSet) -> Result<JsValueFacade, JsError> + Send + 'static,
 {
@@ -84,7 +85,7 @@ where
         pin_set_handle.do_with_mut(move |pin_set| runner(pin_set))
     });
 
-    realm.js_promise_create_resolving_async(
+    realm.create_resolving_promise_async(
         async move {
             // run async code here and resolve or reject handle
             Ok(fut.await)
@@ -96,12 +97,12 @@ where
     )
 }
 
-fn init_exports<R: JsRealmAdapter + 'static>(
-    realm: &R,
-) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
-    let pin_set_proxy_class = JsProxy::new(&["greco", "io", "gpio"], "PinSet")
-                .set_event_target(true)
-                .set_constructor(|_runtime, _realm, instance_id, _args| {
+fn init_exports(
+    realm: &QuickJsRealmAdapter,
+) -> Result<Vec<(&'static str, QuickJsValueAdapter)>, JsError> {
+    let pin_set_proxy_class = JsProxy::new().namespace(&["greco", "io", "gpio"]).name("PinSet")
+                .event_target()
+                .constructor(|_runtime, _realm, instance_id, _args| {
                     let pin_set_handle = PinSetHandle::new();
                     PIN_SET_HANDLES.with(|rc| {
                         let handles = &mut *rc.borrow_mut();
@@ -109,8 +110,9 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     });
                     Ok(())
                 })
-                .add_method("init", |_runtime, realm: &R, instance_id, args| {
+                .method("init", |_runtime, realm, instance_id, args| {
                     // init pins, return prom, reject on fail
+                    let instance_id = *instance_id;
 
                     if args.len() < 3 {
                         return Err(JsError::new_str("PinSet.init requires 3 args"));
@@ -133,10 +135,10 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
                     let mut pins = vec![];
 
-                    let ct = realm.js_array_get_length(&args[2])?;
+                    let ct = realm.get_array_length(&args[2])?;
                     for x in 0..ct {
 
-                        let pin_ref = realm.js_array_get_element(&args[2], x)?;
+                        let pin_ref = realm.get_array_element(&args[2], x)?;
                         if pin_ref.js_get_type() != JsValueType::I32 {
                             return Err(JsError::new_str("pins array should be an array of Numbers"));
                         }
@@ -145,8 +147,8 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
 
 
-                        let es_rti_ref = realm.js_get_runtime_facade_inner();
-                        let context_id = realm.js_get_realm_id().to_string();
+                        let es_rti_ref = realm.get_runtime_facade_inner();
+                        let context_id = realm.get_realm_id().to_string();
 
                         wrap_prom(realm, &instance_id, move |pin_set| {
                             // in gio eventqueue thread here
@@ -160,20 +162,20 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                                         let realm_id = context_id.clone();
 
                                         if let Some(es_rt_ref) = es_rti_ref.upgrade() {
-                                            es_rt_ref.js_add_rt_task_to_event_loop_void(move |runtime| {
+                                            es_rt_ref.add_rt_task_to_event_loop_void(move |runtime| {
                                                 // in q_js_rt event queue here
-                                                if let Some(realm) = runtime.js_get_realm(realm_id.as_str()) {
-                                                // todo evt should be instance of PinSetEvent proxy
+                                                if let Some(realm) = runtime.get_realm(realm_id.as_str()) {
+                                                // todo evt should be instance of PinSetEvent proxy 
                                                 let res: Result<(), JsError> = (|| {
-                                                let evt_obj = realm.js_object_create()?;
-                                                let pin_ref = realm.js_i32_create(pin as i32)?;
-                                                realm.js_object_set_property(&evt_obj, "pin", &pin_ref)?;
+                                                let evt_obj = realm.create_object()?;
+                                                let pin_ref = realm.create_i32(pin as i32)?;
+                                                realm.set_object_property(&evt_obj, "pin", &pin_ref)?;
                                                 match evt.event_type() {
                                                     EventType::RisingEdge => {
-                                                        realm.js_proxy_dispatch_event(&["greco", "io", "gpio"], "PinSet", &instance_id, "rising", &evt_obj)?;
+                                                        realm.dispatch_proxy_event(&["greco", "io", "gpio"], "PinSet", &instance_id, "rising", &evt_obj)?;
                                                     }
                                                     EventType::FallingEdge => {
-                                                        realm.js_proxy_dispatch_event(&["greco", "io", "gpio"], "PinSet", &instance_id, "falling", &evt_obj)?;
+                                                        realm.dispatch_proxy_event(&["greco", "io", "gpio"], "PinSet", &instance_id, "falling", &evt_obj)?;
                                                     }
                                                 }
                                                     Ok(())
@@ -204,7 +206,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 
 
                 })
-                .add_method("setState", |_runtime, realm, instance_id, args| {
+                .method("setState", |_runtime, realm, instance_id, args| {
                     // return prom
 
                     if args.len() != 1 {
@@ -215,9 +217,9 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     }
 
                     let mut states = vec![];
-                    let ct = realm.js_array_get_length(&args[0])?;
+                    let ct = realm.get_array_length(&args[0])?;
                     for x in 0..ct {
-                        let state_ref = realm.js_array_get_element(&args[0], x)?;
+                        let state_ref = realm.get_array_element(&args[0], x)?;
                         if state_ref.js_get_type() != JsValueType::I32 {
                             return Err(JsError::new_str("states array should be an array of Numbers"));
                         }
@@ -232,38 +234,38 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     })
 
                 })
-                .add_method("getState", |_runtime, realm, _instance_id, _args| {
+                .method("getState", |_runtime, realm, _instance_id, _args| {
                     // todo return prom
-                    realm.js_null_create()
+                    realm.create_null()
                 })
-                .add_method("sequence", |_runtime, realm: &R, instance_id, args| {
+                .method("sequence", |_runtime, realm, instance_id, args| {
                     // return prom
 
                     if args.len() != 3 {
                         return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
-                    if args[0].js_is_array() {
+                    if args[0].is_array() {
                         return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
-                    if !args[1].js_is_i32() {
+                    if !args[1].is_i32() {
                         return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
-                    if !args[2].js_is_i32() {
+                    if !args[2].is_i32() {
                         return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                     }
 
                     let mut steps: Vec<Vec<u8>> = vec![];
 
-                    let ct = realm.js_array_get_length(&args[0])?;
+                    let ct = realm.get_array_length(&args[0])?;
                     for x in 0..ct {
-                        let step_arr = realm.js_array_get_element(&args[0], x)?;
+                        let step_arr = realm.get_array_element(&args[0], x)?;
                         if step_arr.js_get_type() != JsValueType::Array {
                             return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                         }
                         let mut step_vec = vec![];
 
-                        for y in 0..realm.js_array_get_length(&step_arr)? {
-                            let v_ref = realm.js_array_get_element(&step_arr, y)?;
+                        for y in 0..realm.get_array_length(&step_arr)? {
+                            let v_ref = realm.get_array_element(&step_arr, y)?;
                             if v_ref.js_get_type() != JsValueType::I32 {
                                 return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                             }
@@ -283,21 +285,21 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     })
 
                 })
-                .add_method("softPwm", |_runtime, realm: &R, instance_id, args: &[R::JsValueAdapterType]| {
+                .method("softPwm", |_runtime, realm, instance_id, args: &[QuickJsValueAdapter]| {
 
-                    if args.len() < 2 || !args[0].js_is_i32() || !(args[1].js_is_i32() || args[1].js_is_f64()) {
+                    if args.len() < 2 || !args[0].is_i32() || !(args[1].is_i32() || args[1].is_f64()) {
                         return Err(JsError::new_str("softPwm2 expects 2 or 3 args, (duration: number, dutyCycle: number, pulseCount?: number)"));
                     }
 
                     let frequency = args[0].js_to_i32() as u64;
-                    let duty_cycle = if args[1].js_is_f64() {
+                    let duty_cycle = if args[1].is_f64() {
                         args[1].js_to_f64()
                     } else {
                         args[1].js_to_i32() as f64
                     };
-                    let pulse_count = if args[2].js_is_null_or_undefined() {
+                    let pulse_count = if args[2].is_null_or_undefined() {
                         0_usize
-                    } else if args[2].js_is_f64() {
+                    } else if args[2].is_f64() {
                         args[2].js_to_f64() as usize
                     } else {
                         args[2].js_to_i32() as usize
@@ -324,7 +326,7 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                     })
 
                 })
-                .add_method("softPwmOff", |_runtime, realm, instance_id, _args| {
+                .method("softPwmOff", |_runtime, realm, instance_id, _args| {
                     PIN_SET_HANDLES.with(move |rc| {
                         let handles = &mut *rc.borrow_mut();
                         let pin_set_handle = handles.get_mut(&instance_id).expect("no such handle");
@@ -332,40 +334,44 @@ fn init_exports<R: JsRealmAdapter + 'static>(
                             let _ = stopper.try_send(true);
                         }
                     });
-                    realm.js_null_create()
+                    realm.create_null()
                 })
-                .set_finalizer(|_runtime, _q_ctx, instance_id| {
+                .finalizer(|_runtime, _q_ctx, instance_id| {
                     PIN_SET_HANDLES.with(|rc| {
                         let handles = &mut *rc.borrow_mut();
                         handles.remove(&instance_id);
                     })
                 })
                 ;
-    let pinset_proxy = realm.js_proxy_install(pin_set_proxy_class, false)?;
+    let pinset_proxy = realm.install_proxy(pin_set_proxy_class, false)?;
 
     Ok(vec![("PinSet", pinset_proxy)])
 }
 
 struct GpioModuleLoader {}
 
-impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for GpioModuleLoader {
-    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
+impl NativeModuleLoader for GpioModuleLoader {
+    fn has_module(&self, _realm: &QuickJsRealmAdapter, module_name: &str) -> bool {
         module_name.eq("greco://gpio")
     }
 
-    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        _module_name: &str,
+    ) -> Vec<&str> {
         vec!["PinSet"]
     }
 
     fn get_module_exports(
         &self,
-        realm: &R,
+        realm: &QuickJsRealmAdapter,
         _module_name: &str,
-    ) -> Vec<(&str, R::JsValueAdapterType)> {
+    ) -> Vec<(&str, QuickJsValueAdapter)> {
         init_exports(realm).expect("init gpio exports failed")
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder.js_native_module_loader(GpioModuleLoader {})
 }

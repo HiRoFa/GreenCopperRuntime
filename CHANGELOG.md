@@ -1,3 +1,9 @@
+# 0.1.0
+
+* uses quickjs_runtime 0.10.0 and ditches the multi engine principles
+* removed console in favour of impl in quickjs_runtime
+* added opt features for console/settimeout/setinterval/setimmediate
+
 # 0.0.4
 
 * first JWT impl (greco://jwt)

@@ -23,46 +23,51 @@
 //!
 
 use crate::modules::jwt::JwtAlgo::{EdDSA, RS512};
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::values::JsValueFacade::TypedArray;
-use hirofa_utils::js_utils::facades::values::{JsValueFacade, TypedArrayType};
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use hirofa_utils::js_utils::JsError;
 use jwt_simple::prelude::*;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+use quickjs_runtime::jsutils::modules::NativeModuleLoader;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
+use quickjs_runtime::values::JsValueFacade::TypedArray;
+use quickjs_runtime::values::{JsValueFacade, TypedArrayType};
 use serde_json::Value;
 use std::str::FromStr;
 
 struct JwtModuleLoader {}
 
-impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for JwtModuleLoader {
-    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
+impl NativeModuleLoader for JwtModuleLoader {
+    fn has_module(&self, _realm: &QuickJsRealmAdapter, module_name: &str) -> bool {
         module_name.eq("greco://jwt")
     }
 
-    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        _module_name: &str,
+    ) -> Vec<&str> {
         vec!["create", "verify", "generateKey"]
     }
 
     fn get_module_exports(
         &self,
-        realm: &R,
+        realm: &QuickJsRealmAdapter,
         _module_name: &str,
-    ) -> Vec<(&str, R::JsValueAdapterType)> {
+    ) -> Vec<(&str, QuickJsValueAdapter)> {
         init_exports(realm).expect("init jwt exports failed")
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder.js_native_module_loader(JwtModuleLoader {})
 }
 
-fn init_exports<R: JsRealmAdapter + 'static>(
-    realm: &R,
-) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
-    let create = realm.js_function_create("create", create, 3)?;
-    let verify = realm.js_function_create_async("verify", verify, 3)?;
-    let generate_key = realm.js_function_create_async("generateKey", generate_key, 1)?;
+fn init_exports(
+    realm: &QuickJsRealmAdapter,
+) -> Result<Vec<(&'static str, QuickJsValueAdapter)>, JsError> {
+    let create = realm.create_function("create", create, 3)?;
+    let verify = realm.create_function_async("verify", verify, 3)?;
+    let generate_key = realm.create_function_async("generateKey", generate_key, 1)?;
 
     Ok(vec![
         ("create", create),
@@ -104,31 +109,31 @@ impl ToString for JwtAlgo {
 /// 0: Object headers
 /// 1: Object payload
 /// 2: TypedArray key
-fn create<R: JsRealmAdapter + 'static>(
-    realm: &R,
-    _this: &R::JsValueAdapterType,
-    args: &[R::JsValueAdapterType],
-) -> Result<R::JsValueAdapterType, JsError> {
+fn create(
+    realm: &QuickJsRealmAdapter,
+    _this: &QuickJsValueAdapter,
+    args: &[QuickJsValueAdapter],
+) -> Result<QuickJsValueAdapter, JsError> {
     if args.len() != 3
-        || !args[0].js_is_object()
-        || !args[1].js_is_object()
+        || !args[0].is_object()
+        || !args[1].is_object()
         || !args[2].js_is_typed_array()
     {
         Err(JsError::new_str("invalid arguments for create"))
     } else {
-        let alg_header = realm.js_object_get_property(&args[0], "alg")?;
-        let alg = if alg_header.js_is_string() {
+        let alg_header = realm.get_object_property(&args[0], "alg")?;
+        let alg = if alg_header.is_string() {
             JwtAlgo::from_str(alg_header.js_to_str()?)?
         } else {
             JwtAlgo::EdDSA
         };
 
-        let payload_json = realm.js_json_stringify(&args[1], None)?;
+        let payload_json = realm.json_stringify(&args[1], None)?;
 
         // todo create utils so we can borrow the buffer (with_buffer?)
-        let key_bytes = realm.js_typed_array_copy_buffer(&args[2])?;
+        let key_bytes = realm.copy_typed_array_buffer(&args[2])?;
 
-        realm.js_promise_create_resolving(
+        realm.create_resolving_promise(
             move || {
                 let custom: Value = serde_json::from_str(payload_json.as_str()).map_err(|er| {
                     JsError::new_string(format!("could not parse json payload {er}"))
@@ -160,7 +165,7 @@ fn create<R: JsRealmAdapter + 'static>(
 
                 Ok(token)
             },
-            |realm, res| realm.js_string_create(res.as_str()),
+            |realm, res| realm.create_string(res.as_str()),
         )
     }
 }
@@ -245,10 +250,9 @@ async fn generate_key(
 pub mod tests {
     use crate::init_greco_rt;
     use futures::executor::block_on;
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::Script;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::jsutils::Script;
+    use quickjs_runtime::values::JsValueFacade;
 
     #[test]
     fn test_uuid() {
@@ -278,14 +282,10 @@ pub mod tests {
             test();
         "#,
         );
-        let res = block_on(rt.js_eval(None, script))
-            .ok()
-            .expect("script failed");
-
-        let rti = rt.js_get_runtime_facade_inner().upgrade().expect("poof");
+        let res = block_on(rt.eval(None, script)).ok().expect("script failed");
 
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let prom_res = block_on(cached_promise.js_get_promise_result(&*rti))
+            let prom_res = block_on(cached_promise.js_get_promise_result())
                 .ok()
                 .expect("promise timed out");
 

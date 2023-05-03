@@ -1,4 +1,4 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 pub mod com;
 #[cfg(any(feature = "all", feature = "crypto"))]
@@ -18,7 +18,7 @@ pub mod encoding;
 #[cfg(any(feature = "all", feature = "htmldom"))]
 pub mod htmldom;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     //com::init(builder);
     let builder = db::init(builder);
     let builder = io::init(builder);

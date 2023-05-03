@@ -1,6 +1,6 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     // todo
     builder
 }

@@ -9,32 +9,31 @@
 //! # example
 //!
 //! ```rust
-//! use hirofa_utils::js_utils::Script;
 //! use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 //! use futures::executor::block_on;
-//! use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-//! use hirofa_utils::js_utils::facades::values::JsValueFacade;
+//! use quickjs_runtime::jsutils::Script;
+//! use quickjs_runtime::values::JsValueFacade;
 //! let rtb = QuickJsRuntimeBuilder::new();
 //! let rtb = green_copper_runtime::init_greco_rt(rtb);
 //! let rt = rtb.build();
 //! let rti_ref = rt.js_get_runtime_facade_inner();
-//! rt.eval_sync(Script::new("init_fs.es", "async function test_write() {\
+//! rt.eval_sync(None, Script::new("init_fs.es", "async function test_write() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     await fs_mod.write('./test.txt', 'hello from greco fs');
-//! }\n"));
+//! }\n")).expect("script failed");
 //! let prom_jsvf = rt.js_function_invoke_sync(None, &[], "test_write", vec![]).ok().expect("write function invocation failed");
 //! // wait for promise to be done
 //!
 //! if let JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
 //!     let rti = rti_ref.upgrade().expect("invalid state");
-//!     let done = block_on(cached_promise.js_get_promise_result(&*rti));
+//!     let done = block_on(cached_promise.js_get_promise_result());
 //!     assert!(done.is_ok());
 //! } else {
 //!     panic!("not a promise");
 //! }
 //!
 //! // do read test
-//! let eval_fut = rt.js_eval(None, Script::new("init_fs.es", "async function test_read() {\
+//! let eval_fut = rt.eval(None, Script::new("init_fs.es", "async function test_read() {\
 //!     let fs_mod = await import('greco://fs');\
 //!     return await fs_mod.readString('./test.txt');
 //! }\n"));
@@ -42,13 +41,12 @@
 //! let prom_jsvf = rt.js_function_invoke_sync(None, &[], "test_read", vec![]).ok().expect("read invocation failed");
 //! // wait for promise to be done
 //! if let JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
-//!     let rti = rti_ref.upgrade().expect("invalid state");
-//!     let done = block_on(cached_promise.js_get_promise_result(&*rti)).ok().expect("prom failed");
+//!     let done = block_on(cached_promise.js_get_promise_result()).ok().expect("prom failed");
 //!     match done {
 //!        Ok(done_jsvf) => {
 //!           let s = done_jsvf.stringify();
 //!           assert_eq!(s, "String: hello from greco fs");
-//!        },
+//!        }
 //!        Err(val) => {
 //!           panic!("promise was rejected: {}", val.stringify());
 //!        }
@@ -76,11 +74,12 @@
 //! ##write
 //!
 
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
-use hirofa_utils::js_utils::facades::values::JsValueFacade;
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use hirofa_utils::js_utils::JsError;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+use quickjs_runtime::jsutils::modules::NativeModuleLoader;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
+use quickjs_runtime::values::JsValueFacade;
 use std::fs;
 
 pub(crate) fn read_string(args: &[JsValueFacade]) -> Result<JsValueFacade, JsError> {
@@ -184,12 +183,16 @@ pub(crate) fn write(args: &[JsValueFacade]) -> Result<JsValueFacade, JsError> {
 
 pub struct FsModuleLoader {}
 
-impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for FsModuleLoader {
-    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
+impl NativeModuleLoader for FsModuleLoader {
+    fn has_module(&self, _realm: &QuickJsRealmAdapter, module_name: &str) -> bool {
         module_name.eq("greco://fs")
     }
 
-    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        _module_name: &str,
+    ) -> Vec<&str> {
         vec![
             "append",
             "copy",
@@ -209,20 +212,20 @@ impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for FsModuleLoader {
 
     fn get_module_exports(
         &self,
-        realm: &R,
+        realm: &QuickJsRealmAdapter,
         _module_name: &str,
-    ) -> Vec<(&str, R::JsValueAdapterType)> {
+    ) -> Vec<(&str, QuickJsValueAdapter)> {
         init_exports(realm).expect("init fs exports failed")
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder.js_native_module_loader(FsModuleLoader {})
 }
 
-fn init_exports<R: JsRealmAdapter + 'static>(
-    realm: &R,
-) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
+fn init_exports(
+    realm: &QuickJsRealmAdapter,
+) -> Result<Vec<(&'static str, QuickJsValueAdapter)>, JsError> {
     let copy_func = JsValueFacade::new_function("copy", copy, 1);
     let write_func = JsValueFacade::new_function("write", write, 1);
     let append_func = JsValueFacade::new_function("append", append, 1);
@@ -268,9 +271,10 @@ fn init_exports<R: JsRealmAdapter + 'static>(
 pub mod tests {
     use crate::init_greco_rt;
     use backtrace::Backtrace;
-    use hirofa_utils::js_utils::Script;
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::jsutils::Script;
+    use quickjs_runtime::values::JsValueFacade;
     use std::panic;
 
     #[test]
@@ -291,41 +295,67 @@ pub mod tests {
         let mut rtb = QuickJsRuntimeBuilder::new();
         rtb = init_greco_rt(rtb);
         let rt = rtb.build();
-        rt.eval_sync(Script::new(
-            "init_fs.es",
-            "async function test_write() {\
+        rt.eval_sync(
+            None,
+            Script::new(
+                "init_fs.es",
+                "async function test_write() {\
      let fs_mod = await import('greco://fs');\
      await fs_mod.write('./test.txt', 'hello from greco fs');
  }\n",
-        ))
+            ),
+        )
         .ok()
         .expect("init write script failed");
         let prom_esvf = rt
-            .call_function_sync(vec![], "test_write", vec![])
+            .invoke_function_sync(None, &[], "test_write", vec![])
             .ok()
             .expect("write function invocation failed");
         // wait for promise to be done
-        let done = prom_esvf.get_promise_result_sync();
-        assert!(done.is_ok());
+
+        assert!(prom_esvf.is_js_promise());
+
+        match prom_esvf {
+            JsValueFacade::JsPromise { cached_promise } => {
+                let done = cached_promise
+                    .js_get_promise_result_sync()
+                    .expect("promise timed out");
+                assert!(done.is_ok());
+            }
+            _ => {}
+        }
+
         // do read test
-        rt.eval_sync(Script::new(
-            "init_fs.es",
-            "async function test_read() {\
+        rt.eval_sync(
+            None,
+            Script::new(
+                "init_fs.es",
+                "async function test_read() {\
      let fs_mod = await import('greco://fs');\
      return await fs_mod.readString('./test.txt');
  }\n",
-        ))
+            ),
+        )
         .ok()
         .expect("init write script failed");
         let prom_esvf = rt
-            .call_function_sync(vec![], "test_read", vec![])
+            .invoke_function_sync(None, &[], "test_read", vec![])
             .ok()
             .expect("read invocation failed");
         // wait for promise to be done
-        let done = prom_esvf.get_promise_result_sync();
-        assert!(done.is_ok());
-        let done_esvf = done.ok().unwrap();
-        let s = done_esvf.get_str();
-        assert_eq!(s, "hello from greco fs");
+
+        assert!(prom_esvf.is_js_promise());
+        match prom_esvf {
+            JsValueFacade::JsPromise { cached_promise } => {
+                let done = cached_promise
+                    .js_get_promise_result_sync()
+                    .expect("promise timed out");
+                assert!(done.is_ok());
+                let done_esvf = done.ok().unwrap();
+                let s = done_esvf.get_str();
+                assert_eq!(s, "hello from greco fs");
+            }
+            _ => {}
+        }
     }
 }

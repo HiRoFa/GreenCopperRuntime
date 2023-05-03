@@ -1,11 +1,13 @@
 use crate::modules::db::mysql::connection::parse_params;
 use futures::lock::Mutex;
-use hirofa_utils::js_utils::adapters::proxies::JsProxyInstanceId;
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
-use hirofa_utils::js_utils::facades::values::{JsValueConvertable, JsValueFacade};
-use hirofa_utils::js_utils::JsError;
 use mysql_lib::prelude::Queryable;
 use mysql_lib::Transaction;
+use quickjs_runtime::jsutils::jsproxies::JsProxyInstanceId;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsruntimeadapter::QuickJsRuntimeAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
+use quickjs_runtime::values::{JsValueConvertable, JsValueFacade};
 use std::sync::Arc;
 
 pub(crate) struct MysqlTransaction {
@@ -26,19 +28,19 @@ impl MysqlTransaction {
             closed: false,
         })
     }
-    pub(crate) fn commit<R: JsRealmAdapter + 'static>(
+    pub(crate) fn commit(
         &mut self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
         proxy_instance_id: JsProxyInstanceId,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+    ) -> Result<QuickJsValueAdapter, JsError> {
         log::trace!("MysqlTransaction.commit called, setting to closed");
 
         let con_arc = self.tx.clone();
 
         self.closed = true;
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 log::trace!("MysqlTransaction.commit running async helper");
                 let lock_fut = con_arc.lock();
@@ -57,26 +59,26 @@ impl MysqlTransaction {
             },
             move |realm, _val: ()| {
                 // dispatch commit event
-                let _ = realm.js_proxy_dispatch_event(
+                let _ = realm.dispatch_proxy_event(
                     &["greco", "db", "mysql"],
                     "Transaction",
                     &proxy_instance_id,
                     "commit",
-                    &realm.js_null_create()?,
+                    &realm.create_null()?,
                 )?;
-                realm.js_null_create()
+                realm.create_null()
             },
         )
     }
     /// query method
-    pub fn query<R: JsRealmAdapter + 'static>(
+    pub fn query(
         &self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
         query: &str,
-        params: &R::JsValueAdapterType,
-        row_consumer: &R::JsValueAdapterType,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        params: &QuickJsValueAdapter,
+        row_consumer: &QuickJsValueAdapter,
+    ) -> Result<QuickJsValueAdapter, JsError> {
         log::trace!("Transaction.query: {}", query);
 
         if self.closed {
@@ -85,11 +87,6 @@ impl MysqlTransaction {
 
         let query = query.to_string();
 
-        let rti = realm
-            .js_get_runtime_facade_inner()
-            .upgrade()
-            .expect("invalid state");
-
         let (params_named_vec, params_vec) = parse_params(realm, params)?;
 
         let row_consumer_jsvf = realm.to_js_value_facade(row_consumer)?;
@@ -97,7 +94,7 @@ impl MysqlTransaction {
         // move Conn into future and get it back
         let con_arc = self.tx.clone();
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 log::trace!("MysqlTransaction.query running async helper");
 
@@ -109,13 +106,12 @@ impl MysqlTransaction {
 
                 log::trace!("MysqlTransaction.query called, tx.id={}", tx.id());
 
-                let fut = crate::modules::db::mysql::connection::run_query::<Transaction, R>(
+                let fut = crate::modules::db::mysql::connection::run_query::<Transaction>(
                     tx,
                     query,
                     params_named_vec,
                     params_vec,
                     row_consumer_jsvf,
-                    rti,
                 );
 
                 let res = fut.await;
@@ -133,15 +129,15 @@ impl MysqlTransaction {
             },
         )
 
-        //realm.js_null_create()
+        //realm.create_null()
     }
-    pub fn execute<R: JsRealmAdapter + 'static>(
+    pub fn execute(
         &self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
         query: &str,
-        params_arr: &[&R::JsValueAdapterType],
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        params_arr: &[&QuickJsValueAdapter],
+    ) -> Result<QuickJsValueAdapter, JsError> {
         log::trace!("Transaction.execute: {}", query);
 
         if self.closed {
@@ -166,7 +162,7 @@ impl MysqlTransaction {
             }
         }
 
-        realm.js_promise_create_resolving_async(
+        realm.create_resolving_promise_async(
             async move {
                 log::trace!("Transaction.execute running async helper");
                 // in helper thread here
@@ -217,31 +213,31 @@ impl MysqlTransaction {
             },
             |realm, rows_affected| {
                 //
-                realm.js_f64_create(rows_affected as f64)
+                realm.create_f64(rows_affected as f64)
             },
         )
     }
-    pub(crate) fn close_tx<R: JsRealmAdapter + 'static>(
+    pub(crate) fn close_tx(
         &self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
+    ) -> Result<QuickJsValueAdapter, JsError> {
         // todo check if committed, else rollback
         //
         // self.execute(runtime, realm, "ROLLBACK", &[])
-        realm.js_null_create()
+        realm.create_null()
     }
-    pub(crate) fn rollback<R: JsRealmAdapter + 'static>(
+    pub(crate) fn rollback(
         &mut self,
-        _runtime: &R::JsRuntimeAdapterType,
-        realm: &R,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+        _runtime: &QuickJsRuntimeAdapter,
+        realm: &QuickJsRealmAdapter,
+    ) -> Result<QuickJsValueAdapter, JsError> {
         if !self.closed {
             let con_arc = self.tx.clone();
 
             self.closed = true;
 
-            realm.js_promise_create_resolving_async(
+            realm.create_resolving_promise_async(
                 async move {
                     log::trace!("MysqlTransaction.rollback running async helper");
                     let lock_fut = con_arc.lock();
@@ -258,10 +254,10 @@ impl MysqlTransaction {
 
                     // in helper thread here
                 },
-                move |realm, _val: ()| realm.js_null_create(),
+                move |realm, _val: ()| realm.create_null(),
             )
         } else {
-            realm.js_null_create()
+            realm.create_null()
         }
     }
 }

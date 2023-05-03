@@ -1,7 +1,7 @@
-use hirofa_utils::js_utils::adapters::JsRealmAdapter;
-use hirofa_utils::js_utils::modules::ScriptModuleLoader;
-use hirofa_utils::js_utils::JsError;
 use log::trace;
+use quickjs_runtime::jsutils::modules::ScriptModuleLoader;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
 use std::fs;
 use std::ops::Add;
 use std::path::{Path, PathBuf};
@@ -160,12 +160,17 @@ impl FileSystemModuleLoader {
     }
 }
 
-impl<R: JsRealmAdapter> ScriptModuleLoader<R> for FileSystemModuleLoader {
-    fn normalize_path(&self, _realm: &R, ref_path: &str, path: &str) -> Option<String> {
+impl ScriptModuleLoader for FileSystemModuleLoader {
+    fn normalize_path(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        ref_path: &str,
+        path: &str,
+    ) -> Option<String> {
         self.normalize_file_path(ref_path, path)
     }
 
-    fn load_module(&self, _realm: &R, absolute_path: &str) -> String {
+    fn load_module(&self, _realm: &QuickJsRealmAdapter, absolute_path: &str) -> String {
         self.read_file(absolute_path)
             .unwrap_or_else(|_| "".to_string())
     }
@@ -309,12 +314,17 @@ impl Default for HttpModuleLoader {
 }
 
 #[cfg(any(feature = "all", feature = "com", feature = "http"))]
-impl<R: JsRealmAdapter> ScriptModuleLoader<R> for HttpModuleLoader {
-    fn normalize_path(&self, _realm: &R, ref_path: &str, path: &str) -> Option<String> {
+impl ScriptModuleLoader for HttpModuleLoader {
+    fn normalize_path(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        ref_path: &str,
+        path: &str,
+    ) -> Option<String> {
         self.normalize_http_path(ref_path, path)
     }
 
-    fn load_module(&self, _realm: &R, absolute_path: &str) -> String {
+    fn load_module(&self, _realm: &QuickJsRealmAdapter, absolute_path: &str) -> String {
         // todo, load_module should really return a Result
         if let Some(script) = self.read_url(absolute_path) {
             script

@@ -51,11 +51,12 @@
 use crate::modules::db::mysql::connection::MysqlConnection;
 use crate::modules::db::mysql::transaction::MysqlTransaction;
 use hirofa_utils::auto_id_map::AutoIdMap;
-use hirofa_utils::js_utils::adapters::proxies::JsProxy;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
-use hirofa_utils::js_utils::modules::NativeModuleLoader;
-use hirofa_utils::js_utils::JsError;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+use quickjs_runtime::jsutils::jsproxies::JsProxy;
+use quickjs_runtime::jsutils::modules::NativeModuleLoader;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -131,60 +132,62 @@ fn drop_transaction(proxy_instance_id: &usize) {
 
 struct MysqlModuleLoader {}
 
-impl<R: JsRealmAdapter + 'static> NativeModuleLoader<R> for MysqlModuleLoader {
-    fn has_module(&self, _realm: &R, module_name: &str) -> bool {
+impl NativeModuleLoader for MysqlModuleLoader {
+    fn has_module(&self, _realm: &QuickJsRealmAdapter, module_name: &str) -> bool {
         module_name.eq("greco://mysql")
     }
 
-    fn get_module_export_names(&self, _realm: &R, _module_name: &str) -> Vec<&str> {
+    fn get_module_export_names(
+        &self,
+        _realm: &QuickJsRealmAdapter,
+        _module_name: &str,
+    ) -> Vec<&str> {
         vec!["Connection"]
     }
 
     fn get_module_exports(
         &self,
-        realm: &R,
+        realm: &QuickJsRealmAdapter,
         _module_name: &str,
-    ) -> Vec<(&str, R::JsValueAdapterType)> {
+    ) -> Vec<(&str, QuickJsValueAdapter)> {
         init_exports(realm).expect("init mysql exports failed")
     }
 }
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder.js_native_module_loader(MysqlModuleLoader {})
 }
 
-fn init_exports<R: JsRealmAdapter + 'static>(
-    realm: &R,
-) -> Result<Vec<(&'static str, R::JsValueAdapterType)>, JsError> {
+fn init_exports(
+    realm: &QuickJsRealmAdapter,
+) -> Result<Vec<(&'static str, QuickJsValueAdapter)>, JsError> {
     let mysql_connection_proxy_class = create_mysql_connection_proxy(realm);
     let mysql_transaction_proxy_class = create_mysql_transaction_proxy(realm);
-    let con_res = realm.js_proxy_install(mysql_connection_proxy_class, false)?;
-    let tx_res = realm.js_proxy_install(mysql_transaction_proxy_class, false)?;
+    let con_res = realm.install_proxy(mysql_connection_proxy_class, false)?;
+    let tx_res = realm.install_proxy(mysql_transaction_proxy_class, false)?;
 
     Ok(vec![("Connection", con_res), ("Transaction", tx_res)])
 }
 
-pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
-    _realm: &R,
-) -> JsProxy<R> {
-    JsProxy::new(&["greco", "db", "mysql"], "Transaction")
-        .set_event_target(true)
-        .add_method("commit", |runtime, realm, id, _args| {
+pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
+    JsProxy::new().namespace(&["greco", "db", "mysql"]).name("Transaction")
+        .event_target()
+        .method("commit", |runtime, realm, id, _args| {
             with_transaction_mut( &id, |tx| {
-                tx.commit(runtime, realm, id)
+                tx.commit(runtime, realm, *id)
             })
         })
-        .add_method("rollback", |runtime, realm, id, _args| {
+        .method("rollback", |runtime, realm, id, _args| {
             with_transaction_mut( &id, |tx| {
                 tx.rollback(runtime, realm)
             })
         })
-        .add_method("close", |runtime, realm, id, _args| {
+        .method("close", |runtime, realm, id, _args| {
             with_transaction( &id, |tx| {
                 tx.close_tx(runtime, realm)
             })
         })
-        .add_method("query", |runtime, realm: &R, id, args| {
+        .method("query", |runtime, realm, id, args| {
 
             // todo think up a macro for this?
             // 3 args, second may be null
@@ -204,7 +207,7 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
             }
 
         })
-        .add_method("execute", |runtime, realm: &R, id, args| {
+        .method("execute", |runtime, realm, id, args| {
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() < 2 {
@@ -214,7 +217,7 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
 
                 let query = args[0].js_to_string()?;
 
-                let params: Vec<&R::JsValueAdapterType> = args[1..args.len()].iter().collect();
+                let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
                 with_transaction( &id, |tx| {
                     tx.execute(runtime, realm, query.as_str(), &params)
@@ -222,25 +225,25 @@ pub(crate) fn create_mysql_transaction_proxy<R: JsRealmAdapter + 'static>(
             }
 
         })
-        .set_finalizer(|_rt, _realm, id| {
+        .finalizer(|_rt, _realm, id| {
             drop_transaction(&id);
         })
 }
 
-pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm: &R) -> JsProxy<R> {
-    JsProxy::new(&["greco", "db", "mysql"], "Connection")
-        .set_constructor(|runtime, realm: &R, instance_id, args| {
+pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
+    JsProxy::new().namespace(&["greco", "db", "mysql"]).name("Connection")
+        .constructor(|runtime, realm, instance_id, args| {
             let con = MysqlConnection::new(runtime, realm, args)?;
             store_connection(instance_id, con);
             Ok(())
         })
-        .add_method("transaction", |_runtime, realm, id, _args| {
+        .method("transaction", |_runtime, realm, id, _args| {
             // todo options like isolation/readonly
             with_connection( &id, |con| {
                  con.start_transaction(realm)
             })
         })
-        .add_method("query", |runtime, realm: &R, id, args| {
+        .method("query", |runtime, realm, id, args| {
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() != 3 {
@@ -259,7 +262,7 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             }
 
         })
-        .add_method("execute", |runtime, realm: &R, id, args| {
+        .method("execute", |runtime, realm, id, args| {
             // todo think up a macro for this?
             // 3 args, second may be null
             if args.len() < 2 {
@@ -269,7 +272,7 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
 
                 let query = args[0].js_to_string()?;
 
-                let params: Vec<&R::JsValueAdapterType> = args[1..args.len()].iter().collect();
+                let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
                 with_connection( &id, |con| {
                     con.execute(runtime, realm, query.as_str(), &params)
@@ -277,7 +280,7 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
             }
 
         })
-        .set_finalizer(|_rt, _realm, id| {
+        .finalizer(|_rt, _realm, id| {
             drop_connection(&id);
         })
 }
@@ -285,11 +288,10 @@ pub(crate) fn create_mysql_connection_proxy<R: JsRealmAdapter + 'static>(_realm:
 #[cfg(test)]
 pub mod tests {
     use futures::executor::block_on;
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::Script;
     //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::jsutils::Script;
+    use quickjs_runtime::values::JsValueFacade;
 
     //#[test]
     fn _test_params() {
@@ -348,15 +350,11 @@ pub mod tests {
         
         "#,
         );
-        let res: JsValueFacade = block_on(rt.js_eval(None, script))
-            .ok()
-            .expect("script failed");
+        let res: JsValueFacade = block_on(rt.eval(None, script)).ok().expect("script failed");
 
         println!("{}", res.stringify());
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let rti_weak = rt.js_get_runtime_facade_inner();
-            let rti = rti_weak.upgrade().expect("invalid state");
-            let p_res = block_on(cached_promise.js_get_promise_result(&*rti))
+            let p_res = block_on(cached_promise.js_get_promise_result())
                 .ok()
                 .expect("get prom res failed");
             match p_res {

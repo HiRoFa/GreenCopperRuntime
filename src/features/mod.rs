@@ -1,18 +1,16 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-#[cfg(feature = "console")]
-pub mod js_console;
 #[cfg(feature = "fetch")]
 pub mod js_fetch;
 #[cfg(feature = "commonjs")]
 pub mod require;
 
-pub(crate) fn init<T: JsRuntimeBuilder>(builder: T) -> T {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     #[cfg(feature = "commonjs")]
     let builder = require::init(builder);
 
     #[cfg(feature = "http")]
     let builder = js_fetch::init(builder);
 
-    js_console::init(builder)
+    builder
 }

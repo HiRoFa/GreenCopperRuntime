@@ -4,8 +4,9 @@
 //!
 
 use crate::features::js_fetch::proxies::RESPONSE_INSTANCES;
-use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-use hirofa_utils::js_utils::JsError;
+use quickjs_runtime::jsutils::JsError;
+use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
+use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -215,9 +216,9 @@ pub struct FetchInit {
     redirect: Redirect,
 }
 impl FetchInit {
-    pub fn from_js_object<R: JsRealmAdapter>(
-        realm: &R,
-        value: Option<&R::JsValueAdapterType>,
+    pub fn from_js_object(
+        realm: &QuickJsRealmAdapter,
+        value: Option<&QuickJsValueAdapter>,
     ) -> Result<Self, JsError> {
         let mut fetch_init = Self {
             method: Method::Get,
@@ -230,7 +231,7 @@ impl FetchInit {
         };
 
         if let Some(init_obj) = value {
-            realm.js_object_traverse_mut(init_obj, |prop_name, prop| {
+            realm.traverse_object_mut(init_obj, |prop_name, prop| {
                 //
 
                 match prop_name {
@@ -266,7 +267,7 @@ impl FetchInit {
                         fetch_init.body = Some(Body { text: val })
                     }
                     "headers" => {
-                        realm.js_object_traverse_mut(prop, |header_name, header_val| {
+                        realm.traverse_object_mut(prop, |header_name, header_val| {
                             fetch_init
                                 .headers
                                 .append(header_name, header_val.js_to_string()?.as_str());
@@ -325,12 +326,9 @@ pub struct Response {
     pub url: String,
 }
 impl Response {
-    pub fn to_js_value<R: JsRealmAdapter>(
-        self,
-        realm: &R,
-    ) -> Result<R::JsValueAdapterType, JsError> {
+    pub fn to_js_value(self, realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
         // todo
-        let inst_res = realm.js_proxy_instantiate(&[], "Response", &[])?;
+        let inst_res = realm.instantiate_proxy(&[], "Response", &[])?;
         RESPONSE_INSTANCES.with(|rc| {
             let map = &mut *rc.borrow_mut();
             map.insert(inst_res.0, Arc::new(self))
@@ -407,23 +405,21 @@ pub async fn do_fetch(
 #[cfg(test)]
 pub mod tests {
     use futures::executor::block_on;
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
-    use hirofa_utils::js_utils::Script;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::jsutils::Script;
+    use quickjs_runtime::values::JsValueFacade;
 
     #[test]
     fn test_fetch_1() {
         let rt = crate::init_greco_rt(QuickJsRuntimeBuilder::new()).build();
-        let rti = rt.js_get_runtime_facade_inner().upgrade().expect("huh");
-        let mut res = block_on(rt.js_eval(None, Script::new("test_fetch_1.js", r#"
+        let mut res = block_on(rt.eval(None, Script::new("test_fetch_1.js", r#"
             (async () => {
                 let res = await fetch("https://httpbin.org/post", {method: "POST", headers:{"Content-Type": "application/json"}, body: JSON.stringify({obj: 1})});
                 return res.text();
             })();
         "#))).expect("script failed");
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            res = block_on(cached_promise.js_get_promise_result(&*rti))
+            res = block_on(cached_promise.js_get_promise_result())
                 .expect("promise timed out")
                 .expect("promise failed");
         }

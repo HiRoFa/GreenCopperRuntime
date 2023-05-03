@@ -1,9 +1,9 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 #[cfg(any(feature = "all", feature = "db", feature = "mysql"))]
 pub mod mysql;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     #[cfg(any(feature = "all", feature = "db", feature = "mysql"))]
     mysql::init(builder)
 }

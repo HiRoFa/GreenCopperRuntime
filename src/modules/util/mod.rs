@@ -1,9 +1,9 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 #[cfg(any(feature = "all", feature = "util", feature = "cache"))]
 pub mod cache;
 
-pub(crate) fn init<B: JsRuntimeBuilder>(builder: B) -> B {
+pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     // todo
     #[cfg(any(feature = "all", feature = "util", feature = "cache"))]
     let builder = cache::init(builder);

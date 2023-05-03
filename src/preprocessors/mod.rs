@@ -8,11 +8,11 @@
 //! ```
 
 use crate::preprocessors::cpp::CppPreProcessor;
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 pub mod cpp;
 pub mod macros;
 
-pub fn init<T: JsRuntimeBuilder>(builder: T) -> T {
+pub fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder.js_script_pre_processor(CppPreProcessor::new())
 }

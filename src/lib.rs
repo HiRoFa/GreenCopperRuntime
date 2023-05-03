@@ -1,6 +1,4 @@
-use hirofa_utils::js_utils::facades::JsRuntimeBuilder;
-#[cfg(feature = "quickjs")]
-use quickjs_runtime::esruntimebuilder::EsRuntimeBuilder;
+use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
 #[allow(unused_imports)]
 #[macro_use]
@@ -20,20 +18,16 @@ pub mod moduleloaders;
 pub mod modules;
 pub mod preprocessors;
 
-// todo, dit ombouwen, geen directe dep naar runtimes maar een JsRuntimeBuilder meegeven aan deze functie
-// danwel gewoon features beschikbaar maken met install functie die builder accepteerd
-// in quickjsruntimes kun je dan als test_dep een ref naar gc maken om console te installen in test rt
-
-pub fn init_greco_rt<B: JsRuntimeBuilder>(builder: B) -> B {
+pub fn init_greco_rt(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     init_greco_rt2(builder, true, true, true)
 }
 
-pub fn init_greco_rt2<B: JsRuntimeBuilder>(
-    builder: B,
+pub fn init_greco_rt2(
+    builder: QuickJsRuntimeBuilder,
     preprocs: bool,
     features: bool,
     modules: bool,
-) -> B {
+) -> QuickJsRuntimeBuilder {
     let mut builder = builder;
     if modules {
         builder = modules::init(builder);
@@ -50,26 +44,24 @@ pub fn init_greco_rt2<B: JsRuntimeBuilder>(
 #[cfg(test)]
 pub mod tests {
 
-    use crate::features::js_console;
     use crate::preprocessors::cpp::CppPreProcessor;
     use backtrace::Backtrace;
-    use hirofa_utils::js_utils::adapters::{JsRealmAdapter, JsValueAdapter};
-    use hirofa_utils::js_utils::facades::values::JsValueFacade;
-    use hirofa_utils::js_utils::facades::JsRuntimeFacade;
     use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
+    use quickjs_runtime::facades::QuickJsRuntimeFacade;
+    use quickjs_runtime::values::JsValueFacade;
     use std::panic;
 
-    fn init_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
-        let res = rt_facade.js_loop_realm_sync(None, |_rt, ctx_adapter| {
-            ctx_adapter.js_install_closure(
+    fn init_abstract_inner(rt_facade: &QuickJsRuntimeFacade) {
+        let res = rt_facade.loop_realm_sync(None, |_rt, ctx_adapter| {
+            ctx_adapter.install_closure(
                 &["com", "my_company"],
                 "testFunction",
                 |_runtime, realm, _this, args| {
                     // return 1234
                     let arg1 = &args[0].js_to_i32();
                     let arg2 = &args[1].js_to_i32();
-                    realm.js_i32_create(arg1 * arg2 * 3)
+                    realm.create_i32(arg1 * arg2 * 3)
                 },
                 2,
             )
@@ -82,10 +74,10 @@ pub mod tests {
         }
     }
 
-    fn test_abstract_inner<T: JsRuntimeFacade>(rt_facade: &T) {
+    fn test_abstract_inner(rt_facade: &QuickJsRuntimeFacade) {
         let args: Vec<JsValueFacade> = vec![JsValueFacade::new_i32(2), JsValueFacade::new_i32(4)];
         let res =
-            rt_facade.js_function_invoke_sync(None, &["com", "my_company"], "testFunction", args);
+            rt_facade.invoke_function_sync(None, &["com", "my_company"], "testFunction", args);
         match res {
             Ok(val) => {
                 if let JsValueFacade::I32 { val } = val {
@@ -141,7 +133,7 @@ pub mod tests {
         drop(rt);
     }
 
-    pub fn init_test_greco_rt() -> impl JsRuntimeFacade {
+    pub fn init_test_greco_rt() -> QuickJsRuntimeFacade {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
             println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
@@ -157,8 +149,6 @@ pub mod tests {
             .unwrap();
 
         let builder = QuickJsRuntimeBuilder::new().script_pre_processor(CppPreProcessor::new());
-
-        let builder = js_console::init(builder);
 
         builder.build()
     }
