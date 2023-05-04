@@ -117,20 +117,20 @@ fn init_exports(
                     if args.len() < 3 {
                         return Err(JsError::new_str("PinSet.init requires 3 args"));
                     }
-                    if args[0].js_get_type() != JsValueType::String {
+                    if args[0].get_js_type() != JsValueType::String {
                         return Err(JsError::new_str("PinSet.init first arg should be a String (name of gpio chip e.g. /dev/gpiochip0)"));
                     }
-                    if args[1].js_get_type() != JsValueType::String {
+                    if args[1].get_js_type() != JsValueType::String {
                         return Err(JsError::new_str("PinSet.init second arg should be either 'in' or 'out' (for input or output mode)"));
                     }
-                    if args[2].js_get_type() != JsValueType::Array {
+                    if args[2].get_js_type() != JsValueType::Array {
                         return Err(JsError::new_str("PinSet.init third arg should be an array of pin numbers"));
                     }
 
                     // todo check arg values... i really need to make an arg assertion util
 
-                    let chip_name = args[0].js_to_string()?;
-                    let mode = args[1].js_to_string()?;
+                    let chip_name = args[0].to_string()?;
+                    let mode = args[1].to_string()?;
                     let pin_mode = if mode.eq("in") {PinMode::In } else {PinMode::Out };
 
                     let mut pins = vec![];
@@ -139,10 +139,10 @@ fn init_exports(
                     for x in 0..ct {
 
                         let pin_ref = realm.get_array_element(&args[2], x)?;
-                        if pin_ref.js_get_type() != JsValueType::I32 {
+                        if pin_ref.get_js_type() != JsValueType::I32 {
                             return Err(JsError::new_str("pins array should be an array of Numbers"));
                         }
-                        pins.push(pin_ref.js_to_i32() as u32);
+                        pins.push(pin_ref.to_i32() as u32);
                     }
 
 
@@ -212,7 +212,7 @@ fn init_exports(
                     if args.len() != 1 {
                         return Err(JsError::new_str("setState expects a single Array<Number> arg."));
                     }
-                    if args[0].js_get_type() != JsValueType::Array {
+                    if args[0].get_js_type() != JsValueType::Array {
                         return Err(JsError::new_str("setState expects a single Array<Number> arg."));
                     }
 
@@ -220,10 +220,10 @@ fn init_exports(
                     let ct = realm.get_array_length(&args[0])?;
                     for x in 0..ct {
                         let state_ref = realm.get_array_element(&args[0], x)?;
-                        if state_ref.js_get_type() != JsValueType::I32 {
+                        if state_ref.get_js_type() != JsValueType::I32 {
                             return Err(JsError::new_str("states array should be an array of Numbers"));
                         }
-                        states.push(state_ref.js_to_i32() as u8);
+                        states.push(state_ref.to_i32() as u8);
                     }
 
                     wrap_prom(realm, instance_id, move |pin_set| {
@@ -259,25 +259,25 @@ fn init_exports(
                     let ct = realm.get_array_length(&args[0])?;
                     for x in 0..ct {
                         let step_arr = realm.get_array_element(&args[0], x)?;
-                        if step_arr.js_get_type() != JsValueType::Array {
+                        if step_arr.get_js_type() != JsValueType::Array {
                             return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                         }
                         let mut step_vec = vec![];
 
                         for y in 0..realm.get_array_length(&step_arr)? {
                             let v_ref = realm.get_array_element(&step_arr, y)?;
-                            if v_ref.js_get_type() != JsValueType::I32 {
+                            if v_ref.get_js_type() != JsValueType::I32 {
                                 return Err(JsError::new_str("sequence expects 3 args, (steps: Array<Array<Number>>, pause_ms: number, repeats: Number)"));
                             }
-                            let v = v_ref.js_to_i32();
+                            let v = v_ref.to_i32();
                             step_vec.push(v as u8);
                         }
 
                         steps.push(step_vec)
                     }
 
-                    let step_delay =args[1].js_to_i32();
-                    let repeats = args[2].js_to_i32();
+                    let step_delay =args[1].to_i32();
+                    let repeats = args[2].to_i32();
 
                     wrap_prom(realm, instance_id, move |pin_set| {
                         pin_set.sequence(steps, step_delay, repeats).map_err(|err| {JsError::new_string(err)})?;
@@ -291,18 +291,18 @@ fn init_exports(
                         return Err(JsError::new_str("softPwm2 expects 2 or 3 args, (duration: number, dutyCycle: number, pulseCount?: number)"));
                     }
 
-                    let frequency = args[0].js_to_i32() as u64;
+                    let frequency = args[0].to_i32() as u64;
                     let duty_cycle = if args[1].is_f64() {
-                        args[1].js_to_f64()
+                        args[1].to_f64()
                     } else {
-                        args[1].js_to_i32() as f64
+                        args[1].to_i32() as f64
                     };
                     let pulse_count = if args[2].is_null_or_undefined() {
                         0_usize
                     } else if args[2].is_f64() {
-                        args[2].js_to_f64() as usize
+                        args[2].to_f64() as usize
                     } else {
-                        args[2].js_to_i32() as usize
+                        args[2].to_i32() as usize
                     };
 
                     let receiver = PIN_SET_HANDLES.with(move |rc| {

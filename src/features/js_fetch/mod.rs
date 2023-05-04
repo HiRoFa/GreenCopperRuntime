@@ -29,8 +29,8 @@ pub fn impl_for(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
             //arg1 = data: Object
             //if arg0 is not a string the returned promise will reject
             let url: Option<String> =
-                if !args.is_empty() && args[0].js_get_type() == JsValueType::String {
-                    Some(args[0].js_to_string()?)
+                if !args.is_empty() && args[0].get_js_type() == JsValueType::String {
+                    Some(args[0].to_string()?)
                 } else {
                     None
                 };
@@ -75,7 +75,7 @@ pub mod tests {
         match res {
             Ok(val) => match val {
                 JsValueFacade::JsPromise { cached_promise } => {
-                    let res_fut = cached_promise.js_get_promise_result();
+                    let res_fut = cached_promise.get_promise_result();
                     let fetch_res = block_on(res_fut);
                     match fetch_res {
                         Ok(v) => match v {

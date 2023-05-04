@@ -276,7 +276,7 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
 
             let instance_id = *instance_id;
 
-            let key = args[0].js_to_string()?;
+            let key = args[0].to_string()?;
 
             with_cache_region(&instance_id, move |cache_region| {
                 let entry_opt = cache_region.get(key.as_str());
@@ -332,7 +332,7 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 ));
             }
 
-            let key = args[0].js_to_str()?;
+            let key = args[0].to_str()?;
             let val = realm.to_js_value_facade(&args[1])?;
 
             with_cache_region(instance_id, move |cache_region| {
@@ -347,7 +347,7 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 ));
             }
 
-            let key = args[0].js_to_string()?;
+            let key = args[0].to_string()?;
 
             with_cache_region(instance_id, |region| {
                 region.remove(key.as_str());
@@ -382,21 +382,21 @@ fn init_exports(
 
             let items_ref = realm.get_object_property(&args[1], "items")?;
             let items = if items_ref.is_i32() {
-                items_ref.js_to_i32() as usize
+                items_ref.to_i32() as usize
             } else {
                 100000
             };
             let idle_ref = realm.get_object_property(&args[1], "idle")?;
             let ttl_ref = realm.get_object_property(&args[1], "ttl")?;
 
-            let cache_id = args[0].js_to_string()?;
+            let cache_id = args[0].to_string()?;
             let idle = Duration::from_secs(if idle_ref.is_i32() {
-                idle_ref.js_to_i32() as u64
+                idle_ref.to_i32() as u64
             } else {
                 3600
             });
             let ttl = Duration::from_secs(if ttl_ref.is_i32() {
-                ttl_ref.js_to_i32() as u64
+                ttl_ref.to_i32() as u64
             } else {
                 86400
             });
@@ -528,7 +528,7 @@ pub mod tests {
         match res {
             JsValueFacade::JsPromise { cached_promise } => {
                 let prom_res = cached_promise
-                    .js_get_promise_result()
+                    .get_promise_result()
                     .await
                     .expect("prom timed out");
                 match prom_res {

@@ -238,7 +238,7 @@ pub(crate) async fn run_query<Q: Queryable>(
                 // invoke row consumer with single row data
                 // todo batch this per x rows with invoke_function_batch_sync
                 if let JsValueFacade::JsFunction { cached_function } = &row_consumer_jsvf {
-                    let row_res_jsvf_fut = cached_function.js_invoke_function(esvf_row);
+                    let row_res_jsvf_fut = cached_function.invoke_function(esvf_row);
                     fut_results.push(row_res_jsvf_fut);
                 } else {
                     panic!("row_consumer was not a function");
@@ -267,25 +267,25 @@ pub(crate) fn parse_params(
     let mut params_named_vec: Option<Vec<(String, Value)>> = None;
     log::trace!(
         "connection::parse_params params.type = {}",
-        params.js_get_type()
+        params.get_js_type()
     );
     if params.is_array() {
         realm.traverse_array_mut(params, |_index, item| {
-            match item.js_get_type() {
+            match item.get_js_type() {
                 JsValueType::I32 => {
-                    params_vec.push(item.js_to_i32().into());
+                    params_vec.push(item.to_i32().into());
                 }
                 JsValueType::F64 => {
-                    params_vec.push(item.js_to_f64().into());
+                    params_vec.push(item.to_f64().into());
                 }
                 JsValueType::String => {
-                    params_vec.push(item.js_to_str()?.into());
+                    params_vec.push(item.to_str()?.into());
                 }
                 JsValueType::Boolean => {
-                    params_vec.push(item.js_to_bool().into());
+                    params_vec.push(item.to_bool().into());
                 }
                 JsValueType::Object => {
-                    if item.js_is_typed_array() {
+                    if item.is_typed_array() {
                         let buf = realm.copy_typed_array_buffer(item)?;
                         //let buf = realm.js_typed_array_detach_buffer(item)?;
                         params_vec.push(buf.into());
@@ -316,21 +316,21 @@ pub(crate) fn parse_params(
     } else if params.is_object() {
         let mut vec = vec![];
         realm.traverse_object_mut(params, |name, item| {
-            match item.js_get_type() {
+            match item.get_js_type() {
                 JsValueType::I32 => {
-                    vec.push((name.to_string(), item.js_to_i32().into()));
+                    vec.push((name.to_string(), item.to_i32().into()));
                 }
                 JsValueType::F64 => {
-                    vec.push((name.to_string(), item.js_to_f64().into()));
+                    vec.push((name.to_string(), item.to_f64().into()));
                 }
                 JsValueType::String => {
-                    vec.push((name.to_string(), item.js_to_str()?.into()));
+                    vec.push((name.to_string(), item.to_str()?.into()));
                 }
                 JsValueType::Boolean => {
-                    vec.push((name.to_string(), item.js_to_bool().into()));
+                    vec.push((name.to_string(), item.to_bool().into()));
                 }
                 JsValueType::Object => {
-                    if item.js_is_typed_array() {
+                    if item.is_typed_array() {
                         let buf = realm.copy_typed_array_buffer(item)?;
                         vec.push((name.to_string(), buf.into()));
                     } else {
@@ -371,14 +371,14 @@ impl MysqlConnection {
         // todo, actually parse args
         //url, port, user, pass, dbSchema
 
-        let host = args[0].js_to_str()?;
-        let port = args[1].js_to_i32() as u16;
-        let user = args[2].js_to_str()?;
-        let pass = args[3].js_to_str()?;
+        let host = args[0].to_str()?;
+        let port = args[1].to_i32() as u16;
+        let user = args[2].to_str()?;
+        let pass = args[3].to_str()?;
         let db = if args[4].is_null_or_undefined() {
             None
         } else {
-            Some(args[4].js_to_str()?)
+            Some(args[4].to_str()?)
         };
 
         let pool = get_con_pool_wrapper(user, pass, host, port, db)?;

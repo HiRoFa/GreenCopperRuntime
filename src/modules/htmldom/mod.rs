@@ -209,13 +209,13 @@ fn init_dom_parser_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdap
         .name("DOMParser")
         .constructor(|_rt, _realm, _id, _args| Ok(()))
         .method("parseFromString", |_rt, realm, _instance_id, args| {
-            if !args.len() == 1 || !(args[0].is_string() || args[0].js_is_typed_array()) {
+            if !args.len() == 1 || !(args[0].is_string() || args[0].is_typed_array()) {
                 Err(JsError::new_str(
                     "parseFromString expects a single string arg",
                 ))
             } else {
                 let doc = if args[0].is_string() {
-                    let html = args[0].js_to_str()?;
+                    let html = args[0].to_str()?;
                     parse_from_string(html)
                 } else {
                     let bytes = realm.detach_typed_array_buffer(&args[0])?;
@@ -421,7 +421,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     return Err(JsError::new_str("innerHTML should be a string"));
                 }
 
-                let html = val.js_to_str()?;
+                let html = val.to_str()?;
 
                 with_node(id, |node| {
                     while let Some(child) = node.first_child() {
@@ -448,9 +448,9 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("setAttribute expects two string args"));
             }
 
-            let local_name = args[0].js_to_str()?;
+            let local_name = args[0].to_str()?;
             let value = if args[1].is_string() {
-                Some(args[1].js_to_string()?)
+                Some(args[1].to_string()?)
             } else {
                 None
             };
@@ -481,10 +481,10 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("setAttributeNS expects three string args"));
             }
 
-            let _namespace = args[0].js_to_str()?;
-            let local_name = args[1].js_to_str()?;
+            let _namespace = args[0].to_str()?;
+            let local_name = args[1].to_str()?;
             let value = if args[2].is_string() {
-                Some(args[2].js_to_string()?)
+                Some(args[2].to_string()?)
             } else {
                 None
             };
@@ -507,7 +507,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             })
         })
         .method("equals", |_rt, realm, id, args| {
-            if args.len() != 1 || !args[0].js_is_proxy_instance() {
+            if args.len() != 1 || !args[0].is_proxy_instance() {
                 return Err(JsError::new_str("equals expects a single Node arg"));
             }
 
@@ -547,7 +547,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     if let Some(element) = node.as_element() {
                         let attrs = &mut *element.attributes.borrow_mut();
                         if value.is_string() {
-                            let cn = value.js_to_string()?;
+                            let cn = value.to_string()?;
                             attrs.insert("class", cn);
                         }
                     }
@@ -560,7 +560,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("getAttribute expects one string arg"));
             }
 
-            let local_name = args[0].js_to_str()?;
+            let local_name = args[0].to_str()?;
 
             with_node(id, |node| {
                 //
@@ -581,7 +581,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("querySelector expects one string arg"));
             }
 
-            let selectors = args[0].js_to_str()?;
+            let selectors = args[0].to_str()?;
 
             let res = with_node(id, |node| {
                 //
@@ -600,7 +600,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("querySelectorAll expects one string arg"));
             }
-            let selectors = args[0].js_to_string()?;
+            let selectors = args[0].to_string()?;
             let elements = with_node(id, |node| SelectBase {
                 selectors,
                 node: node.clone(),
@@ -609,7 +609,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         })
         .method("appendChild", |_rt, realm, id, args| {
             //
-            if args.len() != 1 || !args[0].js_is_proxy_instance() {
+            if args.len() != 1 || !args[0].is_proxy_instance() {
                 return Err(JsError::new_str(
                     "appendChild expects a single Node argument",
                 ));
@@ -634,7 +634,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         .method("removeChild", |_rt, realm, id, args| {
             // todo, calling this twice by mistake leads to other children being removed
 
-            if args.len() != 1 || !args[0].js_is_proxy_instance() {
+            if args.len() != 1 || !args[0].is_proxy_instance() {
                 return Err(JsError::new_str(
                     "removeChild expects a single Node argument",
                 ));
@@ -660,8 +660,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         })
         .method("replaceChild", |_rt, realm, id, args| {
             //
-            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
-            {
+            if args.len() != 2 || !args[0].is_proxy_instance() || !args[1].is_proxy_instance() {
                 return Err(JsError::new_str(
                     "replaceChild expects two Node arguments (newChild, oldChild)",
                 ));
@@ -697,8 +696,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         })
         .method("insertBefore", |_rt, realm, id, args| {
             //
-            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
-            {
+            if args.len() != 2 || !args[0].is_proxy_instance() || !args[1].is_proxy_instance() {
                 return Err(JsError::new_str(
                     "insertBefore expects two Node arguments (newNode, referenceNode)",
                 ));
@@ -732,8 +730,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         })
         .method("insertAfter", |_rt, realm, id, args| {
             //
-            if args.len() != 2 || !args[0].js_is_proxy_instance() || !args[1].js_is_proxy_instance()
-            {
+            if args.len() != 2 || !args[0].is_proxy_instance() || !args[1].is_proxy_instance() {
                 return Err(JsError::new_str(
                     "insertAfter expects two Node arguments (newNode, referenceNode)",
                 ));
@@ -774,7 +771,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let tag_name = args[0].js_to_str()?;
+            let tag_name = args[0].to_str()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
@@ -799,8 +796,8 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let namespace_uri = args[0].js_to_str()?;
-            let qualified_name = args[1].js_to_str()?;
+            let namespace_uri = args[0].to_str()?;
+            let qualified_name = args[1].to_str()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
@@ -828,7 +825,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let id_attr = args[0].js_to_str()?;
+            let id_attr = args[0].to_str()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
@@ -854,7 +851,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let content = args[0].js_to_string()?;
+            let content = args[0].to_string()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
@@ -1237,12 +1234,11 @@ pub mod tests {
         test()
         "#;
 
-        let promise = block_on(rt.eval(None, Script::new("testhtml.js", code)))
-            .ok()
-            .expect("script failed");
+        let promise =
+            block_on(rt.eval(None, Script::new("testhtml.js", code))).expect("script failed");
         if let JsValueFacade::JsPromise { cached_promise } = promise {
             let prom_res =
-                block_on(cached_promise.js_get_promise_result()).expect("promise timed out");
+                block_on(cached_promise.get_promise_result()).expect("promise timed out");
 
             match prom_res {
                 Ok(prom_str_res) => {

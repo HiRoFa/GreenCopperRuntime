@@ -196,7 +196,7 @@ pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> Js
             } else {
                 // todo
 
-                let query = args[0].js_to_string()?;
+                let query = args[0].to_string()?;
 
                 let params = &args[1];
                 let row_consumer = &args[2];
@@ -215,7 +215,7 @@ pub(crate) fn create_mysql_transaction_proxy(_realm: &QuickJsRealmAdapter) -> Js
             } else {
                 // todo
 
-                let query = args[0].js_to_string()?;
+                let query = args[0].to_string()?;
 
                 let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
@@ -251,7 +251,7 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
             } else {
                 // todo
 
-                let query = args[0].js_to_string()?;
+                let query = args[0].to_string()?;
 
                 let params = &args[1];
                 let row_consumer = &args[2];
@@ -270,7 +270,7 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
             } else {
                 // todo
 
-                let query = args[0].js_to_string()?;
+                let query = args[0].to_string()?;
 
                 let params: Vec<&QuickJsValueAdapter> = args[1..args.len()].iter().collect();
 
@@ -354,7 +354,7 @@ pub mod tests {
 
         println!("{}", res.stringify());
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let p_res = block_on(cached_promise.js_get_promise_result())
+            let p_res = block_on(cached_promise.get_promise_result())
                 .ok()
                 .expect("get prom res failed");
             match p_res {

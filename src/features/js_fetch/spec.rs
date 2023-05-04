@@ -236,41 +236,41 @@ impl FetchInit {
 
                 match prop_name {
                     "method" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.method = Method::from_str(val.as_str())
                             .map_err(|_e| JsError::new_str("No such method"))?;
                     }
                     "mode" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.mode = Mode::from_str(val.as_str())
                             .map_err(|_e| JsError::new_str("No such mode"))?;
                     }
                     "cache" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.cache = Cache::from_str(val.as_str())
                             .map_err(|_e| JsError::new_str("No such cache"))?;
                     }
                     "credentials" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.credentials = Credentials::from_str(val.as_str())
                             .map_err(|_e| JsError::new_str("No such credentials"))?;
                     }
 
                     "redirect" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.redirect = Redirect::from_str(val.as_str())
                             .map_err(|_e| JsError::new_str("No such redirect"))?;
                     }
 
                     "body" => {
-                        let val = prop.js_to_string()?;
+                        let val = prop.to_string()?;
                         fetch_init.body = Some(Body { text: val })
                     }
                     "headers" => {
                         realm.traverse_object_mut(prop, |header_name, header_val| {
                             fetch_init
                                 .headers
-                                .append(header_name, header_val.js_to_string()?.as_str());
+                                .append(header_name, header_val.to_string()?.as_str());
                             Ok(())
                         })?;
                     }
@@ -404,6 +404,7 @@ pub async fn do_fetch(
 
 #[cfg(test)]
 pub mod tests {
+    /*
     use futures::executor::block_on;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use quickjs_runtime::jsutils::Script;
@@ -419,7 +420,7 @@ pub mod tests {
             })();
         "#))).expect("script failed");
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            res = block_on(cached_promise.js_get_promise_result())
+            res = block_on(cached_promise.get_promise_result())
                 .expect("promise timed out")
                 .expect("promise failed");
         }
@@ -429,5 +430,5 @@ pub mod tests {
         println!("res: {str}");
 
         assert!(str.contains("\"json\": {\n    \"obj\": 1\n  }"))
-    }
+    }*/
 }

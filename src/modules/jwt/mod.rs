@@ -114,16 +114,13 @@ fn create(
     _this: &QuickJsValueAdapter,
     args: &[QuickJsValueAdapter],
 ) -> Result<QuickJsValueAdapter, JsError> {
-    if args.len() != 3
-        || !args[0].is_object()
-        || !args[1].is_object()
-        || !args[2].js_is_typed_array()
+    if args.len() != 3 || !args[0].is_object() || !args[1].is_object() || !args[2].is_typed_array()
     {
         Err(JsError::new_str("invalid arguments for create"))
     } else {
         let alg_header = realm.get_object_property(&args[0], "alg")?;
         let alg = if alg_header.is_string() {
-            JwtAlgo::from_str(alg_header.js_to_str()?)?
+            JwtAlgo::from_str(alg_header.to_str()?)?
         } else {
             JwtAlgo::EdDSA
         };
@@ -285,7 +282,7 @@ pub mod tests {
         let res = block_on(rt.eval(None, script)).ok().expect("script failed");
 
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let prom_res = block_on(cached_promise.js_get_promise_result())
+            let prom_res = block_on(cached_promise.get_promise_result())
                 .ok()
                 .expect("promise timed out");
 

@@ -50,7 +50,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
         .static_method("encode", |_runtime, realm, args| {
             // todo async
 
-            if args.is_empty() || !args[0].js_is_typed_array() {
+            if args.is_empty() || !args[0].is_typed_array() {
                 Err(JsError::new_str("encode expects a single type array arg"))
             } else {
                 let bytes = realm.copy_typed_array_buffer(&args[0])?;
@@ -67,7 +67,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
         .static_method("encodeSync", |_runtime, realm, args| {
             // todo async
 
-            if args.is_empty() || !args[0].js_is_typed_array() {
+            if args.is_empty() || !args[0].is_typed_array() {
                 Err(JsError::new_str("encode expects a single type array arg"))
             } else {
                 let bytes = realm.copy_typed_array_buffer(&args[0])?;
@@ -83,7 +83,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
             if args.is_empty() || !args[0].is_string() {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
-                let s = args[0].js_to_string()?;
+                let s = args[0].to_string()?;
                 realm.create_resolving_promise(
                     move || {
                         let engine = base64::engine::general_purpose::STANDARD;
@@ -105,7 +105,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
             if args.is_empty() || !args[0].is_string() {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
-                let s = args[0].js_to_str()?;
+                let s = args[0].to_str()?;
                 let engine = base64::engine::general_purpose::STANDARD;
                 let decoded = engine
                     .decode(s)
@@ -159,7 +159,7 @@ pub mod tests {
 
         println!("{}", res.stringify());
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let p_res = block_on(cached_promise.js_get_promise_result())
+            let p_res = block_on(cached_promise.get_promise_result())
                 .ok()
                 .expect("get prom res failed");
             match p_res {

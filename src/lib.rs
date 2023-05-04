@@ -59,8 +59,8 @@ pub mod tests {
                 "testFunction",
                 |_runtime, realm, _this, args| {
                     // return 1234
-                    let arg1 = &args[0].js_to_i32();
-                    let arg2 = &args[1].js_to_i32();
+                    let arg1 = &args[0].to_i32();
+                    let arg2 = &args[1].to_i32();
                     realm.create_i32(arg1 * arg2 * 3)
                 },
                 2,

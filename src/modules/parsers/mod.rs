@@ -51,14 +51,14 @@ pub(crate) fn create_csv_parser_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
 
             // three args, a string or Uint8array for data, a recordCallBack function and an optional options object
 
-            if args.len() < 3 || !(args[0].is_string() || args[0].js_is_typed_array()) || !args[1].is_function() || !args[2].is_function() {
+            if args.len() < 3 || !(args[0].is_string() || args[0].is_typed_array()) || !args[1].is_function() || !args[2].is_function() {
                 Err(JsError::new_str("parse requires 2 or 3 args (data: string | Uint8Array, headersCallBack: (headers: array<string>) => void, recordCallback: (record: array<string>) => void, options: {})"))
             } else {
 
                 // get data, func_ref as JsValueFacade, move to producer
 
                 let data = if args[0].is_string() {
-                    args[0].js_to_string()?
+                    args[0].to_string()?
                 } else {
                     let buf = realm.copy_typed_array_buffer(&args[0])?;
                     String::from_utf8(buf).map_err(|e| JsError::new_string(format!("{e}")))?
@@ -93,7 +93,7 @@ pub(crate) fn create_csv_parser_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                         JsValueFacade::new_str(h)
                     }).collect();
 
-                    let _ = cached_h_function.js_invoke_function( vec![JsValueFacade::Array {val}]).await;
+                    let _ = cached_h_function.invoke_function( vec![JsValueFacade::Array {val}]).await;
 
                     for result in rdr.records() {
                         // The iterator yields Result<StringRecord, Error>, so we check the
@@ -107,7 +107,7 @@ pub(crate) fn create_csv_parser_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
 
                         let jsvf_record = JsValueFacade::Array {val};
 
-                        let _ = cached_r_function.js_invoke_function( vec![jsvf_record]).await;
+                        let _ = cached_r_function.invoke_function( vec![jsvf_record]).await;
 
                         log::trace!("greco::parsers::CsvParser row: {:?}", record);
                     }
@@ -172,7 +172,7 @@ pub mod tests {
 
         println!("{}", res.stringify());
         if let JsValueFacade::JsPromise { cached_promise } = res {
-            let p_res = block_on(cached_promise.js_get_promise_result())
+            let p_res = block_on(cached_promise.get_promise_result())
                 .ok()
                 .expect("get prom res failed");
             match p_res {

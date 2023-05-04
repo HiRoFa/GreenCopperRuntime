@@ -38,12 +38,12 @@ fn require(
     _this_val: &QuickJsValueAdapter,
     args: &[QuickJsValueAdapter],
 ) -> Result<QuickJsValueAdapter, JsError> {
-    if args.len() != 1 || args[0].js_get_type() != JsValueType::String {
+    if args.len() != 1 || args[0].get_js_type() != JsValueType::String {
         Err(JsError::new_str(
             "require requires a single string argument",
         ))
     } else {
-        let name = args[0].js_to_string()?;
+        let name = args[0].to_string()?;
 
         let mut cur_path = realm
             .get_script_or_module_name()
