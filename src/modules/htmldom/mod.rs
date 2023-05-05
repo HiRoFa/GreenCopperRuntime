@@ -44,6 +44,99 @@ use std::cell::RefCell;
 // * DataSet
 // * ClassList
 
+use regex::Regex;
+
+#[derive(Debug)]
+struct StyleProperty {
+    id: String,
+    value: String,
+}
+
+fn parse_inline_css(css: &str) -> Vec<StyleProperty> {
+    let property_regex = Regex::new(r"\s*([^:]+):\s*([^;]+);?\s*").unwrap();
+    let mut properties = Vec::new();
+
+    for capture in property_regex.captures_iter(css) {
+        let id = capture[1].to_owned();
+        let value = capture[2].to_owned();
+        properties.push(StyleProperty { id, value });
+    }
+
+    properties
+}
+
+fn camel_to_kebab_case(s: &str) -> String {
+    let mut snake_case = String::new();
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c.is_uppercase() {
+            if let Some(next) = chars.peek() {
+                if next.is_lowercase() {
+                    snake_case.push('-');
+                }
+            }
+            snake_case.extend(c.to_lowercase());
+        } else {
+            snake_case.push(c);
+        }
+    }
+
+    snake_case
+}
+
+fn camel_to_snake_case(s: &str) -> String {
+    let mut snake_case = String::new();
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c.is_uppercase() {
+            if let Some(next) = chars.peek() {
+                if next.is_lowercase() {
+                    snake_case.push('_');
+                }
+            }
+            snake_case.extend(c.to_lowercase());
+        } else {
+            snake_case.push(c);
+        }
+    }
+
+    snake_case
+}
+
+#[allow(unused)]
+fn snake_to_camel_case(s: &str) -> String {
+    let mut camel_case = String::new();
+    let mut next_uppercase = false;
+
+    for c in s.chars() {
+        if c == '_' {
+            next_uppercase = true;
+        } else if next_uppercase {
+            camel_case.extend(c.to_uppercase());
+            next_uppercase = false;
+        } else {
+            camel_case.push(c);
+        }
+    }
+
+    camel_case
+}
+
+fn serialize_style_properties(properties: &[StyleProperty]) -> String {
+    let mut css_string = String::new();
+
+    for property in properties {
+        css_string.push_str(&format!("{}: {}; ", property.id, property.value));
+    }
+
+    css_string.to_owned()
+}
+
+// todo style and dataset proxies with catch-all
+// both have a ref to the node involved
+
 struct HtmlDomModuleLoader {}
 
 impl NativeModuleLoader for HtmlDomModuleLoader {
@@ -62,6 +155,8 @@ impl NativeModuleLoader for HtmlDomModuleLoader {
             "NodeList",
             "ElementList",
             "SelectElementList",
+            "StyleObj",
+            "DatasetObj",
         ]
     }
 
@@ -92,6 +187,14 @@ impl NativeModuleLoader for HtmlDomModuleLoader {
                 init_select_elementlist_proxy(realm)
                     .expect("failed to init SelectElementList proxy"),
             ),
+            (
+                "StyleObj",
+                init_style_obj_proxy(realm).expect("failed to init StyleObj proxy"),
+            ),
+            (
+                "DatasetObj",
+                init_dataset_obj_proxy(realm).expect("failed to init DatasetObj proxy"),
+            ),
         ]
     }
 }
@@ -105,11 +208,37 @@ type NodeList = Siblings;
 type ElementList = Elements<Siblings>;
 type SelectElementList = SelectBase;
 
+struct DatasetObj {
+    element: NodeRef,
+}
+
+struct StyleObj {
+    element: NodeRef,
+}
+
 thread_local! {
     static NODES: RefCell<AutoIdMap<NodeRef>> = RefCell::new(AutoIdMap::new());
     static NODELISTS: RefCell<AutoIdMap<NodeList>> = RefCell::new(AutoIdMap::new());
     static ELEMENTLISTS: RefCell<AutoIdMap<ElementList>> = RefCell::new(AutoIdMap::new());
     static SELECTELEMENTLISTS: RefCell<AutoIdMap<SelectElementList >> = RefCell::new(AutoIdMap::new());
+    static DATASETOBJS: RefCell<AutoIdMap<DatasetObj>> = RefCell::new(AutoIdMap::new());
+    static STYLEOBJS: RefCell<AutoIdMap<StyleObj>> = RefCell::new(AutoIdMap::new());
+}
+
+fn with_style<R, C: FnOnce(&StyleObj) -> R>(proxy_instance_id: &usize, consumer: C) -> R {
+    STYLEOBJS.with(|rc| {
+        let map = &*rc.borrow();
+        let style_obj: &StyleObj = map.get(proxy_instance_id).expect("no such StyleObj");
+        consumer(style_obj)
+    })
+}
+
+fn with_dataset<R, C: FnOnce(&DatasetObj) -> R>(proxy_instance_id: &usize, consumer: C) -> R {
+    DATASETOBJS.with(|rc| {
+        let map = &*rc.borrow();
+        let dataset: &DatasetObj = map.get(proxy_instance_id).expect("no such Dataset");
+        consumer(dataset)
+    })
 }
 
 fn with_node<R, C: FnOnce(&NodeRef) -> R>(proxy_instance_id: &usize, consumer: C) -> R {
@@ -118,6 +247,32 @@ fn with_node<R, C: FnOnce(&NodeRef) -> R>(proxy_instance_id: &usize, consumer: C
         let node: &NodeRef = map.get(proxy_instance_id).expect("no such Node");
         consumer(node)
     })
+}
+
+fn register_dataset_obj_for_node(
+    realm: &QuickJsRealmAdapter,
+    node: &NodeRef,
+) -> Result<QuickJsValueAdapter, JsError> {
+    let id = DATASETOBJS.with(|rc| {
+        let map = &mut *rc.borrow_mut();
+        map.insert(DatasetObj {
+            element: node.clone(),
+        })
+    });
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "DatasetObj", id)
+}
+
+fn register_style_obj_for_node(
+    realm: &QuickJsRealmAdapter,
+    node: &NodeRef,
+) -> Result<QuickJsValueAdapter, JsError> {
+    let id = STYLEOBJS.with(|rc| {
+        let map = &mut *rc.borrow_mut();
+        map.insert(StyleObj {
+            element: node.clone(),
+        })
+    });
+    realm.instantiate_proxy_with_id(&["greco", "htmldom"], "StyleObj", id)
 }
 
 fn register_node(
@@ -240,6 +395,24 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             NODES.with(|rc| {
                 let map = &mut rc.borrow_mut();
                 map.remove(&id);
+            })
+        })
+        .getter("dataset", |_rt, realm, id| {
+            with_node(id, |node| {
+                if node.as_element().is_some() {
+                    register_dataset_obj_for_node(realm, node)
+                } else {
+                    realm.create_undefined()
+                }
+            })
+        })
+        .getter("style", |_rt, realm, id| {
+            with_node(id, |node| {
+                if node.as_element().is_some() {
+                    register_style_obj_for_node(realm, node)
+                } else {
+                    realm.create_undefined()
+                }
             })
         })
         .getter("childNodes", |_rt, realm, id| {
@@ -1034,6 +1207,123 @@ fn init_elementlist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAda
     realm.install_proxy(proxy, true)
 }
 
+fn init_style_obj_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("StyleObj")
+        .finalizer(|_rt, _realm, id| {
+            STYLEOBJS.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
+        .catch_all_getter_setter(
+            |_rt, realm, id, name| {
+                //
+
+                let css_name = camel_to_snake_case(name);
+
+                with_style(id, |style| {
+                    let element_data = style.element.as_element().unwrap();
+                    let attrs = element_data.attributes.borrow_mut();
+                    let val_opt = attrs.get("style");
+                    if let Some(attr_str_val) = val_opt {
+                        // parse the inline css
+                        let parsed_css = parse_inline_css(attr_str_val);
+                        // see if we can find the requested prop and return its value as string
+                        for css_val in parsed_css {
+                            if css_val.id.eq(css_name.as_str()) {
+                                //
+                                return realm.create_string(css_val.value.as_str());
+                            }
+                        }
+                    }
+                    // not found return null
+                    realm.create_null()
+                })
+            },
+            |_rt, _realm, id, name, value| {
+                let css_name = camel_to_snake_case(name);
+                let css_val = value.to_string()?;
+
+                with_style(id, |style| {
+                    let element_data = style.element.as_element().unwrap();
+                    let mut attrs = element_data.attributes.borrow_mut();
+
+                    let val_opt = attrs.get("style");
+                    let mut parsed_css = if let Some(attr_str_val) = val_opt {
+                        parse_inline_css(attr_str_val)
+                    } else {
+                        vec![]
+                    };
+
+                    // remove cur val if exists
+                    parsed_css.retain(|prop| !prop.id.eq(css_name.as_str()));
+
+                    // add new val at end
+                    parsed_css.push(StyleProperty {
+                        id: css_name,
+                        value: css_val,
+                    });
+
+                    // serialize to inline css
+                    let css_attr_val = serialize_style_properties(&parsed_css);
+
+                    // set attr
+                    attrs.insert("style", css_attr_val);
+                });
+
+                Ok(())
+            },
+        )
+        .install(realm, false)
+}
+
+fn init_dataset_obj_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, JsError> {
+    JsProxy::new()
+        .namespace(&["greco", "htmldom"])
+        .name("DatasetObj")
+        .finalizer(|_rt, _realm, id| {
+            DATASETOBJS.with(|rc| {
+                let map = &mut rc.borrow_mut();
+                map.remove(&id);
+            })
+        })
+        .catch_all_getter_setter(
+            |_rt, realm, id, name| {
+                //
+
+                let attr_name = format!("data-{}", camel_to_kebab_case(name));
+
+                with_dataset(id, |dataset| {
+                    let element_data = dataset.element.as_element().unwrap();
+                    let attrs = element_data.attributes.borrow_mut();
+                    let val_opt = attrs.get(attr_name.as_str());
+                    if let Some(attr_str_val) = val_opt {
+                        realm.create_string(attr_str_val)
+                    } else {
+                        realm.create_null()
+                    }
+                })
+            },
+            |_rt, _realm, id, name, value| {
+                let attr_name = format!("data-{}", camel_to_kebab_case(name));
+
+                let attr_val = value.to_string()?;
+
+                with_dataset(id, |dataset| {
+                    let element_data = dataset.element.as_element().unwrap();
+                    let mut attrs = element_data.attributes.borrow_mut();
+
+                    attrs.insert(attr_name, attr_val);
+                });
+
+                Ok(())
+            },
+        )
+        .install(realm, false)
+}
+
 fn init_select_elementlist_proxy(
     realm: &QuickJsRealmAdapter,
 ) -> Result<QuickJsValueAdapter, JsError> {
@@ -1177,6 +1467,15 @@ pub mod tests {
             helloNode.appendChild(svg);
             
             res += helloNode?"\nhelloNode.innerHTML = "+helloNode.innerHTML:"\nhello node not found";
+            
+            helloNode.dataset.id1 = "123";
+            helloNode.dataset.id2 = 123;
+            helloNode.dataset.id3 = true;
+            
+            helloNode.style.backgroundColor = "black";
+            helloNode.style.color = "white";
+            
+            res += "\nhelloNode.style.color = " + helloNode.style.color + "\n";
             
             res += "\nattr=" + doc.documentElement.getAttribute("data-foo") + "\n";
             res += "html:\n" + doc.documentElement.outerHTML;
