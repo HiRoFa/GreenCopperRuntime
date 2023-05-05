@@ -728,6 +728,41 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 })
             },
         )
+        .getter_setter(
+            "textContent",
+            |_rt, realm, id| {
+                //
+                with_node(id, |node| {
+                    //
+
+                    if let Some(_element) = node.as_element() {
+                        // todo serialize
+                        realm.create_undefined()
+                    } else if let Some(txt) = node.as_text() {
+                        realm.create_string(txt.borrow().as_str())
+                    } else {
+                        realm.create_undefined()
+                    }
+                })
+            },
+            |_rt, _realm, id, value| {
+                //
+                with_node(id, |node| {
+                    //
+                    if let Some(_element) = node.as_element() {
+                        while let Some(child) = node.first_child() {
+                            child.detach();
+                        }
+
+                        //
+                        let t_node = NodeRef::new_text(value.to_string()?);
+                        node.append(t_node);
+                    }
+
+                    Ok(())
+                })
+            },
+        )
         .method("getAttribute", |_rt, realm, id, args| {
             if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("getAttribute expects one string arg"));
@@ -826,7 +861,6 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
 
                 Some(_element) => {
                     child.detach();
-                    let _ = child.parent().take();
                     Ok(args[0].clone())
                 }
             })
@@ -1462,6 +1496,7 @@ pub mod tests {
             let res = "";
             
             let helloNode = doc.getElementById("helloId");
+            helloNode.textContent = "hi there";
             
             const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
             helloNode.appendChild(svg);
