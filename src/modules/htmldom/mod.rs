@@ -621,7 +621,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("setAttribute expects two string args"));
             }
 
-            let local_name = args[0].to_str()?;
+            let local_name = args[0].to_string()?;
             let value = if args[1].is_string() {
                 Some(args[1].to_string()?)
             } else {
@@ -654,8 +654,8 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("setAttributeNS expects three string args"));
             }
 
-            let _namespace = args[0].to_str()?;
-            let local_name = args[1].to_str()?;
+            //let _namespace = args[0].to_string()?;
+            let local_name = args[1].to_string()?;
             let value = if args[2].is_string() {
                 Some(args[2].to_string()?)
             } else {
@@ -978,7 +978,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let tag_name = args[0].to_str()?;
+            let tag_name = args[0].to_string()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
@@ -1006,8 +1006,8 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let namespace_uri = args[0].to_str()?;
-            let qualified_name = args[1].to_str()?;
+            let namespace_uri = args[0].to_string()?;
+            let qualified_name = args[1].to_string()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
