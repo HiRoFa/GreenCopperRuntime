@@ -983,8 +983,11 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
-                    let q_name =
-                        QualName::new(None, Namespace::from(""), LocalName::from(tag_name));
+                    let q_name = QualName::new(
+                        None,
+                        Namespace::from("http://www.w3.org/1999/xhtml"),
+                        LocalName::from(tag_name),
+                    );
                     let new_node = NodeRef::new_element(q_name, vec![]);
                     Ok(new_node)
                 }
