@@ -23,7 +23,7 @@ use html5ever::Namespace;
 use html5ever::QualName;
 use kuchiki::iter::{Elements, NodeIterator, Siblings};
 use kuchiki::traits::TendrilSink;
-use kuchiki::{parse_html, NodeRef};
+use kuchiki::{parse_html, NodeData, NodeRef};
 use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 use quickjs_runtime::jsutils::jsproxies::JsProxy;
 use quickjs_runtime::jsutils::modules::NativeModuleLoader;
@@ -413,6 +413,17 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 } else {
                     realm.create_undefined()
                 }
+            })
+        })
+        .getter("nodeType", |_rt, realm, id| {
+            with_node(id, |node| match node.data() {
+                NodeData::Element(_) => realm.create_i32(1),
+                NodeData::Text(_) => realm.create_i32(3),
+                NodeData::Comment(_) => realm.create_i32(8),
+                NodeData::ProcessingInstruction(_) => realm.create_i32(7),
+                NodeData::Doctype(_) => realm.create_i32(10),
+                NodeData::Document(_) => realm.create_i32(9),
+                NodeData::DocumentFragment => realm.create_i32(11),
             })
         })
         .getter("childNodes", |_rt, realm, id| {
