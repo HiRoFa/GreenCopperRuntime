@@ -391,6 +391,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
     let proxy = JsProxy::new()
         .namespace(&["greco", "htmldom"])
         .name("Node")
+        .event_target()
         .finalizer(|_rt, _realm, id| {
             NODES.with(|rc| {
                 let map = &mut rc.borrow_mut();
