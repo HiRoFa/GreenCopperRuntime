@@ -908,7 +908,6 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 Some(_element) => {
                     old_child.insert_before(new_child);
                     old_child.detach();
-                    let _ = old_child.parent().take();
                     Ok(args[1].clone())
                 }
             })
