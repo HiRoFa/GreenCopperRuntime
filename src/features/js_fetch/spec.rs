@@ -381,6 +381,9 @@ pub async fn do_fetch(
             .await
             .map_err(|e| JsError::new_string(format!("{e}")))?;
 
+        let ok = reqwest_resp.status().is_success();
+        let status = reqwest_resp.status().as_u16();
+
         let response: Response = Response {
             body: Body {
                 text: reqwest_resp
@@ -389,9 +392,9 @@ pub async fn do_fetch(
                     .map_err(|e| JsError::new_string(format!("{e}")))?,
             },
             headers: Headers::new(),
-            ok: false,
+            ok,
             redirected: false,
-            status: 0,
+            status,
             status_text: "",
             response_type: "",
             url: "".to_string(),

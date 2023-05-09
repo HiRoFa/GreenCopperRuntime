@@ -37,6 +37,22 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 map.remove(&id);
             });
         })
+        .getter("ok", |_rt, realm, instance_id| {
+            with_response(instance_id, |response| {
+                //
+                realm.create_boolean(response.ok)
+            })
+            // todo with_response is impld sucky
+            .unwrap()
+        })
+        .getter("status", |_rt, realm, instance_id| {
+            with_response(instance_id, |response| {
+                //
+                realm.create_i32(response.status as i32)
+            })
+            // todo with_response is impld sucky
+            .unwrap()
+        })
         .method("text", |_rt, realm, instance_id, _args| {
             //
             let response = with_response(instance_id, |response| response.clone())
