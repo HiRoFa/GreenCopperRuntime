@@ -218,7 +218,7 @@ impl NativeModuleLoader for FsModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(FsModuleLoader {})
+    builder.native_module_loader(FsModuleLoader {})
 }
 
 fn init_exports(

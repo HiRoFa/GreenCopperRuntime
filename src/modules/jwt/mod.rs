@@ -59,7 +59,7 @@ impl NativeModuleLoader for JwtModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(JwtModuleLoader {})
+    builder.native_module_loader(JwtModuleLoader {})
 }
 
 fn init_exports(

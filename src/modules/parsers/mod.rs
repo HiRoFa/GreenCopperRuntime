@@ -33,7 +33,7 @@ impl NativeModuleLoader for ParsersModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(ParsersModuleLoader {})
+    builder.native_module_loader(ParsersModuleLoader {})
 }
 
 fn init_exports(
@@ -66,11 +66,7 @@ pub(crate) fn create_csv_parser_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 let cb_h_func = realm.to_js_value_facade(&args[1])?;
                 let cb_r_func = realm.to_js_value_facade(&args[2])?;
 
-
                 realm.create_resolving_promise_async(  async move {
-                    //
-
-
 
                     let mut rdr = csv::ReaderBuilder::new()
                         .double_quote(true)

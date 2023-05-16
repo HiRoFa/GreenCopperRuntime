@@ -155,7 +155,7 @@ impl NativeModuleLoader for MysqlModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(MysqlModuleLoader {})
+    builder.native_module_loader(MysqlModuleLoader {})
 }
 
 fn init_exports(

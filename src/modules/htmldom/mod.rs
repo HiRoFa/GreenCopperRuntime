@@ -1456,7 +1456,7 @@ fn init_select_elementlist_proxy(
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     builder
-        .js_realm_adapter_init_hook(|_rt, _realm| {
+        .realm_adapter_init_hook(|_rt, _realm| {
             // init
             // document.createElement (moet Element of SVGElement of HTMLDivElement of HTMLTableElement etc etc teruggeven)
             // document.createElementNS
@@ -1468,7 +1468,7 @@ pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
 
             Ok(())
         })
-        .js_native_module_loader(HtmlDomModuleLoader {})
+        .native_module_loader(HtmlDomModuleLoader {})
 }
 
 #[cfg(test)]

@@ -31,7 +31,7 @@ impl NativeModuleLoader for EncodingModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(EncodingModuleLoader {})
+    builder.native_module_loader(EncodingModuleLoader {})
 }
 
 fn init_exports(

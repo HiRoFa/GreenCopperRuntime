@@ -4,7 +4,7 @@ use quickjs_runtime::jsutils::JsError;
 use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_realm_adapter_init_hook(|_rt, realm| {
+    builder.realm_adapter_init_hook(|_rt, realm| {
         // init crypto proxy
         init_crypto_proxy(realm)
     })

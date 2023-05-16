@@ -373,5 +373,5 @@ impl NativeModuleLoader for GpioModuleLoader {
 }
 
 pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_native_module_loader(GpioModuleLoader {})
+    builder.native_module_loader(GpioModuleLoader {})
 }

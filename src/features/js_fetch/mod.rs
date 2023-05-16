@@ -10,8 +10,7 @@ mod proxies;
 pub mod spec;
 
 pub fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    // todo abstract trait for builders
-    builder.js_runtime_init_hook(impl_for_rt)
+    builder.runtime_facade_init_hook(impl_for_rt)
 }
 
 pub fn impl_for_rt(runtime: &QuickJsRuntimeFacade) -> Result<(), JsError> {
@@ -101,4 +100,58 @@ pub mod tests {
             }
         }
     }
+
+    /*#[test]
+    fn test_chart() {
+        let rt = init_test_greco_rt();
+
+        impl_for_rt(&rt).ok().expect("init failed");
+
+        let fetch_fut = rt.eval(
+            None,
+            Script::new("test_fetch_gen.js", r#"
+            let testFunc = async function() {
+            console.log(1);
+            let body = {
+             "chart": {
+                "chartOptions": {"as": "svg"}
+              }
+            };
+            let fetchRes = await fetch('http://192.168.10.43:8055/charts/line', {body: JSON.stringify(body), headers: {"Content-Type": ['application/json']}});
+            let text = await fetchRes.text();
+            return text;
+            };
+            testFunc()
+            "#),
+        );
+        let res = block_on(fetch_fut);
+        match res {
+            Ok(val) => match val {
+                JsValueFacade::JsPromise { cached_promise } => {
+                    let res_fut = cached_promise.get_promise_result();
+                    let fetch_res = block_on(res_fut);
+                    match fetch_res {
+                        Ok(v) => match v {
+                            Ok(resolved) => {
+                                //assert_eq!(resolved.js_get_value_type(), JsValueType::String);
+                                println!("resolved to string: {}", resolved.stringify());
+                            }
+                            Err(rejected) => {
+                                panic!("promise was rejected: {}", rejected.stringify());
+                            }
+                        },
+                        Err(e) => {
+                            panic!("fetch failed {}", e)
+                        }
+                    }
+                }
+                _ => {
+                    panic!("result was not a promise")
+                }
+            },
+            Err(e) => {
+                panic!("script failed: {}", e);
+            }
+        }
+    }*/
 }

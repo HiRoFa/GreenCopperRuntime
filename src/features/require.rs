@@ -13,7 +13,7 @@ use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 
 pub fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
     // todo.. this should utilize the script module loaders in order to obtain the source, then use a 'require' function in js to do the actual loading..
-    builder.js_runtime_init_hook(|rt| {
+    builder.runtime_facade_init_hook(|rt| {
         // todo, impl with native function.. like now
 
         rt.loop_sync_mut(|js_rt| {

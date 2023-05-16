@@ -135,7 +135,7 @@ impl ManagedCache {
         }
         // new
         let region = CacheRegion {
-            lru_cache: LruCache::new(max_items),
+            lru_cache: LruCache::new(std::num::NonZeroUsize::new(max_items).unwrap()),
             ttl,
             max_idle,
         };
@@ -427,7 +427,7 @@ pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
 
     // add greco://cache module (machine local cache)
     // config per region, every region is a LRUCache
-    builder.js_native_module_loader(CacheModuleLoader {})
+    builder.native_module_loader(CacheModuleLoader {})
 }
 
 #[cfg(test)]

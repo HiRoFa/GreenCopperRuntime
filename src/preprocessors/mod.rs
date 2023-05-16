@@ -14,5 +14,5 @@ pub mod cpp;
 pub mod macros;
 
 pub fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
-    builder.js_script_pre_processor(CppPreProcessor::new())
+    builder.script_pre_processor(CppPreProcessor::new())
 }
