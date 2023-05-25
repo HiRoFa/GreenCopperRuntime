@@ -650,8 +650,29 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                         if let Some(value) = value {
                             attrs.insert(local_name, value);
                         } else {
-                            attrs.remove(local_name);
+                            attrs.insert(local_name, "null".to_string());
                         }
+                        realm.create_null()
+                    }
+                }
+            })
+        })
+        .method("removeAttribute", |_rt, realm, id, args| {
+            if !args.len() == 1 || !args[0].is_string() {
+                return Err(JsError::new_str("removeAttribute expects one string arg"));
+            }
+
+            let local_name = args[0].to_string()?;
+
+            with_node(id, |node| {
+                //
+                match node.as_element() {
+                    None => Err(JsError::new_str("not an Element")),
+                    Some(element) => {
+                        let attrs = &mut *element.attributes.borrow_mut();
+
+                        attrs.remove(local_name);
+
                         realm.create_null()
                     }
                 }
@@ -684,7 +705,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                         if let Some(value) = value {
                             attrs.insert(local_name, value);
                         } else {
-                            attrs.remove(local_name);
+                            attrs.insert(local_name, "null".to_string());
                         }
                         realm.create_null()
                     }
