@@ -432,7 +432,11 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
         })
         .getter("children", |_rt, realm, id| {
             with_node(id, |node| {
-                register_element_list(realm, node.children().elements())
+                if let Some(_element) = node.as_element() {
+                    register_element_list(realm, node.children().elements())
+                } else {
+                    realm.create_null()
+                }
             })
         })
         .getter("nodeValue", |_rt, realm, id| {
@@ -817,6 +821,49 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 }
             })
         })
+        .method("hasAttributes", |_rt, realm, id, _args| {
+            with_node(id, |node| {
+                //
+                match node.as_element() {
+                    None => Err(JsError::new_str("not an Element")),
+                    Some(element) => {
+                        let attrs = &mut *element.attributes.borrow_mut();
+                        realm.create_boolean(!attrs.map.is_empty())
+                    }
+                }
+            })
+        })
+        .getter("attributes", |_rt, realm, id| {
+            with_node(id, |node| {
+                //
+                match node.as_element() {
+                    None => Err(JsError::new_str("not an Element")),
+                    Some(element) => {
+                        let attrs = &mut *element.attributes.borrow_mut();
+                        let attrs_array = realm.create_array()?;
+
+                        for a in &attrs.map {
+                            let a_obj = realm.create_object()?;
+
+                            realm.set_object_property(
+                                &a_obj,
+                                "name",
+                                &realm.create_string(&a.0.local)?,
+                            )?;
+                            realm.set_object_property(
+                                &a_obj,
+                                "value",
+                                &realm.create_string(a.1.value.as_str())?,
+                            )?;
+
+                            realm.push_array_element(&attrs_array, &a_obj)?;
+                        }
+
+                        Ok(attrs_array)
+                    }
+                }
+            })
+        })
         .method("querySelector", |_rt, realm, id, args| {
             if !args.len() == 1 || !args[0].is_string() {
                 return Err(JsError::new_str("querySelector expects one string arg"));
@@ -1161,9 +1208,9 @@ fn init_nodelist_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapte
         })
         .method("Symbol.iterator", |_rt, realm, id, _args| {
             //
-            // this should be considered a hack, it only works in quicksj, we need Iterable support in utils::JsProxy
+            // this should be considered a hack, it only works in quickjs, we need Iterable support in utils::JsProxy
 
-            // return an object with a next func, (clone NodeList and move to clusure)
+            // return an object with a next func, (clone NodeList and move to closure)
             // next func should return an object with {done: false|true, value: null | nextVal}
 
             let obj = realm.create_object()?;

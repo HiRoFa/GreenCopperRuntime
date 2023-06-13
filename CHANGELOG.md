@@ -1,3 +1,8 @@
+# 0.1.1 (WiP)
+
+* Element.hasAttributes
+* Element.attributes
+
 # 0.1.0
 
 * uses quickjs_runtime 0.10.0 and ditches the multi engine principles
