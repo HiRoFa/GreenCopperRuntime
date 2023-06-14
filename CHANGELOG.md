@@ -1,7 +1,8 @@
-# 0.1.1 (WiP)
+# 0.1.1
 
 * Element.hasAttributes
 * Element.attributes
+* qjs_rt 0.11
 
 # 0.1.0
 
