@@ -263,8 +263,20 @@ impl FetchInit {
                     }
 
                     "body" => {
-                        let val = prop.to_string()?;
-                        fetch_init.body = Some(Body { text: val })
+                        if prop.is_string() {
+                            let val = prop.to_string()?;
+                            fetch_init.body = Some(Body {
+                                text: Some(val),
+                                bytes: None,
+                            });
+                        }
+                        if prop.is_typed_array() {
+                            let val = realm.detach_typed_array_buffer(prop)?;
+                            fetch_init.body = Some(Body {
+                                bytes: Some(val),
+                                text: None,
+                            });
+                        }
                     }
                     "headers" => {
                         realm.traverse_object_mut(prop, |header_name, header_val| {
@@ -309,7 +321,8 @@ impl Default for Headers {
 }
 
 pub struct Body {
-    pub text: String,
+    pub text: Option<String>,
+    pub bytes: Option<Vec<u8>>,
 }
 impl Body {
     //
@@ -336,8 +349,14 @@ impl Response {
         Ok(inst_res.1)
     }
     pub async fn text(&self) -> Result<String, JsError> {
-        let txt = self.body.text.clone(); // todo impl take in body
-        Ok(txt)
+        if let Some(text) = self.body.text.as_ref() {
+            Ok(text.clone())
+        } else if let Some(bytes) = self.body.bytes.as_ref() {
+            Ok(String::from_utf8(bytes.clone())
+                .map_err(|_e| JsError::new_str("could not convert bytes to string (utf8 error)"))?)
+        } else {
+            Err(JsError::new_str("body had no content"))
+        }
     }
     pub async fn form_data(&self) -> Result<String, JsError> {
         todo!()
@@ -366,7 +385,11 @@ pub async fn do_fetch(
         let mut request = client.request(method, url);
 
         if let Some(body) = fetch_init.body {
-            request = request.body(body.text);
+            if let Some(text) = body.text.as_ref() {
+                request = request.body(text.clone());
+            } else if let Some(bytes) = body.bytes.as_ref() {
+                request = request.body(bytes.clone()); // todo impl .take
+            }
         }
 
         for header in &fetch_init.headers.map {
@@ -386,10 +409,14 @@ pub async fn do_fetch(
 
         let response: Response = Response {
             body: Body {
-                text: reqwest_resp
-                    .text()
-                    .await
-                    .map_err(|e| JsError::new_string(format!("{e}")))?,
+                // todo support bytes, it would make more sense to make reqwest_resp a member of reponse, then we can also impl Response.arrayBuffer() or Response.blob()
+                text: Some(
+                    reqwest_resp
+                        .text()
+                        .await
+                        .map_err(|e| JsError::new_string(format!("{e}")))?,
+                ),
+                bytes: None,
             },
             headers: Headers::new(),
             ok,
