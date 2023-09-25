@@ -271,7 +271,7 @@ impl FetchInit {
                             });
                         }
                         if prop.is_typed_array() {
-                            let val = realm.detach_typed_array_buffer(prop)?;
+                            let val = realm.copy_typed_array_buffer(prop)?;
                             fetch_init.body = Some(Body {
                                 bytes: Some(val),
                                 text: None,
