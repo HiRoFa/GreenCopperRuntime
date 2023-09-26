@@ -293,9 +293,9 @@ pub mod tests {
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
 
-    //#[test]
+    #[test]
     fn _test_params() {
-        //simple_logging::log_to_stderr(LevelFilter::Info);
+        simple_logging::log_to_stderr(log::LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
@@ -316,16 +316,40 @@ pub mod tests {
             let db = 'hirofa_testdb';
             let con = new mysqlMod.Connection(host, port, user, pass, db);
             
-            await con.query('select * from test where \'test\' = ?', ['test'], (...rows) => {
-                for (let x = 0; x < rows.length; x++) {
-                    console.log('row %s = %s', x, rows[x]);
+            await con.execute(`DROP TABLE IF EXISTS test`, []);
+            await con.execute(`
+                CREATE TABLE test(
+                    \`id\` INT auto_increment PRIMARY KEY,
+                    \`test\` VARCHAR(32),
+                    \`uuid\` UUID,
+                    \`when\` DATE
+                )
+            `, []);
+            await con.execute(`
+                INSERT into test(\`test\`, \`uuid\`, \`when\`) VALUES('hi1', '0000-0000-0000-00000000-000000000000', CURDATE())
+            `, []);
+            await con.execute(`
+                INSERT into test(\`test\`, \`uuid\`, \`when\`) VALUES('hi2', '0000-0000-0000-00000000-000000000000', CURDATE())
+            `, []);
+            await con.execute(`
+                INSERT into test(\`test\`, \`uuid\`, \`when\`) VALUES('hi2', '0000-0000-0000-00000000-000000000000', CURDATE())
+            `, []);
+            
+            await con.query('select * from test where \`test\` = ?', ['hi2'], (...row) => {
+                for (let x = 0; x < row.length; x++) {
+                    console.log('col %s = %s (typeof = %s)', x, row[x], typeof row[x]);
                 }
-
             });
             
-            await con.query('select * from test where \'test\' = :a', {a: 'test'}, (...rows) => {
-                for (let x = 0; x < rows.length; x++) {
-                    console.log('named row %s = %s', x, rows[x]);
+            await con.query('select * from test where \`test\` = :a', {a: 'hi2'}, (...row) => {
+                for (let x = 0; x < row.length; x++) {
+                    console.log('named col %s = %s', x, row[x]);
+                }
+            });
+            
+            await con.query('select * from test', null, (...row) => {
+                for (let x = 0; x < row.length; x++) {
+                    console.log('noparams col %s = %s', x, row[x]);
                 }
             });
             
@@ -350,7 +374,17 @@ pub mod tests {
         
         "#,
         );
-        let res: JsValueFacade = block_on(rt.eval(None, script)).ok().expect("script failed");
+        let res: JsValueFacade = block_on(rt.eval(None, script))
+            .map_err(|e| {
+                println!("{}", e);
+                e
+            })
+            .map_err(|e| {
+                println!("{}", e);
+                e
+            })
+            .ok()
+            .expect("script failed");
 
         println!("{}", res.stringify());
         if let JsValueFacade::JsPromise { cached_promise } = res {

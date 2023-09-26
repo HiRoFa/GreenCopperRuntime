@@ -279,7 +279,7 @@ pub(crate) fn parse_params(
                     params_vec.push(item.to_f64().into());
                 }
                 JsValueType::String => {
-                    params_vec.push(item.to_str()?.into());
+                    params_vec.push(item.to_string()?.into());
                 }
                 JsValueType::Boolean => {
                     params_vec.push(item.to_bool().into());
@@ -324,7 +324,7 @@ pub(crate) fn parse_params(
                     vec.push((name.to_string(), item.to_f64().into()));
                 }
                 JsValueType::String => {
-                    vec.push((name.to_string(), item.to_str()?.into()));
+                    vec.push((name.to_string(), item.to_string()?.into()));
                 }
                 JsValueType::Boolean => {
                     vec.push((name.to_string(), item.to_bool().into()));
