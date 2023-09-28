@@ -278,7 +278,7 @@ impl Drop for MysqlTransaction {
 pub mod tests {
 
     use mysql_lib::prelude::Queryable;
-    use mysql_lib::{Params, Pool, Value};
+    use mysql_lib::{Pool, Value};
 
     #[tokio::test]
     async fn test() {

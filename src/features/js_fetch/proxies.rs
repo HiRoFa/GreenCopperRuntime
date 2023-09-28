@@ -74,6 +74,18 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 // todo js_string_crea2 with String
                 |realm, res| realm.json_parse(res.as_str()),
             )
+        })
+        // non std util method, need to impl readablestream and such later
+        .method("bytes", |_rt, realm, instance_id, _args| {
+            //
+            let response = with_response(instance_id, |response| response.clone())
+                .map_err(JsError::new_str)?;
+            // todo promise may seem futile now but later we will just store bytes in body and encode to string async
+            realm.create_resolving_promise_async(
+                async move { response.bytes().await },
+                // todo js_string_crea2 with String
+                |realm, res| realm.create_typed_array_uint8(res),
+            )
         });
 
     realm.install_proxy(response_proxy, false)?;

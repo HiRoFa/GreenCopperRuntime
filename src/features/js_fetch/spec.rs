@@ -353,7 +353,15 @@ impl Response {
             Ok(text.clone())
         } else if let Some(bytes) = self.body.bytes.as_ref() {
             Ok(String::from_utf8(bytes.clone())
-                .map_err(|_e| JsError::new_str("could not convert bytes to string (utf8 error)"))?)
+                .map_err(|_e| JsError::new_str("could not convert to string (utf8 error)"))?)
+        } else {
+            Err(JsError::new_str("body had no content"))
+        }
+    }
+    // todo impl some sort of take so we don;t copy bytes every time they are used (ReadableStream and such)
+    pub async fn bytes(&self) -> Result<Vec<u8>, JsError> {
+        if let Some(bytes) = self.body.bytes.as_ref() {
+            Ok(bytes.clone())
         } else {
             Err(JsError::new_str("body had no content"))
         }
@@ -407,8 +415,22 @@ pub async fn do_fetch(
         let ok = reqwest_resp.status().is_success();
         let status = reqwest_resp.status().as_u16();
 
-        let response: Response = Response {
-            body: Body {
+        let mut is_text = false;
+        if let Some(ct) = reqwest_resp.headers().get("content-type") {
+            let ct_str = ct
+                .to_str()
+                .map_err(|e| JsError::new_string(format!("{}", e)))?;
+            if ct_str.eq("text/plain")
+                || ct_str.eq("text/html")
+                || ct_str.eq("application/json")
+                || ct_str.eq("image/svg+xml")
+            {
+                is_text = true;
+            }
+        }
+
+        let body = if is_text {
+            Body {
                 // todo support bytes, it would make more sense to make reqwest_resp a member of reponse, then we can also impl Response.arrayBuffer() or Response.blob()
                 text: Some(
                     reqwest_resp
@@ -417,7 +439,22 @@ pub async fn do_fetch(
                         .map_err(|e| JsError::new_string(format!("{e}")))?,
                 ),
                 bytes: None,
-            },
+            }
+        } else {
+            let bytes: Vec<u8> = reqwest_resp
+                .bytes()
+                .await
+                .map_err(|e| JsError::new_string(format!("{}", e)))?
+                .to_vec();
+
+            Body {
+                text: None,
+                bytes: Some(bytes),
+            }
+        };
+
+        let response: Response = Response {
+            body,
             headers: Headers::new(),
             ok,
             redirected: false,
