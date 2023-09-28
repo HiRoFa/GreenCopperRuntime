@@ -295,7 +295,7 @@ pub mod tests {
 
     #[test]
     fn _test_params() {
-        simple_logging::log_to_stderr(log::LevelFilter::Info);
+        //simple_logging::log_to_stderr(log::LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
