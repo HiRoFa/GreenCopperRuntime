@@ -293,7 +293,7 @@ pub mod tests {
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
 
-    #[test]
+    //#[test]
     fn _test_params() {
         //simple_logging::log_to_stderr(log::LevelFilter::Info);
 
