@@ -415,6 +415,18 @@ pub async fn do_fetch(
             .await
             .map_err(|e| JsError::new_string(format!("{e}")))?;
 
+        let mut headers = Headers::new();
+        for hv in reqwest_resp.headers() {
+            headers.map.insert(
+                hv.0.to_string(),
+                vec![hv
+                    .1
+                    .to_str()
+                    .map_err(|e| JsError::new_string(format!("{}", e)))?
+                    .to_string()],
+            );
+        }
+
         let ok = reqwest_resp.status().is_success();
         let status = reqwest_resp.status().as_u16();
 
@@ -458,7 +470,7 @@ pub async fn do_fetch(
 
         let response: Response = Response {
             body,
-            headers: Headers::new(),
+            headers,
             ok,
             redirected: false,
             status,
