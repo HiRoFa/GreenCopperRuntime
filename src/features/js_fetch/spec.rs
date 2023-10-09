@@ -313,6 +313,9 @@ impl Headers {
         let vec = self.map.get_mut(name).unwrap();
         vec.push(value.to_string());
     }
+    pub fn get(&self, name: &str) -> Option<&Vec<String>> {
+        self.map.get(name)
+    }
 }
 impl Default for Headers {
     fn default() -> Self {
