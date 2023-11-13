@@ -34,12 +34,11 @@ pub fn impl_for(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                     None
                 };
             let fetch_init: FetchInit = FetchInit::from_js_object(realm, args.get(1))?;
-            let realm_id = realm.get_realm_id().to_string();
 
             realm.create_resolving_promise_async(
                 //
                 // do request here and return result as fetch objects
-                do_fetch(realm_id, url, fetch_init),
+                do_fetch(url, fetch_init),
                 |realm, res| {
                     // convert result fetch objects to JsValueAdapter here
                     res.to_js_value(realm)

@@ -379,17 +379,19 @@ pub trait Request {
     fn get_header(&self, name: &str) -> &[String];
 }
 
-pub async fn do_fetch(
-    _realm_id: String,
+pub async fn do_fetch(url: Option<String>, fetch_init: FetchInit) -> Result<Response, JsError> {
+    let client = reqwest::ClientBuilder::new()
+        .build()
+        .map_err(|e| JsError::new_string(format!("{e}")))?;
+    do_fetch2(&client, url, fetch_init).await
+}
+
+pub async fn do_fetch2(
+    client: &reqwest::Client,
     url: Option<String>,
     fetch_init: FetchInit,
 ) -> Result<Response, JsError> {
     if let Some(url) = url {
-        // todo cache reqwest client per realm_id
-
-        let client = reqwest::ClientBuilder::new()
-            .build()
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
         let method = reqwest::Method::from_str(fetch_init.method.as_str())
             .map_err(|e| JsError::new_string(format!("{e}")))?;
 
