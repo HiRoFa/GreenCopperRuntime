@@ -65,7 +65,7 @@ url = "2.2.1"
 gpp = "0.6"
 cached = "0.43"
 
-reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true}
+reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true, default-features = false}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
 futures = {version = "0.3"}
 mysql_lib = {package="mysql_async", version = "0.32.2",  optional = true}
