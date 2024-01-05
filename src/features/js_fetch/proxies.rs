@@ -100,7 +100,7 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
             let name = args[0].to_str()?;
             if let Some(headers) = response.headers.get(name) {
                 if !headers.is_empty() {
-                    return realm.create_string(headers.get(0).unwrap());
+                    return realm.create_string(headers.first().unwrap());
                 }
             }
 

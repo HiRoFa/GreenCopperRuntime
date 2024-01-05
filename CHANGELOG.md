@@ -1,3 +1,7 @@
+# 0.2.0
+
+* sqlx feature for connecting to mysql or postgres with a shared api
+
 # 0.1.1
 
 * Element.hasAttributes
