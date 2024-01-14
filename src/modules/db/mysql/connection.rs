@@ -51,7 +51,7 @@ impl Clone for PoolWrapper {
     }
 }
 
-pub(crate) struct MysqlConnection {
+pub struct MysqlConnection {
     pub(crate) pool: PoolWrapper,
 }
 

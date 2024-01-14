@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-enum SqlxConnection {
+pub enum SqlxConnection {
     PostgresConnection {
         con_str: String,
         pool: Option<Pool<Postgres>>,
@@ -35,7 +35,7 @@ enum SqlxConnection {
     },
 }
 
-enum SqlxTransaction {
+pub enum SqlxTransaction {
     PostgresTransaction {
         tx: RwLock<Option<Transaction<'static, Postgres>>>,
     },
@@ -49,8 +49,8 @@ lazy_static! {
 }
 
 thread_local! {
-    static CONNECTIONS: RefCell<AutoIdMap<Arc<SqlxConnection>>> = RefCell::new(AutoIdMap::new());
-    static TRANSACTIONS: RefCell<AutoIdMap<Arc<SqlxTransaction>>> = RefCell::new(AutoIdMap::new());
+    pub static CONNECTIONS: RefCell<AutoIdMap<Arc<SqlxConnection>>> = RefCell::new(AutoIdMap::new());
+    pub static TRANSACTIONS: RefCell<AutoIdMap<Arc<SqlxTransaction>>> = RefCell::new(AutoIdMap::new());
 }
 
 async fn exe_query_mysql<'e>(
@@ -132,149 +132,144 @@ async fn exe_query_mysql<'e>(
             for x in 0..row.len() {
                 let column = row.column(x);
                 let pg_type = column.type_info();
-                log::trace!("COL TYPE {} isnull:{}", pg_type.name(), pg_type.is_null());
-                if pg_type.is_null() {
-                    row_args_vec.push(JsValueFacade::Null);
-                } else {
-                    match pg_type.name() {
-                        // see https://docs.rs/sqlx/latest/sqlx/postgres/types/index.html
-                        // https://docs.rs/sqlx/latest/sqlx/mysql/types/index.html
-                        "TINYINT(1)" | "BOOLEAN" | "BOOL" => {
-                            row_args_vec.push(JsValueFacade::new_bool(
-                                row.try_get(x)
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?,
-                            ));
-                        }
-                        "TINYINT" | "SMALLINT" | "TINYINT UNSIGNED" | "SMALLINT UNSIGNED" => {
-                            row_args_vec.push(JsValueFacade::new_i32(
-                                row.try_get(x)
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?,
-                            ));
-                        }
-                        "INT" => {
-                            let i: i32 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_i32(i));
-                        }
-                        "BIGINT" => {
-                            let i: i64 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_f64(i as f64));
-                        }
 
-                        "INT UNSIGNED" => {
-                            let i: u32 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_f64(i as f64));
-                        }
-                        "BIGINT UNSIGNED" => {
-                            let i: u64 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_f64(i as f64));
-                        }
-                        "DATE" => {
-                            let i: Option<sqlx_lib::types::time::Date> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(i.to_string()));
-                                }
+                match pg_type.name() {
+                    // see https://docs.rs/sqlx/latest/sqlx/postgres/types/index.html
+                    // https://docs.rs/sqlx/latest/sqlx/mysql/types/index.html
+                    "TINYINT(1)" | "BOOLEAN" | "BOOL" => {
+                        let v_opt: Option<bool> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_bool(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "TINYINT" | "SMALLINT" | "TINYINT UNSIGNED" | "SMALLINT UNSIGNED" | "INT"
+                    | "INT UNSIGNED" => {
+                        let v_opt: Option<i32> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_i32(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "BIGINT" | "BIGINT UNSIGNED" => {
+                        let v_opt: Option<i64> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DECIMAL" | "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" => {
+                        let v_opt: Option<f64> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DATE" => {
+                        let v_opt: Option<sqlx_lib::types::time::Date> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v.to_string()),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DATETIME" => {
+                        let v_opt: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => {
+                                JsValueFacade::new_f64(v.assume_utc().unix_timestamp() as f64)
                             }
-                        }
-                        "DATETIME" => {
-                            let i: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_f64(
-                                        i.assume_utc().unix_timestamp() as f64,
-                                    ));
-                                }
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "TIME" => {
+                        let v_opt: Option<sqlx_lib::types::time::Time> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v.to_string()),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "VARCHAR" | "CHAR" | "ENUM" | "INET4" | "INET6" | "TEXT" | "MEDIUMTEXT"
+                    | "LONGTEXT" | "LONG VARCHAR" | "ROW" | "TINYTEXT" => {
+                        let v_opt: Option<String> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "UUID" => {
+                        let v_opt: Option<uuid::Uuid> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => {
+                                JsValueFacade::new_string(v.to_string().to_ascii_uppercase())
                             }
-                        }
-                        "TIME" => {
-                            let i: Option<sqlx_lib::types::time::Time> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(i.to_string()));
-                                }
-                            }
-                        }
-                        "VARCHAR" | "CHAR" | "TEXT" => {
-                            let val: Option<&str> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(val) => {
-                                    row_args_vec.push(JsValueFacade::new_str(val));
-                                }
-                            }
-                        }
-                        "UUID" => {
-                            let val: Option<uuid::Uuid> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(
-                                        i.to_string().to_ascii_uppercase(),
-                                    ));
-                                }
-                            }
-                        }
-                        "JSON" => {
-                            let val: Option<serde_json::Value> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(value) => {
-                                    row_args_vec.push(JsValueFacade::SerdeValue { value });
-                                }
-                            }
-                        }
-                        "VARBINARY" | "BINARY" | "BLOB" => {
-                            let val: Option<Vec<u8>> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(val) => {
-                                    row_args_vec.push(JsValueFacade::TypedArray {
-                                        buffer: val,
-                                        array_type: TypedArrayType::Uint8,
-                                    });
-                                }
-                            }
-                        }
-                        &_ => row_args_vec.push(JsValueFacade::Null),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "JSON" => {
+                        let v_opt: Option<serde_json::Value> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(value) => JsValueFacade::SerdeValue { value },
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "VARBINARY" | "BINARY" | "BLOB" => {
+                        let v_opt: Option<Vec<u8>> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(buffer) => JsValueFacade::TypedArray {
+                                buffer,
+                                array_type: TypedArrayType::Uint8,
+                            },
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "NULL" => {
+                        row_args_vec.push(JsValueFacade::Null);
+                    }
+                    &_ => {
+                        log::error!(
+                            "COL {} TYPE {} isnull:{}",
+                            column.name(),
+                            pg_type.name(),
+                            pg_type.is_null()
+                        );
+                        row_args_vec.push(JsValueFacade::Null)
                     }
                 }
             }
@@ -401,137 +396,144 @@ async fn exe_query_postgres<'e>(
                 let column = row.column(x);
                 let pg_type = column.type_info();
                 log::trace!("COL TYPE {} isnull:{}", pg_type.name(), pg_type.is_null());
-                if pg_type.is_null() {
-                    row_args_vec.push(JsValueFacade::Null);
-                } else {
-                    match pg_type.name() {
-                        // see https://docs.rs/sqlx/latest/sqlx/postgres/types/index.html
-                        // https://docs.rs/sqlx/latest/sqlx/mysql/types/index.html
-                        "BOOL" => {
-                            row_args_vec.push(JsValueFacade::new_bool(
-                                row.try_get(x)
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?,
-                            ));
-                        }
-                        "SMALLINT" | "SMALLSERIAL" | "INT2" | "\"CHAR\"" | "INT" | "SERIAL"
-                        | "INT4" => {
-                            row_args_vec.push(JsValueFacade::new_i32(
-                                row.try_get(x)
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?,
-                            ));
-                        }
-                        "BIGINT" | "BIGSERIAL" | "INT8" => {
-                            let i: i64 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_f64(i as f64));
-                        }
-                        "REAL" | "FLOAT4" | "DOUBLE PRECISION" | "FLOAT8" => {
-                            let i: f64 = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            row_args_vec.push(JsValueFacade::new_f64(i));
-                        }
-                        "DATE" => {
-                            let i: Option<sqlx_lib::types::time::Date> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(i.to_string()));
-                                }
-                            }
-                        }
-                        "DATETIME" => {
-                            let i: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_f64(
-                                        i.assume_utc().unix_timestamp() as f64,
-                                    ));
-                                }
-                            }
-                        }
-                        "TIME" => {
-                            let i: Option<sqlx_lib::types::time::Time> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match i {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(i.to_string()));
-                                }
-                            }
-                        }
 
-                        "VARCHAR" | "CHAR(N)" | "TEXT" | "NAME" | "CITEXT" => {
-                            let val: Option<&str> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(val) => {
-                                    row_args_vec.push(JsValueFacade::new_str(val));
-                                }
+                match pg_type.name() {
+                    // see https://docs.rs/sqlx/latest/sqlx/postgres/types/index.html
+                    // https://docs.rs/sqlx/latest/sqlx/mysql/types/index.html
+                    "BOOL" => {
+                        let v_opt: Option<bool> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_bool(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "SMALLINT" | "SMALLSERIAL" | "INT2" | "\"CHAR\"" | "INT" | "SERIAL"
+                    | "INT4" => {
+                        let v_opt: Option<i32> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_i32(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "BIGINT" | "BIGSERIAL" | "INT8" => {
+                        let v_opt: Option<i64> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "REAL" | "FLOAT4" | "DOUBLE PRECISION" | "FLOAT8" => {
+                        let v_opt: Option<f64> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DATE" => {
+                        let v_opt: Option<sqlx_lib::types::time::Date> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v.to_string()),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DATETIME" => {
+                        let v_opt: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => {
+                                JsValueFacade::new_f64(v.assume_utc().unix_timestamp() as f64)
                             }
-                        }
-                        "UUID" => {
-                            let val: Option<uuid::Uuid> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(i) => {
-                                    row_args_vec.push(JsValueFacade::new_string(
-                                        i.to_string().to_ascii_uppercase(),
-                                    ));
-                                }
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "TIME" => {
+                        let v_opt: Option<sqlx_lib::types::time::Time> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v.to_string()),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+
+                    "VARCHAR" | "CHAR(N)" | "TEXT" | "NAME" | "CITEXT" => {
+                        let v_opt: Option<String> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_string(v),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "UUID" => {
+                        let v_opt: Option<uuid::Uuid> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => {
+                                JsValueFacade::new_string(v.to_string().to_ascii_uppercase())
                             }
-                        }
-                        "JSON" => {
-                            let val: Option<serde_json::Value> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(value) => {
-                                    row_args_vec.push(JsValueFacade::SerdeValue { value });
-                                }
-                            }
-                        }
-                        "VARBINARY" | "BINARY" | "BLOB" | "BYTEA" => {
-                            let val: Option<Vec<u8>> = row
-                                .try_get(x)
-                                .map_err(|e| JsError::new_string(format!("{e}")))?;
-                            match val {
-                                None => {
-                                    row_args_vec.push(JsValueFacade::Null);
-                                }
-                                Some(val) => {
-                                    row_args_vec.push(JsValueFacade::TypedArray {
-                                        buffer: val,
-                                        array_type: TypedArrayType::Uint8,
-                                    });
-                                }
-                            }
-                        }
-                        &_ => row_args_vec.push(JsValueFacade::Null),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "JSON" => {
+                        let v_opt: Option<serde_json::Value> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(value) => JsValueFacade::SerdeValue { value },
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "VARBINARY" | "BINARY" | "BLOB" | "BYTEA" => {
+                        let v_opt: Option<Vec<u8>> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(buffer) => JsValueFacade::TypedArray {
+                                buffer,
+                                array_type: TypedArrayType::Uint8,
+                            },
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "NULL" => {
+                        row_args_vec.push(JsValueFacade::Null);
+                    }
+                    &_ => {
+                        log::error!(
+                            "COL {} TYPE {} isnull:{}",
+                            column.name(),
+                            pg_type.name(),
+                            pg_type.is_null()
+                        );
+                        row_args_vec.push(JsValueFacade::Null)
                     }
                 }
             }
@@ -1152,7 +1154,11 @@ fn prep_query_and_args(
         // convert obj to vec of jsvaluefacades in order of param_names
         for param_name in &param_names {
             let element = realm.get_object_property(arg_array_or_obj, param_name)?;
+            //if element.is_typed_array() {
+            //    positional_params.push(JsValueFacade::Null);
+            //} else {
             positional_params.push(realm.to_js_value_facade(&element)?);
+            //}
         }
     } else if arg_array_or_obj.is_null() {
         // no args
@@ -1388,7 +1394,14 @@ unsafe extern "C" fn fn_transaction_close(
                         .await
                         .map_err(|e| JsError::new_string(format!("{e}")))
                 },
-                |realm, _res| {
+                move |realm, _res| {
+                    let _ = realm.dispatch_proxy_event(
+                        &["greco", "db", "sqlx"],
+                        "Transaction",
+                        &proxy_instance_id,
+                        "close",
+                        &realm.create_null()?,
+                    )?;
                     // map
                     realm.create_undefined()
                 },
@@ -1439,7 +1452,14 @@ unsafe extern "C" fn fn_transaction_rollback(
                         .await
                         .map_err(|e| JsError::new_string(format!("{e}")))
                 },
-                |realm, _res| {
+                move |realm, _res| {
+                    let _ = realm.dispatch_proxy_event(
+                        &["greco", "db", "sqlx"],
+                        "Transaction",
+                        &proxy_instance_id,
+                        "rollback",
+                        &realm.create_null()?,
+                    )?;
                     // map
                     realm.create_undefined()
                 },
@@ -1579,7 +1599,15 @@ unsafe extern "C" fn fn_transaction_commit(
                         .await
                         .map_err(|e| JsError::new_string(format!("{e}")))
                 },
-                |realm, _res| {
+                move |realm, _res| {
+                    let _ = realm.dispatch_proxy_event(
+                        &["greco", "db", "sqlx"],
+                        "Transaction",
+                        &proxy_instance_id,
+                        "commit",
+                        &realm.create_null()?,
+                    )?;
+
                     // map
                     realm.create_undefined()
                 },
@@ -1608,7 +1636,7 @@ pub mod tests {
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
 
-    //#[tokio::test]
+    #[tokio::test]
     async fn _test_sqlx() {
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
@@ -1623,6 +1651,8 @@ pub mod tests {
             .ok()
             .expect("could not init logger");
 
+        //simple_logging::log_to_stderr(log::LevelFilter::Info);
+
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
         let rt = builder.build();
@@ -1633,7 +1663,8 @@ pub mod tests {
 
         async function testPg() {
             let sqlxMod = await import('greco://sqlx');
-            let host = '127.0.0.1';
+            //let host = '127.0.0.1';
+            let host = '192.168.10.43';
             let port = 5432;
             let user = 'hirofa';
             let pass = 'hirofa';
@@ -1726,7 +1757,7 @@ pub mod tests {
             }
             
             console.log('Starting Pg tx');
-            for (let x = 0; x < 100; x++) {
+            for (let x = 0; x < 10; x++) {
                 let tx = await con.transaction();
                 try  {
                     let res = await tx.query('SELECT 123' + x, null, async (...row) => {
@@ -1749,7 +1780,8 @@ pub mod tests {
 
         async function testMySql() {
             let sqlxMod = await import('greco://sqlx');
-            let host = '127.0.0.1';
+            //let host = '127.0.0.1';
+            let host = '192.168.10.43';
             let port = 3306;
             let user = 'hirofa';
             let pass = 'hirofa';
@@ -1769,7 +1801,7 @@ pub mod tests {
                     \`uuid\` UUID,
                     \`when\` DATE,
                     \`json\` JSON,
-                    \`blob\` BLOB,
+                    \`blob\` LONGBLOB,
                     \`text\` LONGTEXT
                 )
             `, []);
@@ -1778,8 +1810,10 @@ pub mod tests {
             
             const obj1 = {hello: "world1"};
             
+            
+            
             await con.execute(`
-                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi1', '0001-0002-00C0-A0000000-F00000000001', CURDATE(), ?, 'lorem ipsum1')
+                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi0', '0001-0002-00C0-A0000000-F00000000001', CURDATE(), ?, 'lorem ipsum1')
             `, [obj1]);
             
        
@@ -1789,13 +1823,16 @@ pub mod tests {
             await con.execute(`
                 INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi2', '0000-0000-0000-00000000-000000000003', CURDATE(), '{}', 'lorem ipsum3')
             `, []);
-
-            await con.query('select * from test where \`test\` = ?', ['hi1'], (...row) => {
+            
+            
+            ////show indexes FROM test
+            await con.query(`show indexes FROM test`, [], (...row) => {
                 for (let x = 0; x < row.length; x++) {
-                    console.log('col %s = %s (typeof = %s)', x, row[x], typeof row[x]);
+                    console.log('idx col %s = %s', x, row[x]);
                 }
             });
 
+           
             await con.query('select * from test where \`test\` = :a', {a: 'hi2'}, (...row) => {
                 for (let x = 0; x < row.length; x++) {
                     console.log('named col %s = %s', x, row[x]);
@@ -1825,13 +1862,32 @@ pub mod tests {
             
             console.log('Starting MySql tx');
             
-            for (let y = 0; y < 100; y++) {
+            let grecoDom = await import("greco://htmldom");
+            let ParserClass = grecoDom.DOMParser;
+            let parser = new ParserClass();
+            let ps = [];
+            for (let x = 0; x < 500000; x++) {
+                ps.push("<p>hello world</p>");
+            }
+            let htmlDoc = parser.parseFromString(`<html><body>${ps.join("\n")}</body></html>`);
+            
+            for (let y = 0; y < 10; y++) {
+            
+                const bytes = htmlDoc.encodeHTML();
+                        
                 let tx = await con.transaction();
                 try  {
-                    let res = await tx.query('SELECT 123' + y, null, async (...row) => {
-                        return row[0];
-                    });            
-                    console.log('MySql tx res = %o', res);
+                    
+                    await tx.execute(`
+                        INSERT INTO test(\`test\`, \`uuid\`, \`when\`, \`blob\`) VALUES('hi1', '0000-0000-0000-00000000-000000000000', CURDATE(), :data) ON DUPLICATE KEY UPDATE \`blob\` = :data, \`when\` = CURDATE()
+                    `, {data: bytes});
+                
+                    let returnData = null;
+                    await tx.query("SELECT \`blob\` from test where test='hi1' LIMIT 0,1", [], (data) => {
+                        returnData = data;
+                    });
+                    console.log("got data %s c=%s l-%s", typeof returnData, returnData?.constructor?.name, returnData.length);
+                    
                     await tx.commit();
                 } catch(ex) {
                     console.log("MySql fail: %s", ex);
@@ -1847,7 +1903,7 @@ pub mod tests {
         }
 
         async function test(){
-            
+             
             await testPg();
             
             await testMySql();

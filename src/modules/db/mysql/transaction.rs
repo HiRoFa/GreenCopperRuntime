@@ -10,7 +10,7 @@ use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use quickjs_runtime::values::{JsValueConvertable, JsValueFacade};
 use std::sync::Arc;
 
-pub(crate) struct MysqlTransaction {
+pub struct MysqlTransaction {
     //conn: Arc<Mutex<Option<Conn>>>,
     tx: Arc<Mutex<Option<Transaction<'static>>>>,
     closed: bool,
@@ -264,6 +264,8 @@ impl MysqlTransaction {
 
 impl Drop for MysqlTransaction {
     fn drop(&mut self) {
+        let w = Arc::downgrade(&self.tx);
+        println!("MysqlTransaction::drop rc={}", w.strong_count());
         //let lock_fut = self.conn.lock();
         //let lock = &mut *block_on(lock_fut);
         //if let Some(mut conn) = lock.take() {
