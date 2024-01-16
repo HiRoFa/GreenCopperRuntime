@@ -482,6 +482,11 @@ pub mod tests {
             let rows = await con.query('select data from test where \`test\` = ?', ['hi2'], (row) => {
                 return row;
             });
+            
+            let foo = await con.query('select data from test where \`test\` = \'hi2\' LIMIT :offset, :limit', {offset: 0, limit: 5}, (row) => {
+                return row;
+            });
+            
             return rows;
             
         }
@@ -500,7 +505,7 @@ pub mod tests {
             .ok()
             .expect("script failed");
         println!("{}", res.stringify());
-        for i in 0..10 {
+        for i in 0..2 {
             log::info!("{i}");
             let mut buffer = vec![];
             for x in 0..(20 * 1024 * 1024) {

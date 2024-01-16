@@ -264,8 +264,9 @@ impl MysqlTransaction {
 
 impl Drop for MysqlTransaction {
     fn drop(&mut self) {
-        let w = Arc::downgrade(&self.tx);
-        println!("MysqlTransaction::drop rc={}", w.strong_count());
+        //let w = Arc::downgrade(&self.tx);
+        //println!("MysqlTransaction::drop rc={}", w.strong_count());
+
         //let lock_fut = self.conn.lock();
         //let lock = &mut *block_on(lock_fut);
         //if let Some(mut conn) = lock.take() {
