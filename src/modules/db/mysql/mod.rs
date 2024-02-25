@@ -105,7 +105,7 @@ fn with_transaction_mut<R, C: FnOnce(&mut MysqlTransaction) -> R>(
 fn store_connection(proxy_instance_id: usize, con: MysqlConnection) {
     CONNECTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
-        log::info!("store_connection, len = {}", map.len());
+        log::debug!("store_connection, len = {}", map.len());
         map.insert(proxy_instance_id, con);
     })
 }
@@ -113,7 +113,7 @@ fn store_connection(proxy_instance_id: usize, con: MysqlConnection) {
 fn drop_connection(proxy_instance_id: &usize) {
     CONNECTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
-        log::info!("drop_connection, len = {}", map.len());
+        log::debug!("drop_connection, len = {}", map.len());
         map.remove(proxy_instance_id);
     })
 }
@@ -121,7 +121,7 @@ fn drop_connection(proxy_instance_id: &usize) {
 fn store_transaction(tx: MysqlTransaction) -> usize {
     TRANSACTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
-        log::info!("store_transaction, len = {}", map.len());
+        log::debug!("store_transaction, len = {}", map.len());
         map.insert(tx)
     })
 }
@@ -129,7 +129,7 @@ fn store_transaction(tx: MysqlTransaction) -> usize {
 fn drop_transaction(proxy_instance_id: &usize) {
     TRANSACTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
-        log::info!("drop_transaction, len = {}", map.len());
+        log::debug!("drop_transaction, len = {}", map.len());
         map.remove(proxy_instance_id);
     })
 }
