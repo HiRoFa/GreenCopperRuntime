@@ -11,7 +11,6 @@ use quickjs_runtime::values::{JsValueConvertable, JsValueFacade};
 use std::sync::Arc;
 
 pub struct MysqlTransaction {
-    //conn: Arc<Mutex<Option<Conn>>>,
     tx: Arc<Mutex<Option<Transaction<'static>>>>,
     closed: bool,
 }

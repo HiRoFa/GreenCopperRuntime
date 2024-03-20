@@ -55,6 +55,14 @@ pub struct MysqlConnection {
     pub(crate) pool: PoolWrapper,
 }
 
+impl Clone for MysqlConnection {
+    fn clone(&self) -> Self {
+        MysqlConnection {
+            pool: self.pool.clone(),
+        }
+    }
+}
+
 #[cached(
     key = "String",
     size = 50,

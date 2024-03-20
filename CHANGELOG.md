@@ -1,3 +1,7 @@
+# 0.2.1
+
+* bugfix: error when calling mysqlcon.query from within query consumer
+
 # 0.2.0
 
 * sqlx feature for connecting to mysql or postgres with a shared api

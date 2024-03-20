@@ -1,6 +1,6 @@
 [package]
 name = "green_copper_runtime"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["info@hirofa.com"]
 edition = "2018"
 license = "MIT"

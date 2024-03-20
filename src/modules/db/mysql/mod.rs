@@ -260,9 +260,8 @@ pub(crate) fn create_mysql_connection_proxy(_realm: &QuickJsRealmAdapter) -> JsP
                 let params = &args[1];
                 let row_consumer = &args[2];
 
-                with_connection( id, |con| {
-                    con.query(runtime, realm, query.as_str(), params, row_consumer)
-                })
+                let con = with_connection( id, |con| con.clone());
+                con.query(runtime, realm, query.as_str(), params, row_consumer)
             }
 
         })
