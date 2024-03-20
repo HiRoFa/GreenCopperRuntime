@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="#FS Module"><title>green_copper_runtime::modules::io::fs - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="green_copper_runtime" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../../green_copper_runtime/index.html">green_copper_runtime</a><span class="version">0.2.1</span></h2></div><h2 class="location"><a href="#">Module fs</a></h2><div class="sidebar-elems"><section><ul class="block"><li><a href="#structs">Structs</a></li></ul></section><h2><a href="../index.html">In green_copper_runtime::modules::io</a></h2></div></nav><div class="sidebar-resizer"></div>
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../../green_copper_runtime/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Module <a href="../../../index.html">green_copper_runtime</a>::<wbr><a href="../../index.html">modules</a>::<wbr><a href="../index.html">io</a>::<wbr><a class="mod" href="#">fs</a><button id="copy-path" title="Copy item path to clipboard"><img src="../../../../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../../../../src/green_copper_runtime/modules/io/fs/mod.rs.html#1-359">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>#FS Module</p>
+<div class="example-wrap"><pre class="language-javascript"><code>async function test() {
+    let fs_mod = await import(&#39;greco://fs&#39;);
+    await fs_mod.write(&#39;./test.txt&#39;, &#39;hello from greco fs&#39;);
+}
+</code></pre></div><h2 id="example"><a href="#example">example</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>quickjs_runtime::builder::QuickJsRuntimeBuilder;
+<span class="kw">use </span>futures::executor::block_on;
+<span class="kw">use </span>quickjs_runtime::jsutils::Script;
+<span class="kw">use </span>quickjs_runtime::values::JsValueFacade;
+<span class="kw">let </span>rtb = QuickJsRuntimeBuilder::new();
+<span class="kw">let </span>rtb = green_copper_runtime::init_greco_rt(rtb);
+<span class="kw">let </span>rt = rtb.build();
+rt.eval_sync(<span class="prelude-val">None</span>, Script::new(<span class="string">"init_fs.es"</span>, <span class="string">"async function test_write() {\
+    let fs_mod = await import('greco://fs');\
+    await fs_mod.write('./test.txt', 'hello from greco fs');
+}\n"</span>)).expect(<span class="string">"script failed"</span>);
+<span class="kw">let </span>prom_jsvf = rt.invoke_function_sync(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>[], <span class="string">"test_write"</span>, <span class="macro">vec!</span>[]).ok().expect(<span class="string">"write function invocation failed"</span>);
+<span class="comment">// wait for promise to be done
+
+</span><span class="kw">if let </span>JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+    <span class="kw">let </span>done = block_on(cached_promise.get_promise_result());
+    <span class="macro">assert!</span>(done.is_ok());
+} <span class="kw">else </span>{
+    <span class="macro">panic!</span>(<span class="string">"not a promise"</span>);
+}
+
+<span class="comment">// do read test
+</span><span class="kw">let </span>eval_fut = rt.eval(<span class="prelude-val">None</span>, Script::new(<span class="string">"init_fs.es"</span>, <span class="string">"async function test_read() {\
+    let fs_mod = await import('greco://fs');\
+    return await fs_mod.readString('./test.txt');
+}\n"</span>));
+<span class="kw">let _ </span>= block_on(eval_fut);
+<span class="kw">let </span>prom_jsvf = rt.invoke_function_sync(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>[], <span class="string">"test_read"</span>, <span class="macro">vec!</span>[]).ok().expect(<span class="string">"read invocation failed"</span>);
+<span class="comment">// wait for promise to be done
+</span><span class="kw">if let </span>JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+    <span class="kw">let </span>done = block_on(cached_promise.get_promise_result()).ok().expect(<span class="string">"prom failed"</span>);
+    <span class="kw">match </span>done {
+       <span class="prelude-val">Ok</span>(done_jsvf) =&gt; {
+          <span class="kw">let </span>s = done_jsvf.stringify();
+          <span class="macro">assert_eq!</span>(s, <span class="string">"String: hello from greco fs"</span>);
+       }
+       <span class="prelude-val">Err</span>(val) =&gt; {
+          <span class="macro">panic!</span>(<span class="string">"promise was rejected: {}"</span>, val.stringify());
+       }
+    }
+     
+} <span class="kw">else </span>{
+    <span class="macro">panic!</span>(<span class="string">"not  promise"</span>)
+}</code></pre></div>
+<h2 id="methods"><a href="#methods">Methods</a></h2>
+<p>##append
+##copy
+##createSymlink
+##createDirs
+##getMetadata
+##getSymlinkMetadata
+##list
+##readString
+##removeDir
+##removeFile
+##rename
+##touch
+##write</p>
+</div></details><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.FsModuleLoader.html" title="struct green_copper_runtime::modules::io::fs::FsModuleLoader">FsModuleLoader</a></div></li></ul></section></div></main></body></html>

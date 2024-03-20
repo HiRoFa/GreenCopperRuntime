@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CookieDomain","CookieError","CookieExpiration","RawCookieParseError"],"struct":["Cookie","CookiePath","CookieStore","IdnaErrors","RawCookie"],"type":["CookieResult","Error","Result"]};

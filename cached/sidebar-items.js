@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"externcrate":["async_once","lazy_static","once_cell"],"macro":["cached","cached_control","cached_key","cached_key_result","cached_result"],"mod":["async_sync","macros","proc_macro","stores"],"struct":["Return"],"trait":["Cached","CachedAsync","IOCached","IOCachedAsync"]};
