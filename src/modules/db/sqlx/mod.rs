@@ -148,17 +148,27 @@ async fn exe_query_mysql<'e>(
                     }
                     "TINYINT" | "SMALLINT" | "TINYINT UNSIGNED" | "SMALLINT UNSIGNED" | "INT"
                     | "INT UNSIGNED" => {
-                        let v_opt: Option<i32> = row
+                        let v_opt: Option<u32> = row
                             .try_get(x)
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
-                            Some(v) => JsValueFacade::new_i32(v),
+                            Some(v) => JsValueFacade::new_f64(v as f64),
                         };
                         row_args_vec.push(jsvf);
                     }
-                    "BIGINT" | "BIGINT UNSIGNED" => {
+                    "BIGINT" => {
                         let v_opt: Option<i64> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "BIGINT UNSIGNED" => {
+                        let v_opt: Option<u64> = row
                             .try_get(x)
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let jsvf = match v_opt {
