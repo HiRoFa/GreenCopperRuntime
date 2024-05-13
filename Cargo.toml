@@ -72,8 +72,8 @@ cached = "0.43"
 reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true, default-features = false}
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
 futures = {version = "0.3"}
-mysql_lib = {package="mysql_async", version = "0.33.0",  optional = true}
-sqlx_lib = {package="sqlx", version = "0.7.3", features = ["mysql", "postgres", "runtime-tokio", "time", "chrono", "uuid"], optional = true}
+mysql_lib = {package="mysql_async", version = "0.34.1",  optional = true}
+sqlx_lib = {package="sqlx", version = "0.7.4", features = ["mysql", "postgres", "runtime-tokio", "time", "chrono", "uuid"], optional = true}
 lru = {version = "0.12.1", optional = true}
 csv = {version = "1.1.6", optional = true}
 uuid = {version="1", features=["v4", "serde"], optional = true}

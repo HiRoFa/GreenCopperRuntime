@@ -79,11 +79,11 @@ pub fn get_con_pool_wrapper(
 ) -> Result<PoolWrapper, JsError> {
     let con_str = if let Some(db) = db_opt {
         format!(
-            "mysql://{user}:{pass}@{host}:{port}/{db}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800"
+            "mysql://{user}:{pass}@{host}:{port}/{db}?conn_ttl=300&stmt_cache_size=128&wait_timeout=3600&abs_conn_ttl=1800&abs_conn_ttl_jitter=600"
         )
     } else {
         format!(
-            "mysql://{user}:{pass}@{host}:{port}?conn_ttl=600&stmt_cache_size=128&wait_timeout=28800"
+            "mysql://{user}:{pass}@{host}:{port}?conn_ttl=300&stmt_cache_size=128&wait_timeout=3600&abs_conn_ttl=1800&abs_conn_ttl_jitter=600"
         )
     };
 

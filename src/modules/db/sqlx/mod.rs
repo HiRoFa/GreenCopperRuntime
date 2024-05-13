@@ -664,6 +664,7 @@ impl SqlxConnection {
                     .idle_timeout(Duration::from_secs(600))
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(100)
+                    .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                 Ok(SqlxConnection::MySqlConnection {
@@ -677,6 +678,7 @@ impl SqlxConnection {
                     .idle_timeout(Duration::from_secs(600))
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(100)
+                    .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                 Ok(SqlxConnection::PostgresConnection {
@@ -1629,7 +1631,6 @@ unsafe extern "C" fn fn_transaction_commit(
 #[cfg(test)]
 pub mod tests {
     use backtrace::Backtrace;
-    use log::LevelFilter;
     use std::panic;
     //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
@@ -1647,9 +1648,9 @@ pub mod tests {
             );
         }));
 
-        simple_logging::log_to_file("grecort.log", LevelFilter::Info)
-            .ok()
-            .expect("could not init logger");
+        //simple_logging::log_to_file("grecort.log", LevelFilter::Info)
+        //    .ok()
+        //    .expect("could not init logger");
 
         //simple_logging::log_to_stderr(log::LevelFilter::Info);
 
@@ -1768,7 +1769,11 @@ pub mod tests {
                 } catch(ex) {
                     console.log("Pg fail: %s", ex);
                     console.error(ex);
-                    await tx.rollback();
+                    try {
+                        await tx.rollback();
+                    } catch(ex) {
+                        // care
+                    }
                 } finally {
                     await tx.close();
                 }
@@ -1871,12 +1876,17 @@ pub mod tests {
             }
             let htmlDoc = parser.parseFromString(`<html><body>${ps.join("\n")}</body></html>`);
             
-            for (let y = 0; y < 10; y++) {
+            for (let y = 0; y < 50; y++) {
+            
+                console.log("starting y %s", y);
             
                 const bytes = htmlDoc.encodeHTML();
                         
-                let tx = await con.transaction();
+                let tx = null;
+                console.log("got tx");
                 try  {
+                    
+                    tx = await con.transaction();
                     
                     await tx.execute(`
                         INSERT INTO test(\`test\`, \`uuid\`, \`when\`, \`blob\`) VALUES('hi1', '0000-0000-0000-00000000-000000000000', CURDATE(), :data) ON DUPLICATE KEY UPDATE \`blob\` = :data, \`when\` = CURDATE()
@@ -1889,12 +1899,18 @@ pub mod tests {
                     console.log("got data %s c=%s l-%s", typeof returnData, returnData?.constructor?.name, returnData.length);
                     
                     await tx.commit();
+                    
+                    console.log("comitted");
                 } catch(ex) {
                     console.log("MySql fail: %s", ex);
                     console.error(ex);
-                    await tx.rollback();
+                    try {
+                        await tx?.rollback();
+                    } catch(ex) {
+                        // care
+                    }
                 } finally {
-                    await tx.close();
+                    await tx?.close();
                 }
             }
             
@@ -1904,7 +1920,7 @@ pub mod tests {
 
         async function test(){
              
-            await testPg();
+            //await testPg();
             
             await testMySql();
             
