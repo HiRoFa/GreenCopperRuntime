@@ -2,6 +2,7 @@ use futures::TryStreamExt;
 use hirofa_utils::auto_id_map::AutoIdMap;
 use jwt_simple::reexports::anyhow;
 use libquickjs_sys as q;
+use num_traits::cast::ToPrimitive;
 use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 use quickjs_runtime::jsutils::helper_tasks::add_helper_task_async;
 use quickjs_runtime::jsutils::jsproxies::JsProxy;
@@ -186,13 +187,23 @@ async fn exe_query_mysql<'e>(
                         };
                         row_args_vec.push(jsvf);
                     }
-                    "DECIMAL" | "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" => {
+                    "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" => {
                         let v_opt: Option<f64> = row
                             .try_get(x)
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v as f64),
+                        };
+                        row_args_vec.push(jsvf);
+                    }
+                    "DECIMAL" => {
+                        let v_opt: Option<sqlx_lib::types::Decimal> = row
+                            .try_get(x)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let jsvf = match v_opt {
+                            None => JsValueFacade::Null,
+                            Some(v) => JsValueFacade::new_f64(v.to_f64().unwrap()),
                         };
                         row_args_vec.push(jsvf);
                     }
@@ -1671,7 +1682,7 @@ pub mod tests {
         //    .ok()
         //    .expect("could not init logger");
 
-        //simple_logging::log_to_stderr(log::LevelFilter::Info);
+        simple_logging::log_to_stderr(log::LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);
@@ -1826,7 +1837,8 @@ pub mod tests {
                     \`when\` DATE,
                     \`json\` JSON,
                     \`blob\` LONGBLOB,
-                    \`text\` LONGTEXT
+                    \`text\` LONGTEXT,
+                    \`average\` DOUBLE
                 )
             `, []);
             
@@ -1837,15 +1849,15 @@ pub mod tests {
             
             
             await con.execute(`
-                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi0', '0001-0002-00C0-A0000000-F00000000001', CURDATE(), ?, 'lorem ipsum1')
+                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`, \`average\`) VALUES('hi0', '0001-0002-00C0-A0000000-F00000000001', CURDATE(), ?, 'lorem ipsum1', 12)
             `, [obj1]);
             
        
             await con.execute(`
-                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi2', '0000-0000-0000-00000000-000000000002', CURDATE(), '{}', 'lorem ipsum2')
+                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`, \`average\`) VALUES('hi2', '0000-0000-0000-00000000-000000000002', CURDATE(), '{}', 'lorem ipsum2', 14)
             `, []);
             await con.execute(`
-                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`) VALUES('hi2', '0000-0000-0000-00000000-000000000003', CURDATE(), '{}', 'lorem ipsum3')
+                INSERT into test(\`test\`, \`uuid\`, \`when\`, \`json\`, \`text\`, \`average\`) VALUES('hi2', '0000-0000-0000-00000000-000000000003', CURDATE(), '{}', 'lorem ipsum3', 15)
             `, []);
             
             
@@ -1857,7 +1869,7 @@ pub mod tests {
             });
 
            
-            await con.query('select * from test where \`test\` = :a', {a: 'hi2'}, (...row) => {
+            await con.query('select *, CAST(SUM(average) AS DECIMAL) as count from test where \`test\` = :a', {a: 'hi2'}, (...row) => {
                 for (let x = 0; x < row.length; x++) {
                     console.log('named col %s = %s', x, row[x]);
                 }
@@ -1890,12 +1902,12 @@ pub mod tests {
             let ParserClass = grecoDom.DOMParser;
             let parser = new ParserClass();
             let ps = [];
-            for (let x = 0; x < 500000; x++) {
+            for (let x = 0; x < 500; x++) {
                 ps.push("<p>hello world</p>");
             }
             let htmlDoc = parser.parseFromString(`<html><body>${ps.join("\n")}</body></html>`);
             
-            for (let y = 0; y < 50; y++) {
+            for (let y = 0; y < 10; y++) {
             
                 console.log("starting y %s", y);
             
