@@ -60,8 +60,6 @@ async fn exe_query_mysql<'e>(
     executor: impl MySqlExecutor<'e>,
     row_consumer_opt: Option<JsValueFacade>,
 ) -> Result<JsValueFacade, JsError> {
-    let mut ret_vec: Vec<JsValueFacade> = vec![];
-
     let mut qry_obj = sqlx_lib::query(qry.as_str());
     for arg in args {
         // bind
@@ -108,7 +106,8 @@ async fn exe_query_mysql<'e>(
         }
     }
     if let Some(row_consumer) = &row_consumer_opt {
-        //
+        let mut ret_vec: Vec<JsValueFacade> = vec![];
+
         let mut rows = qry_obj.fetch(executor);
 
         /*
@@ -322,6 +321,7 @@ async fn exe_query_mysql<'e>(
                 return Err(JsError::new_str("row_consumer was not a function"));
             }
         }
+        Ok(JsValueFacade::Array { val: ret_vec })
     } else {
         let op = qry_obj
             .execute(executor)
@@ -338,10 +338,8 @@ async fn exe_query_mysql<'e>(
             JsValueFacade::new_f64(op.last_insert_id() as f64),
         );
 
-        ret_vec.push(JsValueFacade::Object { val: obj });
+        Ok(JsValueFacade::Object { val: obj })
     }
-
-    Ok(JsValueFacade::Array { val: ret_vec })
 }
 
 async fn exe_query_postgres<'e>(
@@ -352,8 +350,6 @@ async fn exe_query_postgres<'e>(
     executor: impl PgExecutor<'e>,
     row_consumer_opt: Option<JsValueFacade>,
 ) -> Result<JsValueFacade, JsError> {
-    let mut ret_vec: Vec<JsValueFacade> = vec![];
-
     let mut qry_obj = sqlx_lib::query(qry.as_str());
     for arg in args {
         // bind
@@ -401,6 +397,7 @@ async fn exe_query_postgres<'e>(
     }
     if let Some(row_consumer) = &row_consumer_opt {
         //
+        let mut ret_vec: Vec<JsValueFacade> = vec![];
         let mut rows = qry_obj.fetch(executor);
 
         /*
@@ -586,6 +583,7 @@ async fn exe_query_postgres<'e>(
                 return Err(JsError::new_str("row_consumer was not a function"));
             }
         }
+        Ok(JsValueFacade::Array { val: ret_vec })
     } else {
         let op = qry_obj
             .execute(executor)
@@ -599,10 +597,8 @@ async fn exe_query_postgres<'e>(
         );
         obj.insert("lastInsertId".to_string(), JsValueFacade::Null);
 
-        ret_vec.push(JsValueFacade::Object { val: obj });
+        Ok(JsValueFacade::Object { val: obj })
     }
-
-    Ok(JsValueFacade::Array { val: ret_vec })
 }
 
 impl Drop for SqlxConnection {
