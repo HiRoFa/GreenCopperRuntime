@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"trait":["FromPrimitive","FromStr","MathematicalOps","One","Signed","ToPrimitive","Zero"]};

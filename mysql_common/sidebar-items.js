@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["params"],"mod":["binlog","bitflags_ext","collations","constants","crypto","io","misc","named_params","packets","params","prelude","proto","row","scramble","value"]};

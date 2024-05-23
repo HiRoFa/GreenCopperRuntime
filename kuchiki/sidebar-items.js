@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["NodeData"],"fn":["parse_fragment","parse_html","parse_html_with_options"],"mod":["iter","traits"],"struct":["Attribute","Attributes","Doctype","DocumentData","ElementData","ExpandedName","Node","NodeDataRef","NodeRef","ParseOpts","Selector","Selectors","Sink","Specificity"]};
