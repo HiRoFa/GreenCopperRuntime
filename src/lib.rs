@@ -116,15 +116,6 @@ pub mod tests {
             init_abstract_inner(&rt1);
             test_abstract_inner(&rt1);
         }
-
-        #[cfg(feature = "starlight_runtime")]
-        {
-            println!("testing starlight");
-            let starlight_builder = JsEngine::starlight_builder();
-            let rt2 = starlight_builder.build();
-            init_abstract_inner(&rt2);
-            test_abstract_inner(&rt2);
-        }
     }
 
     #[test]

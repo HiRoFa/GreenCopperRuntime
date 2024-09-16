@@ -53,7 +53,7 @@ quickjs_runtime = {version="0.14"}
 #quickjs_runtime = { git = 'https://github.com/HiRoFa/quickjs_es_runtime', features = ["typescript", "default"]}
 #libquickjs-sys = {package="hirofa-quickjs-sys", path='../quickjs-sys', features=["quickjs-ng"]}
 #libquickjs-sys = {package="hirofa-quickjs-sys", git='https://github.com/HiRoFa/quickjs-sys', features=["bellard"]}
-libquickjs-sys = {package="hirofa-quickjs-sys", version="0.4", features=["bellard"], default-features=false}
+libquickjs-sys = {package="hirofa-quickjs-sys", version="0.5", features=["bellard"], default-features=false}
 hirofa_utils = "0.7"
 #hirofa_utils = {git = "https://github.com/HiRoFa/utils"}
 #hirofa_utils = { path = '../utils'}
@@ -73,7 +73,7 @@ reqwest = {version = "0.11", features=["rustls-tls", "cookies", "gzip", "deflate
 gpio-cdev = {git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"]}
 futures = {version = "0.3"}
 mysql_lib = {package="mysql_async", version = "0.34.1",  optional = true}
-sqlx_lib = {package="sqlx", version = "0.7.4", features = ["mysql", "postgres", "runtime-tokio", "time", "chrono", "uuid", "rust_decimal"], optional = true}
+sqlx_lib = {package="sqlx", version = "0.8.2", features = ["mysql", "postgres", "runtime-tokio", "time", "chrono", "uuid", "rust_decimal"], optional = true}
 lru = {version = "0.12.1", optional = true}
 csv = {version = "1.1.6", optional = true}
 uuid = {version="1", features=["v4", "serde"], optional = true}
