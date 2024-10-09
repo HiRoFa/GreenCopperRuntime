@@ -687,9 +687,9 @@ impl SqlxConnection {
             "mysql" => {
                 let mysql_pool = MySqlPoolOptions::new()
                     .acquire_timeout(Duration::from_secs(15))
-                    .idle_timeout(Duration::from_secs(600))
+                    .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
-                    .max_connections(8)
+                    .max_connections(16)
                     .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
@@ -701,9 +701,9 @@ impl SqlxConnection {
             "postgres" => {
                 let pg_pool = PgPoolOptions::new()
                     .acquire_timeout(Duration::from_secs(15))
-                    .idle_timeout(Duration::from_secs(600))
+                    .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
-                    .max_connections(8)
+                    .max_connections(16)
                     .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
@@ -1871,9 +1871,9 @@ pub mod tests {
                 }
             });
 
-            await con.query('select * from test', null, (...row) => {
+            await con.query('select *, CAST(uuid AS UUID) as uuidAsUuid, uuid, CAST(uuid AS CHAR) as uuidAsChar from test', null, (...row) => {
                 for (let x = 0; x < row.length; x++) {
-                    console.log('noparams col %s = %s', x, row[x]);
+                    console.log('noparams with cast uuid as uuid col %s = %s', x, row[x]);
                 }
             });
 
