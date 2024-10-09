@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["from_row","from_row_opt"],"mod":["frunk"],"struct":["FromRowError"],"trait":["FromRow"]};

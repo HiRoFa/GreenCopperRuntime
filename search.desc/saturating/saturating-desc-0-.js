@@ -1,0 +1,1 @@
+searchState.loadedDescShard("saturating", 0, "Provides <code>Saturating&lt;T&gt;</code>, an intentionally-saturating …\nProvides intentionally-saturating arithmetic on <code>T</code>.\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.")
