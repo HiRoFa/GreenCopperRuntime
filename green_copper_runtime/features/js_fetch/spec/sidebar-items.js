@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Cache","Credentials","Method","Mode","Redirect"],"fn":["do_fetch","do_fetch2"],"struct":["Body","FetchInit","Headers","Response"],"trait":["Request"]};
