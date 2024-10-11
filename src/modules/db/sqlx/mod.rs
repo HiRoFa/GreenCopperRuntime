@@ -689,7 +689,7 @@ impl SqlxConnection {
                     .acquire_timeout(Duration::from_secs(15))
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
-                    .max_connections(16)
+                    .max_connections(64)
                     .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
@@ -703,7 +703,7 @@ impl SqlxConnection {
                     .acquire_timeout(Duration::from_secs(15))
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
-                    .max_connections(16)
+                    .max_connections(64)
                     .min_connections(0)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
