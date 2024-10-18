@@ -1,0 +1,1 @@
+searchState.loadedDescShard("async_once", 0, "async once tool for lazy_static\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.")

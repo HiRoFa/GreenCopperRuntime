@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":["FromRow","FromValue"],"macro":["params"],"mod":["params"],"trait":["AsQuery","BatchQuery","FromRow","FromValue","GlobalHandler","Protocol","Query","Queryable","StatementLike","ToConnection","ToValue","WithParams"]};

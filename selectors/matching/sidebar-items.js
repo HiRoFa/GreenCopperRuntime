@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CompoundSelectorMatchingResult"],"fn":["matches_complex_selector","matches_compound_selector_from","matches_selector","matches_selector_list"],"static":["RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE"],"struct":["ElementSelectorFlags"]};
