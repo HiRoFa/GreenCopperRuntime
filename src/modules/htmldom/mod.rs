@@ -354,6 +354,19 @@ fn with_select_element_list<R, C: FnOnce(&SelectElementList) -> R>(
     })
 }
 
+fn get_text_content(node_ref: &NodeRef) -> String {
+    let mut text_content = String::new();
+
+    // Iterate over all descendant nodes, collecting text nodes
+    for descendant in node_ref.descendants() {
+        if let Some(text_node) = descendant.as_text() {
+            text_content.push_str(text_node.borrow().as_str());
+        }
+    }
+
+    text_content
+}
+
 fn parse_from_string(html: &str) -> NodeRef {
     kuchiki::parse_html().one(html)
 }
@@ -773,8 +786,8 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     //
 
                     if let Some(_element) = node.as_element() {
-                        // todo serialize
-                        realm.create_undefined()
+                        let content = get_text_content(node);
+                        realm.create_string(content.as_str())
                     } else if let Some(txt) = node.as_text() {
                         realm.create_string(txt.borrow().as_str())
                     } else {
@@ -1633,6 +1646,8 @@ pub mod tests {
             
             res += "\nbody.innerHTML=" + body.innerHTML;
             
+            res += "\nbody.textContent=" + body.textContent;
+            
             body.innerHTML = "";
             
             res += "\nbody.outerHTML=" + body.outerHTML;
@@ -1658,10 +1673,10 @@ pub mod tests {
 
             match prom_res {
                 Ok(prom_str_res) => {
-                    println!("res: {}", prom_str_res.get_str());
+                    log::info!("res: {}", prom_str_res.get_str());
                 }
                 Err(e) => {
-                    println!("err: {}", e.stringify());
+                    log::error!("err: {}", e.stringify());
                 }
             }
         }
