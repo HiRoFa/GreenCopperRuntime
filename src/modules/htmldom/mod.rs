@@ -373,7 +373,7 @@ fn init_dom_parser_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdap
                     let html = args[0].to_str()?;
                     parse_from_string(html)
                 } else {
-                    let bytes = realm.detach_typed_array_buffer(&args[0])?;
+                    let bytes = realm.copy_typed_array_buffer(&args[0])?;
                     let html = String::from_utf8_lossy(bytes.as_slice());
                     parse_from_string(html.to_string().as_str())
                 };
