@@ -607,16 +607,24 @@ impl Drop for SqlxConnection {
 
         match self {
             SqlxConnection::PostgresConnection { con_str, pool } => {
-                map.remove(con_str);
                 if let Some(pool) = pool.take() {
+                    if let Some(weak_ref) = map.get(con_str) {
+                        if weak_ref.strong_count() == 0 {
+                            map.remove(con_str);
+                        }
+                    }
                     let _unused = add_helper_task_async(async move {
                         pool.close().await;
                     });
                 }
             }
             SqlxConnection::MySqlConnection { con_str, pool } => {
-                map.remove(con_str);
                 if let Some(pool) = pool.take() {
+                    if let Some(weak_ref) = map.get(con_str) {
+                        if weak_ref.strong_count() == 0 {
+                            map.remove(con_str);
+                        }
+                    }
                     let _unused = add_helper_task_async(async move {
                         pool.close().await;
                     });
@@ -674,6 +682,7 @@ impl SqlxConnection {
 
         // see if we have a wrapper with the correct con_str
         let map = &mut *POOLS.lock().expect("could not lock mutex");
+
         if let Some(con_ref) = map.get(&con_str) {
             if let Some(con_arc) = con_ref.upgrade() {
                 return Ok(con_arc);
