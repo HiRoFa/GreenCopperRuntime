@@ -1,3 +1,4 @@
+use cached::proc_macro::cached;
 use futures::TryStreamExt;
 use hirofa_utils::auto_id_map::AutoIdMap;
 use jwt_simple::reexports::anyhow;
@@ -1150,9 +1151,52 @@ lazy_static! {
     static ref PARAM_REGEX: regex::Regex = regex::Regex::new(r":\w+").unwrap();
 }
 
-enum Protocol {
+#[derive(Debug)]
+pub enum Protocol {
     MySql,
     Postgres,
+}
+
+pub struct ParsedQuery {
+    actual_query: String,
+    args_names_in_order: Option<Vec<String>>,
+}
+impl Clone for ParsedQuery {
+    fn clone(&self) -> Self {
+        Self {
+            args_names_in_order: self.args_names_in_order.clone(),
+            actual_query: self.actual_query.clone(),
+        }
+    }
+}
+
+#[cached(
+ty = "cached::TimedCache<String, ParsedQuery>",
+create = "{ cached::TimedCache::with_lifespan_and_capacity(1800, 1000) }", // 30 minutes TTL, 1000 max entries
+convert = r#"{ format!("{:?}_{}", protocol, query) }"#
+)]
+pub fn parse_query(protocol: Protocol, query: &str) -> ParsedQuery {
+    let mut args_names_in_order: Vec<String> = vec![];
+    let mut actual_query = String::from(query);
+    for capture in PARAM_REGEX.captures_iter(query) {
+        let param_name = &capture[0][1..]; // Remove leading ":"
+        args_names_in_order.push(param_name.to_string());
+
+        let replacement = match protocol {
+            Protocol::MySql => "?".to_string(),
+            Protocol::Postgres => format!("${}", args_names_in_order.len()),
+        };
+
+        actual_query = actual_query.replacen(&capture[0], &replacement, 1);
+    }
+    ParsedQuery {
+        actual_query,
+        args_names_in_order: if args_names_in_order.is_empty() {
+            None
+        } else {
+            Some(args_names_in_order)
+        },
+    }
 }
 
 fn prep_query_and_args(
@@ -1162,23 +1206,11 @@ fn prep_query_and_args(
 ) -> Result<(String, Vec<JsValueFacade>), JsError> {
     let query = args[0].to_str()?;
 
+    let parsed_query = parse_query(protocol, query);
+
     // param names in correct order
-    let mut param_names: Vec<String> = vec![];
 
     let mut positional_params: Vec<JsValueFacade> = Vec::new();
-    let mut converted_query = String::from(query);
-
-    for capture in PARAM_REGEX.captures_iter(query) {
-        let param_name = &capture[0][1..]; // Remove leading ":"
-        param_names.push(param_name.to_string());
-
-        let replacement = match protocol {
-            Protocol::MySql => "?".to_string(),
-            Protocol::Postgres => format!("${}", param_names.len()),
-        };
-
-        converted_query = converted_query.replacen(&capture[0], &replacement, 1);
-    }
 
     let arg_array_or_obj = &args[1];
     if arg_array_or_obj.is_array() {
@@ -1189,7 +1221,7 @@ fn prep_query_and_args(
         }
     } else if arg_array_or_obj.is_object() && !arg_array_or_obj.is_null() {
         // convert obj to vec of jsvaluefacades in order of param_names
-        for param_name in &param_names {
+        for param_name in &parsed_query.args_names_in_order.unwrap_or_else(|| vec![]) {
             let element = realm.get_object_property(arg_array_or_obj, param_name)?;
             //if element.is_typed_array() {
             //    positional_params.push(JsValueFacade::Null);
@@ -1203,7 +1235,7 @@ fn prep_query_and_args(
         return Err(JsError::new_str("argument was not an array or object"));
     }
 
-    Ok((converted_query, positional_params))
+    Ok((parsed_query.actual_query, positional_params))
 }
 
 unsafe extern "C" fn fn_connection_execute(
