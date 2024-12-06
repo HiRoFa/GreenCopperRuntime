@@ -1158,8 +1158,8 @@ pub enum Protocol {
 }
 
 pub struct ParsedQuery {
-    actual_query: String,
-    args_names_in_order: Option<Vec<String>>,
+    pub actual_query: String,
+    pub args_names_in_order: Option<Vec<String>>,
 }
 impl Clone for ParsedQuery {
     fn clone(&self) -> Self {
