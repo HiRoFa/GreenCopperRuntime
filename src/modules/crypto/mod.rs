@@ -36,6 +36,7 @@ pub mod tests {
     fn test_uuid() {
         let rt = init_greco_rt(QuickJsRuntimeBuilder::new()).build();
         let script = Script::new("uuid.js", "crypto.randomUUID();");
+        #[allow(clippy::ok_expect)]
         let res = block_on(rt.eval(None, script)).ok().expect("script failed");
         assert!(res.is_string());
         //println!("uuid={}", res.get_str());

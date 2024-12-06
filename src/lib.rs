@@ -45,8 +45,6 @@ pub fn init_greco_rt2(
 pub mod tests {
 
     use crate::preprocessors::cpp::CppPreProcessor;
-    use backtrace::Backtrace;
-    use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use quickjs_runtime::facades::QuickJsRuntimeFacade;
     use quickjs_runtime::values::JsValueFacade;
@@ -94,20 +92,21 @@ pub mod tests {
 
     #[test]
     fn test_abstract() {
-        panic::set_hook(Box::new(|panic_info| {
-            let backtrace = Backtrace::new();
-            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
-            log::error!(
-                "thread panic occurred: {}\nbacktrace: {:?}",
-                panic_info,
-                backtrace
-            );
-        }));
+        /*
+                panic::set_hook(Box::new(|panic_info| {
+                    let backtrace = Backtrace::new();
+                    println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
+                    log::error!(
+                        "thread panic occurred: {}\nbacktrace: {:?}",
+                        panic_info,
+                        backtrace
+                    );
+                }));
 
-        simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
-            .ok()
-            .unwrap();
-
+                simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
+                    .ok()
+                    .unwrap();
+        */
         {
             println!("testing quickjs");
             let quickjs_builder = QuickJsRuntimeBuilder::new();
@@ -125,20 +124,21 @@ pub mod tests {
     }
 
     pub fn init_test_greco_rt() -> QuickJsRuntimeFacade {
-        panic::set_hook(Box::new(|panic_info| {
-            let backtrace = Backtrace::new();
-            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
-            log::error!(
-                "thread panic occurred: {}\nbacktrace: {:?}",
-                panic_info,
-                backtrace
-            );
-        }));
+        /*
+                panic::set_hook(Box::new(|panic_info| {
+                    let backtrace = Backtrace::new();
+                    println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
+                    log::error!(
+                        "thread panic occurred: {}\nbacktrace: {:?}",
+                        panic_info,
+                        backtrace
+                    );
+                }));
 
-        simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
-            .ok()
-            .unwrap();
-
+                simple_logging::log_to_file("greco_rt.log", LevelFilter::Trace)
+                    .ok()
+                    .unwrap();
+        */
         let builder = QuickJsRuntimeBuilder::new().script_pre_processor(CppPreProcessor::new());
 
         builder.build()

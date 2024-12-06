@@ -1556,28 +1556,27 @@ pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
 pub mod tests {
     use crate::init_greco_rt;
     use futures::executor::block_on;
-    use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
 
-    use backtrace::Backtrace;
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
-    use std::panic;
 
     #[test]
     fn test() {
-        panic::set_hook(Box::new(|panic_info| {
-            let backtrace = Backtrace::new();
-            log::error!(
-                "thread panic occurred: {}\nbacktrace: {:?}",
-                panic_info,
-                backtrace
-            );
-        }));
+        /*
+                panic::set_hook(Box::new(|panic_info| {
+                    let backtrace = Backtrace::new();
+                    log::error!(
+                        "thread panic occurred: {}\nbacktrace: {:?}",
+                        panic_info,
+                        backtrace
+                    );
+                }));
 
-        simple_logging::log_to_file("grecort.log", LevelFilter::max())
-            .ok()
-            .expect("could not init logger");
+                simple_logging::log_to_file("grecort.log", LevelFilter::max())
+                    .ok()
+                    .expect("could not init logger");
+        */
 
         let rtb = QuickJsRuntimeBuilder::new();
         let rt = init_greco_rt(rtb).build();

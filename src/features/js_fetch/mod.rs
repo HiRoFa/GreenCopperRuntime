@@ -63,6 +63,7 @@ pub mod tests {
     fn test_fetch_generic() {
         let rt = init_test_greco_rt();
 
+        #[allow(clippy::ok_expect)]
         impl_for_rt(&rt).ok().expect("init failed");
 
         let fetch_fut = rt.eval(

@@ -433,8 +433,7 @@ pub(crate) fn init(builder: QuickJsRuntimeBuilder) -> QuickJsRuntimeBuilder {
 #[cfg(test)]
 pub mod tests {
     use crate::init_greco_rt;
-    use backtrace::Backtrace;
-    use log::LevelFilter;
+
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
@@ -442,20 +441,21 @@ pub mod tests {
 
     #[tokio::test]
     async fn my_test() {
-        panic::set_hook(Box::new(|panic_info| {
-            let backtrace = Backtrace::new();
-            println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
-            log::error!(
-                "thread panic occurred: {}\nbacktrace: {:?}",
-                panic_info,
-                backtrace
-            );
-        }));
+        /*
+                panic::set_hook(Box::new(|panic_info| {
+                    let backtrace = Backtrace::new();
+                    println!("thread panic occurred: {panic_info}\nbacktrace: {backtrace:?}");
+                    log::error!(
+                        "thread panic occurred: {}\nbacktrace: {:?}",
+                        panic_info,
+                        backtrace
+                    );
+                }));
 
-        simple_logging::log_to_file("greco_rt.log", LevelFilter::Debug)
-            .ok()
-            .unwrap();
-
+                simple_logging::log_to_file("greco_rt.log", LevelFilter::Debug)
+                    .ok()
+                    .unwrap();
+        */
         let mut builder = QuickJsRuntimeBuilder::new();
 
         builder = init_greco_rt(builder);

@@ -193,7 +193,7 @@ async fn exe_query_mysql<'e>(
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
-                            Some(v) => JsValueFacade::new_f64(v as f64),
+                            Some(v) => JsValueFacade::new_f64(v),
                         };
                         row_args_vec.push(jsvf);
                     }
@@ -465,7 +465,7 @@ async fn exe_query_postgres<'e>(
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
-                            Some(v) => JsValueFacade::new_f64(v as f64),
+                            Some(v) => JsValueFacade::new_f64(v),
                         };
                         row_args_vec.push(jsvf);
                     }
@@ -1221,7 +1221,7 @@ fn prep_query_and_args(
         }
     } else if arg_array_or_obj.is_object() && !arg_array_or_obj.is_null() {
         // convert obj to vec of jsvaluefacades in order of param_names
-        for param_name in &parsed_query.args_names_in_order.unwrap_or_else(|| vec![]) {
+        for param_name in &parsed_query.args_names_in_order.unwrap_or_default() {
             let element = realm.get_object_property(arg_array_or_obj, param_name)?;
             //if element.is_typed_array() {
             //    positional_params.push(JsValueFacade::Null);
@@ -1697,7 +1697,7 @@ unsafe extern "C" fn fn_transaction_commit(
 
 #[cfg(test)]
 pub mod tests {
-    use backtrace::Backtrace;
+
     use std::panic;
     //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
@@ -1706,6 +1706,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn _test_sqlx() {
+        /*
         panic::set_hook(Box::new(|panic_info| {
             let backtrace = Backtrace::new();
             log::error!(
@@ -1715,11 +1716,13 @@ pub mod tests {
             );
         }));
 
+         */
+
         //simple_logging::log_to_file("grecort.log", LevelFilter::Info)
         //    .ok()
         //    .expect("could not init logger");
 
-        simple_logging::log_to_stderr(log::LevelFilter::Info);
+        //simple_logging::log_to_stderr(log::LevelFilter::Info);
 
         let builder = QuickJsRuntimeBuilder::new();
         let builder = crate::init_greco_rt(builder);

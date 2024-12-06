@@ -313,14 +313,11 @@ pub mod tests {
 
         assert!(prom_esvf.is_js_promise());
 
-        match prom_esvf {
-            JsValueFacade::JsPromise { cached_promise } => {
-                let done = cached_promise
-                    .get_promise_result_sync()
-                    .expect("promise timed out");
-                assert!(done.is_ok());
-            }
-            _ => {}
+        if let JsValueFacade::JsPromise { cached_promise } = prom_esvf {
+            let done = cached_promise
+                .get_promise_result_sync()
+                .expect("promise timed out");
+            assert!(done.is_ok());
         }
 
         // do read test
@@ -343,17 +340,14 @@ pub mod tests {
         // wait for promise to be done
 
         assert!(prom_esvf.is_js_promise());
-        match prom_esvf {
-            JsValueFacade::JsPromise { cached_promise } => {
-                let done = cached_promise
-                    .get_promise_result_sync()
-                    .expect("promise timed out");
-                assert!(done.is_ok());
-                let done_esvf = done.ok().unwrap();
-                let s = done_esvf.get_str();
-                assert_eq!(s, "hello from greco fs");
-            }
-            _ => {}
+        if let JsValueFacade::JsPromise { cached_promise } = prom_esvf {
+            let done = cached_promise
+                .get_promise_result_sync()
+                .expect("promise timed out");
+            assert!(done.is_ok());
+            let done_esvf = done.ok().unwrap();
+            let s = done_esvf.get_str();
+            assert_eq!(s, "hello from greco fs");
         }
     }
 }
