@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CONNECTIONS","TRANSACTIONS"],"enum":["Protocol","SqlxConnection","SqlxTransaction"],"fn":["parse_query","parse_query_no_cache","parse_query_prime_cache"],"static":["PARSE_QUERY"],"struct":["ParsedQuery"]};

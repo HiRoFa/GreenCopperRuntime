@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A compact Ed25519 and X25519 implementation for Rust."><title>ed25519_compact - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="ed25519_compact" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../ed25519_compact/index.html">ed25519_<wbr>compact</a><span class="version">2.1.1</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#incremental-api-example-usage" title="Incremental API example usage">Incremental API example usage</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>ed25519_compact</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/ed25519_compact/lib.rs.html#1-127">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A compact Ed25519 and X25519 implementation for Rust.</p>
+<ul>
+<li>Formally-verified Curve25519 field arithmetic</li>
+<li><code>no_std</code>-friendly</li>
+<li>WebAssembly-friendly</li>
+<li>Fastly Compute-friendly</li>
+<li>Lightweight</li>
+<li>Zero dependencies if randomness is provided by the application</li>
+<li>Only one portable dependency (<code>getrandom</code>) if not</li>
+<li>Supports incremental signatures (streaming API)</li>
+<li>Safe and simple Rust interface.</li>
+</ul>
+<p>Example usage:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ed25519_compact::<span class="kw-2">*</span>;
+
+<span class="comment">// A message to sign and verify.
+</span><span class="kw">let </span>message = <span class="string">b"test"</span>;
+
+<span class="comment">// Generates a new key pair using a random seed.
+// A given seed will always produce the same key pair.
+</span><span class="kw">let </span>key_pair = KeyPair::from_seed(Seed::generate());
+
+<span class="comment">// Computes a signature for this message using the secret part of the key pair.
+</span><span class="kw">let </span>signature = key_pair.sk.sign(message, <span class="prelude-val">Some</span>(Noise::generate()));
+
+<span class="comment">// Verifies the signature using the public part of the key pair.
+</span>key_pair
+    .pk
+    .verify(message, <span class="kw-2">&amp;</span>signature)
+    .expect(<span class="string">"Signature didn't verify"</span>);
+
+<span class="comment">// Verification of a different message using the same signature and public key fails.
+</span>key_pair
+    .pk
+    .verify(<span class="string">b"A different message"</span>, <span class="kw-2">&amp;</span>signature)
+    .expect_err(<span class="string">"Signature shouldn't verify"</span>);
+
+<span class="comment">// All these structures can be viewed as raw bytes simply by dereferencing them:
+</span><span class="kw">let </span>signature_as_bytes: <span class="kw-2">&amp;</span>[u8] = signature.as_ref();
+<span class="macro">println!</span>(<span class="string">"Signature as bytes: {:?}"</span>, signature_as_bytes);</code></pre></div>
+<h3 id="incremental-api-example-usage"><a class="doc-anchor" href="#incremental-api-example-usage">§</a>Incremental API example usage</h3>
+<p>Messages can also be supplied as multiple parts (streaming API) in order to
+handle large messages without using much memory:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ed25519_compact::<span class="kw-2">*</span>;
+
+<span class="doccomment">/// Creates a new key pair.
+</span><span class="kw">let </span>kp = KeyPair::generate();
+
+<span class="doccomment">/// Create a state for an incremental signer.
+</span><span class="kw">let </span><span class="kw-2">mut </span>st = kp.sk.sign_incremental(Noise::default());
+
+<span class="doccomment">/// Feed the message as any number of chunks, and sign the concatenation.
+</span>st.absorb(<span class="string">"mes"</span>);
+st.absorb(<span class="string">"sage"</span>);
+<span class="kw">let </span>signature = st.sign();
+
+<span class="doccomment">/// Create a state for an incremental verifier.
+</span><span class="kw">let </span><span class="kw-2">mut </span>st = kp.pk.verify_incremental(<span class="kw-2">&amp;</span>signature).unwrap();
+
+<span class="doccomment">/// Feed the message as any number of chunks, and verify the concatenation.
+</span>st.absorb(<span class="string">"mess"</span>);
+st.absorb(<span class="string">"age"</span>);
+<span class="macro">assert!</span>(st.verify().is_ok());</code></pre></div>
+<p>Cargo features:</p>
+<ul>
+<li><code>self-verify</code>: after having computed a new signature, verify that is it
+valid. This is slower, but improves resilience against fault attacks. It
+is enabled by default on WebAssembly targets.</li>
+<li><code>std</code>: disables <code>no_std</code> compatibility in order to make errors implement
+the standard <code>Error</code> trait.</li>
+<li><code>random</code> (enabled by default): adds <code>Default</code> and <code>generate</code>
+implementations to the <code>Seed</code> and <code>Noise</code> objects, in order to securely
+create random keys and noise.</li>
+<li><code>traits</code>: add support for the traits from the ed25519 and signature
+crates.</li>
+<li><code>pem</code>: add support for importing/exporting keys as OpenSSL-compatible PEM
+files.</li>
+<li><code>blind-keys</code>: add support for key blinding.</li>
+<li><code>opt_size</code>: Enable size optimizations (based on benchmarks, 8-15% size
+reduction at the cost of 6.5-7% performance).</li>
+<li><code>x25519</code>: Enable support for the X25519 key exchange system.</li>
+<li><code>disable-signatures</code>: Disable support for signatures, and only compile
+support for X25519.</li>
+</ul>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="x25519/index.html" title="mod ed25519_compact::x25519">x25519</a></div></li></ul><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.KeyPair.html" title="struct ed25519_compact::KeyPair">KeyPair</a></div><div class="desc docblock-short">A key pair.</div></li><li><div class="item-name"><a class="struct" href="struct.Noise.html" title="struct ed25519_compact::Noise">Noise</a></div><div class="desc docblock-short">Noise, for non-deterministic signatures.</div></li><li><div class="item-name"><a class="struct" href="struct.PublicKey.html" title="struct ed25519_compact::PublicKey">Public<wbr>Key</a></div><div class="desc docblock-short">A public key.</div></li><li><div class="item-name"><a class="struct" href="struct.SecretKey.html" title="struct ed25519_compact::SecretKey">Secret<wbr>Key</a></div><div class="desc docblock-short">A secret key.</div></li><li><div class="item-name"><a class="struct" href="struct.Seed.html" title="struct ed25519_compact::Seed">Seed</a></div><div class="desc docblock-short">A seed, which a key pair can be derived from.</div></li><li><div class="item-name"><a class="struct" href="struct.Signature.html" title="struct ed25519_compact::Signature">Signature</a></div><div class="desc docblock-short">An Ed25519 signature.</div></li><li><div class="item-name"><a class="struct" href="struct.SigningState.html" title="struct ed25519_compact::SigningState">Signing<wbr>State</a></div><div class="desc docblock-short">The state of a streaming signature operation.</div></li><li><div class="item-name"><a class="struct" href="struct.VerifyingState.html" title="struct ed25519_compact::VerifyingState">Verifying<wbr>State</a></div><div class="desc docblock-short">The state of a streaming verification operation.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.Error.html" title="enum ed25519_compact::Error">Error</a></div></li></ul></section></div></main></body></html>

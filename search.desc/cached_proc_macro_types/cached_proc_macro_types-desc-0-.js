@@ -1,0 +1,1 @@
+searchState.loadedDescShard("cached_proc_macro_types", 0, "Used to wrap a function result so callers can see whether …\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.")

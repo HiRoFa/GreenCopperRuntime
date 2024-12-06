@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":["Deserialize","Serialize"],"struct":["Base64","Base64NoPadding","Base64UrlSafe","Base64UrlSafeNoPadding","Clock","Duration","HashSet"],"trait":["Deserialize","Serialize"],"type":["UnixTimeStamp"]};

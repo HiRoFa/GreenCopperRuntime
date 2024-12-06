@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="GitHub CI Docs.rs crates.io"><title>jwt_simple - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="jwt_simple" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../jwt_simple/index.html">jwt_<wbr>simple</a><span class="version">0.11.9</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#jwt-simple" title="JWT-Simple">JWT-Simple</a><ul><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#authentication-symmetric-hs-jwt-algorithms-example" title="Authentication (symmetric, `HS*` JWT algorithms) example">Authentication (symmetric, <code>HS*</code> JWT algorithms) example</a></li><li><a href="#signatures-asymmetric-rs-ps-es-and-eddsa-algorithms-example" title="Signatures (asymmetric, `RS*`, `PS*`, `ES*` and `EdDSA` algorithms) example">Signatures (asymmetric, <code>RS*</code>, <code>PS*</code>, <code>ES*</code> and <code>EdDSA</code> algorithms) example</a></li><li><a href="#advanced-usage" title="Advanced usage">Advanced usage</a></li></ul></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>jwt_simple</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/jwt_simple/lib.rs.html#1-575">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><img src="https://github.com/jedisct1/rust-jwt-simple/workflows/Rust/badge.svg" alt="GitHub CI" />
+<a href="https://docs.rs/jwt-simple/"><img src="https://docs.rs/jwt-simple/badge.svg" alt="Docs.rs" /></a>
+<a href="https://crates.io/crates/jwt-simple"><img src="https://img.shields.io/crates/v/jwt-simple.svg" alt="crates.io" /></a></p>
+<h2 id="jwt-simple"><a class="doc-anchor" href="#jwt-simple">§</a>JWT-Simple</h2>
+<p>A new JWT implementation for Rust that focuses on simplicity, while avoiding
+common JWT security pitfalls.</p>
+<p><code>jwt-simple</code> is unopinionated and supports all commonly deployed
+authentication and signature algorithms:</p>
+<ul>
+<li>HMAC-SHA2:
+<ul>
+<li><code>HS256</code></li>
+<li><code>HS384</code></li>
+<li><code>HS512</code></li>
+</ul>
+</li>
+<li>RSA
+<ul>
+<li><code>RS256</code></li>
+<li><code>RS384</code></li>
+<li><code>RS512</code></li>
+<li><code>PS256</code></li>
+<li><code>PS384</code></li>
+<li><code>PS512</code></li>
+</ul>
+</li>
+<li>p256
+<ul>
+<li><code>ES256</code></li>
+</ul>
+</li>
+<li>p384
+<ul>
+<li><code>ES384</code></li>
+</ul>
+</li>
+<li>secp256k1
+<ul>
+<li><code>ES256K</code></li>
+</ul>
+</li>
+<li>Ed25519
+<ul>
+<li><code>EdDSA</code></li>
+</ul>
+</li>
+</ul>
+<p><code>jwt-simple</code> uses only pure Rust implementations, and can be compiled out of
+the box to WebAssembly/WASI. It is fully compatible with Fastly <em>Compute</em> service.</p>
+<p>Important: JWT’s purpose is to verify that data has been created by a party
+knowing a secret key. It does not provide any kind of confidentiality: JWT
+data is simply encoded as BASE64, and is not encrypted.</p>
+<h3 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h3>
+<p><code>cargo.toml</code>:</p>
+<div class="example-wrap"><pre class="language-toml"><code>[dependencies]
+jwt-simple = &quot;0.10&quot;</code></pre></div>
+<p>Rust:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>jwt_simple::prelude::<span class="kw-2">*</span>;</code></pre></div>
+<h3 id="authentication-symmetric-hs-jwt-algorithms-example"><a class="doc-anchor" href="#authentication-symmetric-hs-jwt-algorithms-example">§</a>Authentication (symmetric, <code>HS*</code> JWT algorithms) example</h3>
+<p>Authentication schemes use the same key for creating and verifying tokens.
+In other words, both parties need to ultimately trust each other, or else
+the verifier could also create arbitrary tokens.</p>
+<h4 id="keys-and-tokens-creation"><a class="doc-anchor" href="#keys-and-tokens-creation">§</a>Keys and tokens creation</h4>
+<p>Key creation:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>jwt_simple::prelude::<span class="kw-2">*</span>;
+
+<span class="comment">// create a new key for the `HS256` JWT algorithm
+</span><span class="kw">let </span>key = HS256Key::generate();</code></pre></div>
+<p>A key can be exported as bytes with <code>key.to_bytes()</code>, and restored with
+<code>HS256Key::from_bytes()</code>.</p>
+<p>Token creation:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="doccomment">/// create claims valid for 2 hours
+</span><span class="kw">let </span>claims = Claims::create(Duration::from_hours(<span class="number">2</span>));
+<span class="kw">let </span>token = key.authenticate(claims)<span class="question-mark">?</span>;</code></pre></div>
+<p>-&gt; Done!</p>
+<h4 id="token-verification"><a class="doc-anchor" href="#token-verification">§</a>Token verification</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>claims = key.verify_token::&lt;NoCustomClaims&gt;(<span class="kw-2">&amp;</span>token, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;</code></pre></div>
+<p>-&gt; Done! No additional steps required.</p>
+<p>Key expiration, start time, authentication tags, etc. are automatically
+verified. The function fails with <code>JWTError::InvalidAuthenticationTag</code> if
+the authentication tag is invalid for the given key.</p>
+<p>The full set of claims can be inspected in the <code>claims</code> object if necessary.
+<code>NoCustomClaims</code> means that only the standard set of claims is used by the
+application, but application-defined claims can also be supported.</p>
+<p>Extra verification steps can optionally be enabled via the
+<code>ValidationOptions</code> structure:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span><span class="kw-2">mut </span>options = VerificationOptions::default();
+<span class="comment">// Accept tokens that will only be valid in the future
+</span>options.accept_future = <span class="bool-val">true</span>;
+<span class="comment">// Accept tokens even if they have expired up to 15 minutes after the deadline
+// and/or they will be valid within 15 minutes.
+</span>options.time_tolerance = <span class="prelude-val">Some</span>(Duration::from_mins(<span class="number">15</span>));
+<span class="comment">// Reject tokens if they were issued more than 1 hour ago
+</span>options.max_validity = <span class="prelude-val">Some</span>(Duration::from_hours(<span class="number">1</span>));
+<span class="comment">// Reject tokens if they don't include an issuer from that list
+</span>options.allowed_issuers = <span class="prelude-val">Some</span>(HashSet::from_strings(<span class="kw-2">&amp;</span>[<span class="string">"example app"</span>]));
+<span class="comment">// See the documentation for the full list of available options
+
+</span><span class="kw">let </span>claims = key.verify_token::&lt;NoCustomClaims&gt;(<span class="kw-2">&amp;</span>token, <span class="prelude-val">Some</span>(options))<span class="question-mark">?</span>;</code></pre></div>
+<p>Note that <code>allowed_issuers</code> and <code>allowed_audiences</code> are not strings, but
+sets of strings (using the <code>HashSet</code> type from the Rust standard library),
+as the application can allow multiple return values.</p>
+<h3 id="signatures-asymmetric-rs-ps-es-and-eddsa-algorithms-example"><a class="doc-anchor" href="#signatures-asymmetric-rs-ps-es-and-eddsa-algorithms-example">§</a>Signatures (asymmetric, <code>RS*</code>, <code>PS*</code>, <code>ES*</code> and <code>EdDSA</code> algorithms) example</h3>
+<p>A signature requires a key pair: a secret key used to create tokens, and a
+public key, that can only verify them.</p>
+<p>Always use a signature scheme if both parties do not ultimately trust each
+other, such as tokens exchanged between clients and API providers.</p>
+<h4 id="key-pairs-and-tokens-creation"><a class="doc-anchor" href="#key-pairs-and-tokens-creation">§</a>Key pairs and tokens creation</h4>
+<p>Key creation:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>jwt_simple::prelude::<span class="kw-2">*</span>;
+
+<span class="comment">// create a new key pair for the `ES256` JWT algorithm
+</span><span class="kw">let </span>key_pair = ES256KeyPair::generate();
+
+<span class="comment">// Or the `ES384` JWT algorithm
+</span><span class="kw">let </span>key_pair = ES384KeyPair::generate();
+
+<span class="comment">// a public key can be extracted from a key pair:
+</span><span class="kw">let </span>public_key = key_pair.public_key();</code></pre></div>
+<p>Keys can be exported as bytes for later reuse, and imported from bytes or,
+for RSA, from individual parameters, DER-encoded data or PEM-encoded data.</p>
+<p>RSA key pair creation, using OpenSSL and PEM importation of the secret key:</p>
+<div class="example-wrap"><pre class="language-sh"><code>openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -outform PEM -pubout -out public.pem</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>key_pair = RS384KeyPair::from_pem(private_pem_file_content)<span class="question-mark">?</span>;
+<span class="kw">let </span>public_key = RS384PublicKey::from_pem(public_pem_file_content)<span class="question-mark">?</span>;</code></pre></div>
+<p>Token creation and verification work the same way as with <code>HS*</code> algorithms,
+except that tokens are created with a key pair, and verified using the
+corresponding public key.</p>
+<p>Token creation:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="doccomment">/// create claims valid for 2 hours
+</span><span class="kw">let </span>claims = Claims::create(Duration::from_hours(<span class="number">2</span>));
+<span class="kw">let </span>token = key_pair.sign(claims)<span class="question-mark">?</span>;</code></pre></div>
+<p>Token verification:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>claims = public_key.verify_token::&lt;NoCustomClaims&gt;(<span class="kw-2">&amp;</span>token, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;</code></pre></div>
+<p>Available verification options are identical to the ones used with symmetric
+algorithms.</p>
+<h3 id="advanced-usage"><a class="doc-anchor" href="#advanced-usage">§</a>Advanced usage</h3><h4 id="custom-claims"><a class="doc-anchor" href="#custom-claims">§</a>Custom claims</h4>
+<p>Claim objects support all the standard claims by default, and they can be
+set directly or via convenient helpers:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>claims = Claims::create(Duration::from_hours(<span class="number">2</span>))
+    .with_issuer(<span class="string">"Example issuer"</span>)
+    .with_subject(<span class="string">"Example subject"</span>);</code></pre></div>
+<p>But application-defined claims can also be defined. These simply have to be
+present in a serializable type (this requires the <code>serde</code> crate):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">struct </span>MyAdditionalData {
+    user_is_admin: bool,
+    user_country: String,
+}
+<span class="kw">let </span>my_additional_data = MyAdditionalData {
+    user_is_admin: <span class="bool-val">false</span>,
+    user_country: <span class="string">"FR"</span>.to_string(),
+};
+
+<span class="comment">// Claim creation with custom data:
+
+</span><span class="kw">let </span>claims = Claims::with_custom_claims(my_additional_data, Duration::from_secs(<span class="number">30</span>));
+
+<span class="comment">// Claim verification with custom data. Note the presence of the custom data type:
+
+</span><span class="kw">let </span>claims = public_key.verify_token::&lt;MyAdditionalData&gt;(<span class="kw-2">&amp;</span>token, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+<span class="kw">let </span>user_is_admin = claims.custom.user_is_admin;</code></pre></div>
+<h4 id="peeking-at-metadata-before-verification"><a class="doc-anchor" href="#peeking-at-metadata-before-verification">§</a>Peeking at metadata before verification</h4>
+<p>Properties such as the key identifier can be useful prior to tag or
+signature verification in order to pick the right key out of a set.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>metadata = Token::decode_metadata(<span class="kw-2">&amp;</span>token)<span class="question-mark">?</span>;
+<span class="kw">let </span>key_id = metadata.key_id();
+<span class="kw">let </span>algorithm = metadata.algorithm();
+<span class="comment">// all other standard properties are also accessible</span></code></pre></div>
+<h4 id="creating-and-attaching-key-identifiers"><a class="doc-anchor" href="#creating-and-attaching-key-identifiers">§</a>Creating and attaching key identifiers</h4>
+<p>Key identifiers indicate to verifiers what public key (or shared key) should
+be used for verification. They can be attached at any time to existing
+shared keys, key pairs and public keys:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>public_key_with_id = public_key.with_key_id(<span class="kw-2">&amp;</span><span class="string">"unique key identifier"</span>);</code></pre></div>
+<p>Instead of delegating this to applications, <code>jwt-simple</code> can also create
+such an identifier for an existing key:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>key_id = public_key.create_key_id();</code></pre></div>
+<p>This creates an text-encoded identifier for the key, attaches it, and
+returns it.</p>
+<p>If an identifier has been attached to a shared key or a key pair, tokens
+created with them will include it.</p>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="algorithms/index.html" title="mod jwt_simple::algorithms">algorithms</a></div></li><li><div class="item-name"><a class="mod" href="claims/index.html" title="mod jwt_simple::claims">claims</a></div></li><li><div class="item-name"><a class="mod" href="common/index.html" title="mod jwt_simple::common">common</a></div></li><li><div class="item-name"><a class="mod" href="prelude/index.html" title="mod jwt_simple::prelude">prelude</a></div></li><li><div class="item-name"><a class="mod" href="reexports/index.html" title="mod jwt_simple::reexports">reexports</a></div></li><li><div class="item-name"><a class="mod" href="token/index.html" title="mod jwt_simple::token">token</a></div></li></ul><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Error.html" title="struct jwt_simple::Error">Error</a></div><div class="desc docblock-short">The <code>Error</code> type, a wrapper around a dynamic error type.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.JWTError.html" title="enum jwt_simple::JWTError">JWTError</a></div></li></ul></section></div></main></body></html>

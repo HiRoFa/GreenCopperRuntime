@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_con_pool_wrapper","get_con_pool_wrapper_no_cache","get_con_pool_wrapper_prime_cache"],"static":["GET_CON_POOL_WRAPPER"],"struct":["MysqlConnection","PoolWrapper"]};

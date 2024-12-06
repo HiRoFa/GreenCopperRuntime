@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Parse integers from ASCII byte slices."><title>btoi - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="btoi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../btoi/index.html">btoi</a><span class="version">0.4.3</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a></li><li><a href="#errors" title="Errors">Errors</a></li><li><a href="#panics" title="Panics">Panics</a></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>btoi</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/btoi/lib.rs.html#9-659">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Parse integers from ASCII byte slices.</p>
+<p>Provides functions similar to <a href="https://doc.rust-lang.org/std/primitive.u32.html#method.from_str_radix"><code>from_str_radix</code></a>, but is faster when
+parsing directly from byte slices instead of strings.</p>
+<p>Supports <code>#![no_std]</code>.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>btoi::btoi;
+
+<span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(<span class="number">42</span>), btoi(<span class="string">b"42"</span>));
+<span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(-<span class="number">1000</span>), btoi(<span class="string">b"-1000"</span>));</code></pre></div>
+<p>All functions are <a href="https://docs.rs/num-traits/">generic</a> over integer
+types. Use the turbofish syntax if a type cannot be inferred from the
+context.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// overflows the selected target type
+</span><span class="macro">assert!</span>(btoi::&lt;u32&gt;(<span class="string">b"9876543210"</span>).is_err());
+
+<span class="comment">// underflows the selected target type (an unsigned integer)
+</span><span class="macro">assert!</span>(btoi::&lt;u32&gt;(<span class="string">b"-1"</span>).is_err());</code></pre></div>
+<p>It is possible to use saturating arithmetic for overflow handling.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>btoi::btoi_saturating;
+
+<span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(<span class="number">0xffff_ffff</span>), btoi_saturating::&lt;u32&gt;(<span class="string">b"9876543210"</span>));
+<span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(<span class="number">0</span>), btoi_saturating::&lt;u32&gt;(<span class="string">b"-1"</span>));</code></pre></div>
+<h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
+<p>All functions return <a href="struct.ParseIntegerError.html"><code>ParseIntegerError</code></a> for these error conditions:</p>
+<ul>
+<li>The byte slice does not contain any digits.</li>
+<li>Not all characters are <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>. Leading or trailing
+whitespace is not allowed. The <code>btoi*</code> functions accept an optional
+leading <code>+</code> or <code>-</code> sign. The <code>btou*</code> functions respectively do not
+allow signs.</li>
+<li>Not all digits are valid in the given radix.</li>
+<li>The number overflows or underflows the target type, but saturating
+arithmetic is not used.</li>
+</ul>
+<h2 id="panics"><a class="doc-anchor" href="#panics">§</a>Panics</h2>
+<p>Just like <code>from_str_radix</code> functions will panic if the given radix is
+not in the range <code>2..=36</code> (or in the pathological case that there is
+no representation of the radix in the target integer type).</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.ParseIntegerError.html" title="struct btoi::ParseIntegerError">Parse<wbr>Integer<wbr>Error</a></div><div class="desc docblock-short">An error that can occur when parsing an integer.</div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.btoi.html" title="fn btoi::btoi">btoi</a></div><div class="desc docblock-short">Converts a byte slice to an integer.</div></li><li><div class="item-name"><a class="fn" href="fn.btoi_radix.html" title="fn btoi::btoi_radix">btoi_<wbr>radix</a></div><div class="desc docblock-short">Converts a byte slice in a given base to an integer.</div></li><li><div class="item-name"><a class="fn" href="fn.btoi_saturating.html" title="fn btoi::btoi_saturating">btoi_<wbr>saturating</a></div><div class="desc docblock-short">Converts a byte slice to the closest possible integer.</div></li><li><div class="item-name"><a class="fn" href="fn.btoi_saturating_radix.html" title="fn btoi::btoi_saturating_radix">btoi_<wbr>saturating_<wbr>radix</a></div><div class="desc docblock-short">Converts a byte slice in a given base to the closest possible integer.</div></li><li><div class="item-name"><a class="fn" href="fn.btou.html" title="fn btoi::btou">btou</a></div><div class="desc docblock-short">Converts a byte slice to an integer. Signs are not allowed.</div></li><li><div class="item-name"><a class="fn" href="fn.btou_radix.html" title="fn btoi::btou_radix">btou_<wbr>radix</a></div><div class="desc docblock-short">Converts a byte slice in a given base to an integer. Signs are not allowed.</div></li><li><div class="item-name"><a class="fn" href="fn.btou_saturating.html" title="fn btoi::btou_saturating">btou_<wbr>saturating</a></div><div class="desc docblock-short">Converts a byte slice to the closest possible integer.
+Signs are not allowed.</div></li><li><div class="item-name"><a class="fn" href="fn.btou_saturating_radix.html" title="fn btoi::btou_saturating_radix">btou_<wbr>saturating_<wbr>radix</a></div><div class="desc docblock-short">Converts a byte slice in a given base to the closest possible integer.
+Signs are not allowed.</div></li></ul></section></div></main></body></html>

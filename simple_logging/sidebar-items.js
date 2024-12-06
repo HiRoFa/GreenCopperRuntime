@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["log_to","log_to_file","log_to_stderr"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ExpiringSizedCache","ExpiringValueCache","SizedCache","TimedCache","TimedSizedCache","UnboundCache"],"trait":["CanExpire"]};

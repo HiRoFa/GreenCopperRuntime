@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="#FS Module"><title>green_copper_runtime::modules::io::fs - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="green_copper_runtime" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../../green_copper_runtime/index.html">green_<wbr>copper_<wbr>runtime</a><span class="version">0.2.1</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module fs</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#example" title="example">example</a></li><li><a href="#methods" title="Methods">Methods</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In green_<wbr>copper_<wbr>runtime::<wbr>modules::<wbr>io</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="../../../index.html">green_copper_runtime</a>::<wbr><a href="../../index.html">modules</a>::<wbr><a href="../index.html">io</a></span><h1>Module <span>fs</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../../src/green_copper_runtime/modules/io/fs/mod.rs.html#1-353">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>#FS Module</p>
+<div class="example-wrap"><pre class="language-javascript"><code>async function test() {
+    let fs_mod = await import(&#39;greco://fs&#39;);
+    await fs_mod.write(&#39;./test.txt&#39;, &#39;hello from greco fs&#39;);
+}</code></pre></div><h2 id="example"><a class="doc-anchor" href="#example">§</a>example</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>quickjs_runtime::builder::QuickJsRuntimeBuilder;
+<span class="kw">use </span>futures::executor::block_on;
+<span class="kw">use </span>quickjs_runtime::jsutils::Script;
+<span class="kw">use </span>quickjs_runtime::values::JsValueFacade;
+<span class="kw">let </span>rtb = QuickJsRuntimeBuilder::new();
+<span class="kw">let </span>rtb = green_copper_runtime::init_greco_rt(rtb);
+<span class="kw">let </span>rt = rtb.build();
+rt.eval_sync(<span class="prelude-val">None</span>, Script::new(<span class="string">"init_fs.es"</span>, <span class="string">"async function test_write() {\
+    let fs_mod = await import('greco://fs');\
+    await fs_mod.write('./test.txt', 'hello from greco fs');
+}\n"</span>)).expect(<span class="string">"script failed"</span>);
+<span class="kw">let </span>prom_jsvf = rt.invoke_function_sync(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>[], <span class="string">"test_write"</span>, <span class="macro">vec!</span>[]).ok().expect(<span class="string">"write function invocation failed"</span>);
+<span class="comment">// wait for promise to be done
+
+</span><span class="kw">if let </span>JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+    <span class="kw">let </span>done = block_on(cached_promise.get_promise_result());
+    <span class="macro">assert!</span>(done.is_ok());
+} <span class="kw">else </span>{
+    <span class="macro">panic!</span>(<span class="string">"not a promise"</span>);
+}
+
+<span class="comment">// do read test
+</span><span class="kw">let </span>eval_fut = rt.eval(<span class="prelude-val">None</span>, Script::new(<span class="string">"init_fs.es"</span>, <span class="string">"async function test_read() {\
+    let fs_mod = await import('greco://fs');\
+    return await fs_mod.readString('./test.txt');
+}\n"</span>));
+<span class="kw">let _ </span>= block_on(eval_fut);
+<span class="kw">let </span>prom_jsvf = rt.invoke_function_sync(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>[], <span class="string">"test_read"</span>, <span class="macro">vec!</span>[]).ok().expect(<span class="string">"read invocation failed"</span>);
+<span class="comment">// wait for promise to be done
+</span><span class="kw">if let </span>JsValueFacade::JsPromise { cached_promise } = prom_jsvf {
+    <span class="kw">let </span>done = block_on(cached_promise.get_promise_result()).ok().expect(<span class="string">"prom failed"</span>);
+    <span class="kw">match </span>done {
+       <span class="prelude-val">Ok</span>(done_jsvf) =&gt; {
+          <span class="kw">let </span>s = done_jsvf.stringify();
+          <span class="macro">assert_eq!</span>(s, <span class="string">"String: hello from greco fs"</span>);
+       }
+       <span class="prelude-val">Err</span>(val) =&gt; {
+          <span class="macro">panic!</span>(<span class="string">"promise was rejected: {}"</span>, val.stringify());
+       }
+    }
+     
+} <span class="kw">else </span>{
+    <span class="macro">panic!</span>(<span class="string">"not  promise"</span>)
+}</code></pre></div>
+<h2 id="methods"><a class="doc-anchor" href="#methods">§</a>Methods</h2>
+<p>##append
+##copy
+##createSymlink
+##createDirs
+##getMetadata
+##getSymlinkMetadata
+##list
+##readString
+##removeDir
+##removeFile
+##rename
+##touch
+##write</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.FsModuleLoader.html" title="struct green_copper_runtime::modules::io::fs::FsModuleLoader">FsModule<wbr>Loader</a></div></li></ul></section></div></main></body></html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A simple logger for the `log` facade. One log message is written per line. Each line also includes the time it was logged, the logging level and the ID of the thread."><title>simple_logging - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="simple_logging" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../simple_logging/index.html">simple_<wbr>logging</a><span class="version">2.0.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a></li><li><a href="#log-format" title="Log format">Log format</a></li><li><a href="#errors" title="Errors">Errors</a></li><li><a href="#performance" title="Performance">Performance</a></li></ul><h3><a href="#functions">Crate Items</a></h3><ul class="block"><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>simple_logging</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/simple_logging/lib.rs.html#1-275">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A simple logger for the <a href="https://crates.io/crates/log"><code>log</code></a> facade. One
+log message is written per line. Each line also includes the time it was
+logged, the logging level and the ID of the thread.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<p>Most users will simply need to call <a href="fn.log_to_file.html"><code>log_to_file()</code></a>
+with the path to the log file and minimum log level:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>log::LevelFilter;
+
+simple_logging::log_to_file(<span class="string">"test.log"</span>, LevelFilter::Info);</code></pre></div>
+<p>Or use <a href="fn.log_to_stderr.html"><code>log_to_stderr()</code></a> if simply logging to
+<code>stderr</code>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>log::LevelFilter;
+
+simple_logging::log_to_stderr(LevelFilter::Info);</code></pre></div>
+<p>For more control, <a href="fn.log_to.html"><code>log_to()</code></a> can be used with an
+arbitrary sink implementing
+<a href="https://doc.rust-lang.org/std/io/trait.Write.html"><code>Write</code></a> +
+<a href="https://doc.rust-lang.org/std/marker/trait.Send.html"><code>Send</code></a> + <code>'static</code>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>log::LevelFilter;
+<span class="kw">use </span>std::io;
+
+simple_logging::log_to(io::sink(), LevelFilter::Info);</code></pre></div>
+<h2 id="log-format"><a class="doc-anchor" href="#log-format">§</a>Log format</h2>
+<p>Each and every log message obeys the following fixed and easily-parsable
+format:</p>
+<div class="example-wrap"><pre class="language-text"><code>[&lt;hh&gt;:&lt;mm&gt;:&lt;ss&gt;.&lt;SSS&gt;] (&lt;thread-id&gt;) &lt;level&gt; &lt;message&gt;\n</code></pre></div>
+<p>Where <code>&lt;hh&gt;</code> denotes hours zero-padded to at least two digits, <code>&lt;mm&gt;</code>
+denotes minutes zero-padded to two digits, <code>&lt;ss&gt;</code> denotes seconds
+zero-padded to two digits and <code>&lt;SSS&gt;</code> denotes miliseconds zero-padded to
+three digits. <code>&lt;thread-id&gt;</code> is an implementation-specific alphanumeric ID.
+<code>&lt;level&gt;</code> is the log level as defined by <code>log::LogLevel</code> and padded right
+with spaces. <code>&lt;message&gt;</code> is the log message. Note that <code>&lt;message&gt;</code> is
+written to the log as-is, including any embedded newlines.</p>
+<h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
+<p>Any errors returned by the sink when writing are ignored.</p>
+<h2 id="performance"><a class="doc-anchor" href="#performance">§</a>Performance</h2>
+<p>The logger relies on a global <code>Mutex</code> to serialize access to the user
+supplied sink.</p>
+</div></details><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.log_to.html" title="fn simple_logging::log_to">log_to</a></div><div class="desc docblock-short">Configure the <a href="https://crates.io/crates/log"><code>log</code></a> facade to log to a
+custom sink.</div></li><li><div class="item-name"><a class="fn" href="fn.log_to_file.html" title="fn simple_logging::log_to_file">log_<wbr>to_<wbr>file</a></div><div class="desc docblock-short">Configure the <a href="https://crates.io/crates/log"><code>log</code></a> facade to log to a file.</div></li><li><div class="item-name"><a class="fn" href="fn.log_to_stderr.html" title="fn simple_logging::log_to_stderr">log_<wbr>to_<wbr>stderr</a></div><div class="desc docblock-short">Configure the <a href="https://crates.io/crates/log"><code>log</code></a> facade to log to
+<code>stderr</code>.</div></li></ul></section></div></main></body></html>

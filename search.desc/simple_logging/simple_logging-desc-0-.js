@@ -1,0 +1,1 @@
+searchState.loadedDescShard("simple_logging", 0, "A simple logger for the <code>log</code> facade. One log message is …\nConfigure the <code>log</code> facade to log to a custom sink.\nConfigure the <code>log</code> facade to log to a file.\nConfigure the <code>log</code> facade to log to <code>stderr</code>.")

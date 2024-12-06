@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Conversions between Rust and MySQL/MariaDB types."><title>sqlx_mysql::types - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sqlx_mysql" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../sqlx_mysql/index.html">sqlx_<wbr>mysql</a><span class="version">0.8.2</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module types</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#types" title="Types">Types</a><ul><li><a href="#note-booleanbool-type" title="Note: `BOOLEAN`/`BOOL` Type">Note: <code>BOOLEAN</code>/<code>BOOL</code> Type</a></li><li><a href="#note-mysqls-time-type-is-signed" title="NOTE: MySQL’s `TIME` type is signed">NOTE: MySQL’s <code>TIME</code> type is signed</a></li><li><a href="#chrono" title="`chrono`"><code>chrono</code></a></li><li><a href="#note-mysqls-time-type-is-dual-purpose" title="NOTE: MySQL’s `TIME` type is dual-purpose">NOTE: MySQL’s <code>TIME</code> type is dual-purpose</a></li><li><a href="#time" title="`time`"><code>time</code></a></li><li><a href="#note-mysqls-time-type-is-dual-purpose-1" title="NOTE: MySQL’s `TIME` type is dual-purpose">NOTE: MySQL’s <code>TIME</code> type is dual-purpose</a></li><li><a href="#bigdecimal" title="`bigdecimal`"><code>bigdecimal</code></a></li><li><a href="#decimal" title="`decimal`"><code>decimal</code></a></li><li><a href="#uuid" title="`uuid`"><code>uuid</code></a></li><li><a href="#json" title="`json`"><code>json</code></a></li></ul></li><li><a href="#nullable" title="Nullable">Nullable</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate sqlx_<wbr>mysql</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="../index.html">sqlx_mysql</a></span><h1>Module <span>types</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/sqlx_mysql/types/mod.rs.html#1-167">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Conversions between Rust and <strong>MySQL/MariaDB</strong> types.</p>
+<h2 id="types"><a class="doc-anchor" href="#types">§</a>Types</h2><div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>bool</code></td><td>TINYINT(1), BOOLEAN, BOOL (see below)</td></tr>
+<tr><td><code>i8</code></td><td>TINYINT</td></tr>
+<tr><td><code>i16</code></td><td>SMALLINT</td></tr>
+<tr><td><code>i32</code></td><td>INT</td></tr>
+<tr><td><code>i64</code></td><td>BIGINT</td></tr>
+<tr><td><code>u8</code></td><td>TINYINT UNSIGNED</td></tr>
+<tr><td><code>u16</code></td><td>SMALLINT UNSIGNED</td></tr>
+<tr><td><code>u32</code></td><td>INT UNSIGNED</td></tr>
+<tr><td><code>u64</code></td><td>BIGINT UNSIGNED</td></tr>
+<tr><td><code>f32</code></td><td>FLOAT</td></tr>
+<tr><td><code>f64</code></td><td>DOUBLE</td></tr>
+<tr><td><code>&amp;str</code>, <a href="https://doc.rust-lang.org/1.83.0/alloc/string/struct.String.html" title="struct alloc::string::String"><code>String</code></a></td><td>VARCHAR, CHAR, TEXT</td></tr>
+<tr><td><code>&amp;[u8]</code>, <code>Vec&lt;u8&gt;</code></td><td>VARBINARY, BINARY, BLOB</td></tr>
+<tr><td><code>IpAddr</code></td><td>VARCHAR, TEXT</td></tr>
+<tr><td><code>Ipv4Addr</code></td><td>INET4 (MariaDB-only), VARCHAR, TEXT</td></tr>
+<tr><td><code>Ipv6Addr</code></td><td>INET6 (MariaDB-only), VARCHAR, TEXT</td></tr>
+<tr><td><a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a></td><td>TIME (encode and decode full range)</td></tr>
+<tr><td><a href="https://doc.rust-lang.org/1.83.0/core/time/struct.Duration.html" title="struct core::time::Duration"><code>Duration</code></a></td><td>TIME (for decoding positive values only)</td></tr>
+</tbody></table>
+</div><h6 id="note-booleanbool-type"><a class="doc-anchor" href="#note-booleanbool-type">§</a>Note: <code>BOOLEAN</code>/<code>BOOL</code> Type</h6>
+<p>MySQL and MariaDB treat <code>BOOLEAN</code> as an alias of the <code>TINYINT</code> type:</p>
+<ul>
+<li><a href="https://dev.mysql.com/doc/refman/8.0/en/other-vendor-data-types.html">Using Data Types from Other Database Engines (MySQL)</a></li>
+<li><a href="https://mariadb.com/kb/en/boolean/">BOOLEAN (MariaDB)</a></li>
+</ul>
+<p>For the most part, you can simply use the Rust type <code>bool</code> when encoding or decoding a value
+using the dynamic query interface, or passing a boolean as a parameter to the query macros
+(<code>query!()</code> <em>et al.</em>).</p>
+<p>However, because the MySQL wire protocol does not distinguish between <code>TINYINT</code> and <code>BOOLEAN</code>,
+the query macros cannot know that a <code>TINYINT</code> column is semantically a boolean.
+By default, they will map a <code>TINYINT</code> column as <code>i8</code> instead, as that is the safer assumption.</p>
+<p>Thus, you must use the type override syntax in the query to tell the macros you are expecting
+a <code>bool</code> column. See the docs for <code>query!()</code> and <code>query_as!()</code> for details on this syntax.</p>
+<h4 id="note-mysqls-time-type-is-signed"><a class="doc-anchor" href="#note-mysqls-time-type-is-signed">§</a>NOTE: MySQL’s <code>TIME</code> type is signed</h4>
+<p>MySQL’s <code>TIME</code> type can be used as either a time-of-day value, or a signed interval.
+Thus, it may take on negative values.</p>
+<p>Decoding a <a href="https://doc.rust-lang.org/1.83.0/core/time/struct.Duration.html" title="struct core::time::Duration"><code>std::time::Duration</code></a> returns an error if the <code>TIME</code> value is negative.</p>
+<h4 id="chrono"><a class="doc-anchor" href="#chrono">§</a><a href="https://crates.io/crates/chrono"><code>chrono</code></a></h4>
+<p>Requires the <code>chrono</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>chrono::DateTime&lt;Utc&gt;</code></td><td>TIMESTAMP</td></tr>
+<tr><td><code>chrono::DateTime&lt;Local&gt;</code></td><td>TIMESTAMP</td></tr>
+<tr><td><code>chrono::NaiveDateTime</code></td><td>DATETIME</td></tr>
+<tr><td><code>chrono::NaiveDate</code></td><td>DATE</td></tr>
+<tr><td><code>chrono::NaiveTime</code></td><td>TIME (time-of-day only)</td></tr>
+<tr><td><code>chrono::TimeDelta</code></td><td>TIME (decodes full range; see note for encoding)</td></tr>
+</tbody></table>
+</div><h4 id="note-mysqls-time-type-is-dual-purpose"><a class="doc-anchor" href="#note-mysqls-time-type-is-dual-purpose">§</a>NOTE: MySQL’s <code>TIME</code> type is dual-purpose</h4>
+<p>MySQL’s <code>TIME</code> type can be used as either a time-of-day value, or an interval.
+However, <code>chrono::NaiveTime</code> is designed only to represent a time-of-day.</p>
+<p>Decoding a <code>TIME</code> value as <code>chrono::NaiveTime</code> will return an error if the value is out of range.</p>
+<p>The <a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a> type supports the full range and it also implements <code>TryInto&lt;chrono::NaiveTime&gt;</code>.</p>
+<p>Decoding a <code>chrono::TimeDelta</code> also supports the full range.</p>
+<p>To encode a <code>chrono::TimeDelta</code>, convert it to <a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a> first using <code>TryFrom</code>/<code>TryInto</code>.</p>
+<h4 id="time"><a class="doc-anchor" href="#time">§</a><a href="https://crates.io/crates/time"><code>time</code></a></h4>
+<p>Requires the <code>time</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>time::PrimitiveDateTime</code></td><td>DATETIME</td></tr>
+<tr><td><code>time::OffsetDateTime</code></td><td>TIMESTAMP</td></tr>
+<tr><td><code>time::Date</code></td><td>DATE</td></tr>
+<tr><td><code>time::Time</code></td><td>TIME (time-of-day only)</td></tr>
+<tr><td><code>time::Duration</code></td><td>TIME (decodes full range; see note for encoding)</td></tr>
+</tbody></table>
+</div><h4 id="note-mysqls-time-type-is-dual-purpose-1"><a class="doc-anchor" href="#note-mysqls-time-type-is-dual-purpose-1">§</a>NOTE: MySQL’s <code>TIME</code> type is dual-purpose</h4>
+<p>MySQL’s <code>TIME</code> type can be used as either a time-of-day value, or an interval.
+However, <code>time::Time</code> is designed only to represent a time-of-day.</p>
+<p>Decoding a <code>TIME</code> value as <code>time::Time</code> will return an error if the value is out of range.</p>
+<p>The <a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a> type supports the full range, and it also implements <code>TryInto&lt;time::Time&gt;</code>.</p>
+<p>Decoding a <code>time::Duration</code> also supports the full range.</p>
+<p>To encode a <code>time::Duration</code>, convert it to <a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a> first using <code>TryFrom</code>/<code>TryInto</code>.</p>
+<h4 id="bigdecimal"><a class="doc-anchor" href="#bigdecimal">§</a><a href="https://crates.io/crates/bigdecimal"><code>bigdecimal</code></a></h4>
+<p>Requires the <code>bigdecimal</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>bigdecimal::BigDecimal</code></td><td>DECIMAL</td></tr>
+</tbody></table>
+</div><h4 id="decimal"><a class="doc-anchor" href="#decimal">§</a><a href="https://crates.io/crates/rust_decimal"><code>decimal</code></a></h4>
+<p>Requires the <code>decimal</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>rust_decimal::Decimal</code></td><td>DECIMAL</td></tr>
+</tbody></table>
+</div><h4 id="uuid"><a class="doc-anchor" href="#uuid">§</a><a href="https://crates.io/crates/uuid"><code>uuid</code></a></h4>
+<p>Requires the <code>uuid</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><code>uuid::Uuid</code></td><td>BINARY(16), VARCHAR, CHAR, TEXT</td></tr>
+<tr><td><code>uuid::fmt::Hyphenated</code></td><td>CHAR(36), UUID (MariaDB-only)</td></tr>
+<tr><td><code>uuid::fmt::Simple</code></td><td>CHAR(32)</td></tr>
+</tbody></table>
+</div><h4 id="json"><a class="doc-anchor" href="#json">§</a><a href="https://crates.io/crates/serde_json"><code>json</code></a></h4>
+<p>Requires the <code>json</code> Cargo feature flag.</p>
+<div><table><thead><tr><th>Rust type</th><th>MySQL/MariaDB type(s)</th></tr></thead><tbody>
+<tr><td><a href="../../sqlx_core/types/json/struct.Json.html" title="struct sqlx_core::types::json::Json"><code>Json&lt;T&gt;</code></a></td><td>JSON</td></tr>
+<tr><td><code>serde_json::JsonValue</code></td><td>JSON</td></tr>
+<tr><td><code>&amp;serde_json::value::RawValue</code></td><td>JSON</td></tr>
+</tbody></table>
+</div><h2 id="nullable"><a class="doc-anchor" href="#nullable">§</a>Nullable</h2>
+<p>In addition, <code>Option&lt;T&gt;</code> is supported where <code>T</code> implements <code>Type</code>. An <code>Option&lt;T&gt;</code> represents
+a potentially <code>NULL</code> value from MySQL/MariaDB.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime">MySql<wbr>Time</a></div><div class="desc docblock-short">Container for a MySQL <code>TIME</code> value, which may be an interval or a time-of-day.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.MySqlTimeError.html" title="enum sqlx_mysql::types::MySqlTimeError">MySql<wbr>Time<wbr>Error</a></div><div class="desc docblock-short">Errors returned by <a href="struct.MySqlTime.html#method.new" title="associated function sqlx_mysql::types::MySqlTime::new"><code>MySqlTime::new()</code></a>.</div></li><li><div class="item-name"><a class="enum" href="enum.MySqlTimeSign.html" title="enum sqlx_mysql::types::MySqlTimeSign">MySql<wbr>Time<wbr>Sign</a></div><div class="desc docblock-short">The sign for a <a href="struct.MySqlTime.html" title="struct sqlx_mysql::types::MySqlTime"><code>MySqlTime</code></a> type.</div></li></ul></section></div></main></body></html>

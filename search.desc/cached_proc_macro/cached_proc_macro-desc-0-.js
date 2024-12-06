@@ -1,0 +1,1 @@
+searchState.loadedDescShard("cached_proc_macro", 0, "Define a memoized function using a cache store that …\nDefine a memoized function using a cache store that …\nDefine a memoized function using a cache store that …")

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["consts","decimal","events","jsonb","jsondiff","misc","row","value"],"struct":["BinlogCtx","BinlogFile","BinlogFileHeader","EventStreamReader"],"trait":["BinlogEvent","BinlogStruct"]};

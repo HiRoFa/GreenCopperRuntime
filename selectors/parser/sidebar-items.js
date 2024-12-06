@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Combinator","Component","SelectorParseErrorKind"],"fn":["namespace_empty_string","parse_compound_selector_list"],"struct":["AncestorHashes","LocalName","Selector","SelectorIter","SelectorList"],"trait":["NonTSPseudoClass","Parser","PseudoElement","SelectorImpl"],"type":["SelectorParseError"]};

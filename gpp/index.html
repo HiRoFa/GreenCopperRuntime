@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="gpp is a Generic PreProcessor written in Rust."><title>gpp - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="gpp" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../gpp/index.html">gpp</a><span class="version">0.6.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#about" title="About">About</a><ul><li><a href="#define-and-undef" title="#define and #undef">#define and #undef</a></li><li><a href="#include" title="#include">#include</a></li><li><a href="#ifs" title="Ifs">Ifs</a></li><li><a href="#exec-in-and-endin" title="#exec, #in and #endin">#exec, #in and #endin</a></li><li><a href="#literal-hashes" title="Literal hashes">Literal hashes</a></li></ul></li><li><a href="#examples" title="Examples">Examples</a></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>gpp</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/gpp/lib.rs.html#1-622">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>gpp is a Generic PreProcessor written in Rust.</p>
+<p>It supports:</p>
+<ul>
+<li>Simple macros, no function macros</li>
+<li>#include</li>
+<li>#define and #undef</li>
+<li>#ifdef, #ifndef, #elifdef, #elifndef, #else and #endif</li>
+<li>#exec for running commands</li>
+<li>#in and #endin for giving input to commands</li>
+</ul>
+<p>#includes work differently from C, as they do not require (and do not work with) quotes or &lt;&gt;,
+so <code>#include file.txt</code> is the correct syntax. It does not support #if or #elif, and recursive
+macros will cause the library to get stuck.</p>
+<h2 id="about"><a class="doc-anchor" href="#about">§</a>About</h2>
+<p>The hash in any command may be succeeded by optional whitespace, so for example <code># undef Macro</code>
+is valid, but <code> # undef Macro</code> is not.</p>
+<h3 id="define-and-undef"><a class="doc-anchor" href="#define-and-undef">§</a>#define and #undef</h3>
+<p>#define works similar to C: <code>#define [name] [value]</code>, and #undef too: <code>#undef [name]</code>. Be
+careful though, because unlike C macro expansion is recursive: if you <code>#define A A</code> and then
+use A, gpp will run forever.
+If #define is not given a value, then it will default to an empty string.</p>
+<h3 id="include"><a class="doc-anchor" href="#include">§</a>#include</h3>
+<p>Includes, unlike C, do not require quotes or angle brackets, so this: <code>#include "file.txt"</code> or
+this: <code>#include &lt;file.txt&gt;</code> will not work; you must write <code>#include file.txt</code>.</p>
+<p>Also, unlike C the directory does not change when you #include; otherwise, gpp would change its
+current directory and wouldn’t be thread safe. This means that if you <code>#include dir/file.txt</code>
+and in <code>dir/file.txt</code> it says <code>#include other_file.txt</code>, that would refer to <code>other_file.txt</code>,
+not <code>dir/other_file.txt</code>.</p>
+<h3 id="ifs"><a class="doc-anchor" href="#ifs">§</a>Ifs</h3>
+<p>The #ifdef, #ifndef, #elifdef, #elifndef, #else and #endif commands work exactly as you expect.
+I did not add generic #if commands to gpp, as it would make it much more complex and require a
+lot of parsing, and most of the time these are all you need anyway.</p>
+<h3 id="exec-in-and-endin"><a class="doc-anchor" href="#exec-in-and-endin">§</a>#exec, #in and #endin</h3>
+<p>The exec command executes the given command with <code>cmd /C</code> for Windows and <code>sh -c</code> for
+everything else, and captures the command’s standard output. For example, <code>#exec echo Hi!</code> will
+output <code>Hi!</code>. It does not capture the command’s standard error, and parsing stops if the
+command exits with a nonzero status.</p>
+<p>Due to the security risk enabling #exec causes, by default exec is disabled, however you can
+enable it by changing the <code>allow_exec</code> flag in your context. If the input tries to <code>#exec</code> when
+exec is disabled, it will cause an error.</p>
+<p>The in command is similar to exec, but all text until the endin command is passed into the
+program’s standard input. For example,</p>
+<div class="example-wrap"><pre class="language-text"><code>#in sed &#39;s/tree/three/g&#39;
+One, two, tree.
+#endin</code></pre></div>
+<p>Would output <code>One, two, three.</code>. Note that you shouldn’t do this, just using <code>#define tree three</code> would be much faster and less platform-dependent. You can also place more commands in
+the in block, including other in blocks. For a useful example:</p>
+<div class="example-wrap"><pre class="language-text"><code>&lt;style&gt;
+#in sassc -s
+# include styles.scss
+#endin
+&lt;/style&gt;</code></pre></div>
+<p>This compiles your scss file into css using Sassc and includes in the HTML every time you
+generate your webpage with gpp.</p>
+<h3 id="literal-hashes"><a class="doc-anchor" href="#literal-hashes">§</a>Literal hashes</h3>
+<p>In order to insert literal hash symbols at the start of the line, simply use two hashes.
+<code>##some text</code> will convert into <code>#some text</code>, while <code>#some text</code> will throw an error as <code>some</code>
+is not a command.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// Create a context for preprocessing
+</span><span class="kw">let </span><span class="kw-2">mut </span>context = gpp::Context::new();
+
+<span class="comment">// Add a macro to that context manually (context.macros is a HashMap)
+</span>context.macros.insert(<span class="string">"my_macro"</span>.to_owned(), <span class="string">"my_value"</span>.to_owned());
+
+<span class="comment">// Process some text using that
+</span><span class="macro">assert_eq!</span>(gpp::process_str(<span class="string">"My macro is my_macro\n"</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="string">"My macro is my_value\n"</span>);
+
+<span class="comment">// Process some multi-line text, changing the context
+</span><span class="macro">assert_eq!</span>(gpp::process_str(<span class="string">"
+#define Line Row
+Line One
+Line Two
+The Third Line"</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="string">"
+Row One
+Row Two
+The Third Row
+"</span>);
+
+<span class="comment">// The context persists
+</span><span class="macro">assert_eq!</span>(context.macros.get(<span class="string">"Line"</span>).unwrap(), <span class="string">"Row"</span>);
+
+<span class="comment">// Try some more advanced commands
+</span><span class="macro">assert_eq!</span>(gpp::process_str(<span class="string">"
+Line Four
+#ifdef Line
+#undef Line
+#endif
+Line Five"</span>, <span class="kw-2">&amp;mut </span>context).unwrap(), <span class="string">"
+Row Four
+Line Five
+"</span>);</code></pre></div>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Context.html" title="struct gpp::Context">Context</a></div><div class="desc docblock-short">Context of the current processing.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.Error.html" title="enum gpp::Error">Error</a></div><div class="desc docblock-short">Error enum for parsing errors.</div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.process_buf.html" title="fn gpp::process_buf">process_<wbr>buf</a></div><div class="desc docblock-short">Process a generic BufRead.</div></li><li><div class="item-name"><a class="fn" href="fn.process_file.html" title="fn gpp::process_file">process_<wbr>file</a></div><div class="desc docblock-short">Process a file.</div></li><li><div class="item-name"><a class="fn" href="fn.process_line.html" title="fn gpp::process_line">process_<wbr>line</a></div><div class="desc docblock-short">Process a string line of input.</div></li><li><div class="item-name"><a class="fn" href="fn.process_str.html" title="fn gpp::process_str">process_<wbr>str</a></div><div class="desc docblock-short">Process a multi-line string of text.</div></li></ul></section></div></main></body></html>

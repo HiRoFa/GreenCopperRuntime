@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["JsonbError","JsonbToJsonError","JsonbType","LiteralType","Value"],"struct":["Array","ArrayIter","ComplexValue","JsonbString","Large","Object","ObjectIter","ObjectKey","ObjectKeys","OpaqueValue","Small","UnknownJsonbType","UnknownLiteralType"],"trait":["ComplexType","StorageFormat"]};
