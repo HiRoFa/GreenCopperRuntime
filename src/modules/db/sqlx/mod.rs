@@ -24,7 +24,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
-use tokio::sync::RwLock;
 
 pub enum SqlxConnection {
     PostgresConnection {
@@ -39,10 +38,10 @@ pub enum SqlxConnection {
 
 pub enum SqlxTransaction {
     PostgresTransaction {
-        tx: RwLock<Option<Transaction<'static, Postgres>>>,
+        tx: tokio::sync::Mutex<Option<Transaction<'static, Postgres>>>,
     },
     MySqlTransaction {
-        tx: RwLock<Option<Transaction<'static, MySql>>>,
+        tx: tokio::sync::Mutex<Option<Transaction<'static, MySql>>>,
     },
 }
 
@@ -738,13 +737,13 @@ impl SqlxConnection {
 async fn transaction_commit(tx: Arc<SqlxTransaction>) -> anyhow::Result<()> {
     match &*tx {
         SqlxTransaction::PostgresTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             if let Some(tx) = tx_opt.take() {
                 tx.commit().await?;
             }
         }
         SqlxTransaction::MySqlTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             if let Some(tx) = tx_opt.take() {
                 tx.commit().await?;
             }
@@ -757,13 +756,13 @@ async fn transaction_commit(tx: Arc<SqlxTransaction>) -> anyhow::Result<()> {
 async fn transaction_rollback(tx: Arc<SqlxTransaction>) -> anyhow::Result<()> {
     match &*tx {
         SqlxTransaction::PostgresTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             if let Some(tx) = tx_opt.take() {
                 tx.rollback().await?;
             }
         }
         SqlxTransaction::MySqlTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             if let Some(tx) = tx_opt.take() {
                 tx.rollback().await?;
             }
@@ -776,11 +775,11 @@ async fn transaction_rollback(tx: Arc<SqlxTransaction>) -> anyhow::Result<()> {
 async fn transaction_close(tx: Arc<SqlxTransaction>) -> anyhow::Result<()> {
     match &*tx {
         SqlxTransaction::PostgresTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             let _ = tx_opt.take();
         }
         SqlxTransaction::MySqlTransaction { tx } => {
-            let tx_opt = &mut *tx.write().await;
+            let tx_opt = &mut *tx.lock().await;
             let _ = tx_opt.take();
         }
     }
@@ -1001,7 +1000,7 @@ unsafe extern "C" fn fn_connection_transaction(
                                     .await
                                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                                 Ok(SqlxTransaction::PostgresTransaction {
-                                    tx: RwLock::new(Some(tx)),
+                                    tx: tokio::sync::Mutex::new(Some(tx)),
                                 })
                             }
                         },
@@ -1013,7 +1012,7 @@ unsafe extern "C" fn fn_connection_transaction(
                                     .await
                                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                                 Ok(SqlxTransaction::MySqlTransaction {
-                                    tx: RwLock::new(Some(tx)),
+                                    tx: tokio::sync::Mutex::new(Some(tx)),
                                 })
                             }
                         },
@@ -1386,7 +1385,7 @@ unsafe extern "C" fn fn_transaction_query(
                         async move {
                             match &*transaction {
                                 SqlxTransaction::PostgresTransaction { tx, .. } => {
-                                    let write_locked = &mut *tx.write().await;
+                                    let write_locked = &mut *tx.lock().await;
                                     if let Some(tx) = write_locked {
                                         let exe = &mut **tx;
                                         exe_query_postgres(
@@ -1401,7 +1400,7 @@ unsafe extern "C" fn fn_transaction_query(
                                     }
                                 }
                                 SqlxTransaction::MySqlTransaction { tx, .. } => {
-                                    let write_locked = &mut *tx.write().await;
+                                    let write_locked = &mut *tx.lock().await;
                                     if let Some(tx) = write_locked {
                                         let exe = &mut **tx;
                                         exe_query_mysql(
@@ -1592,7 +1591,7 @@ unsafe extern "C" fn fn_transaction_execute(
                         async move {
                             match &*transaction {
                                 SqlxTransaction::PostgresTransaction { tx, .. } => {
-                                    let write_locked = &mut *tx.write().await;
+                                    let write_locked = &mut *tx.lock().await;
                                     if let Some(tx) = write_locked {
                                         let exe = &mut **tx;
                                         exe_query_postgres(
@@ -1607,7 +1606,7 @@ unsafe extern "C" fn fn_transaction_execute(
                                     }
                                 }
                                 SqlxTransaction::MySqlTransaction { tx, .. } => {
-                                    let write_locked = &mut *tx.write().await;
+                                    let write_locked = &mut *tx.lock().await;
                                     if let Some(tx) = write_locked {
                                         let exe = &mut **tx;
                                         exe_query_mysql(
