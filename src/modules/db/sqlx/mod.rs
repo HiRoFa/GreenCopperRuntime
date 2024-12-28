@@ -17,6 +17,7 @@ use quickjs_runtime::reflection::get_proxy_instance_id;
 use quickjs_runtime::values::{JsValueFacade, TypedArrayType};
 use sqlx_lib::mysql::MySqlPoolOptions;
 use sqlx_lib::postgres::PgPoolOptions;
+use sqlx_lib::Executor;
 use sqlx_lib::{
     Column, MySql, MySqlExecutor, PgExecutor, Pool, Postgres, Row, Transaction, TypeInfo,
 };
@@ -695,6 +696,13 @@ impl SqlxConnection {
         let con = match protocol_type {
             "mysql" => {
                 let mysql_pool = MySqlPoolOptions::new()
+                    .after_connect(|conn, _pool_connection_metadata| {
+                        Box::pin(async move {
+                            conn.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                                .await?;
+                            Ok(())
+                        })
+                    })
                     .acquire_timeout(Duration::from_secs(15))
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
@@ -709,6 +717,13 @@ impl SqlxConnection {
             }
             "postgres" => {
                 let pg_pool = PgPoolOptions::new()
+                    .after_connect(|conn, _pool_connection_metadata| {
+                        Box::pin(async move {
+                            conn.execute("SET default_transaction_isolation TO 'read committed'")
+                                .await?;
+                            Ok(())
+                        })
+                    })
                     .acquire_timeout(Duration::from_secs(15))
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
