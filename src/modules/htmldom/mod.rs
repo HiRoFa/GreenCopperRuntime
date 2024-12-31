@@ -32,7 +32,6 @@ use quickjs_runtime::quickjsrealmadapter::QuickJsRealmAdapter;
 use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/DOMParser
 // https://developer.mozilla.org/en-US/docs/Web/API/Element
@@ -218,35 +217,9 @@ struct StyleObj {
     element: NodeRef,
 }
 
-#[derive(Clone)]
-struct NodeRefWrapper(NodeRef);
-
-impl Hash for NodeRefWrapper {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = std::rc::Rc::as_ptr(&self.0 .0);
-        ptr.hash(state);
-    }
-}
-
-impl PartialEq for NodeRefWrapper {
-    fn eq(&self, other: &Self) -> bool {
-        let one: &NodeRef = &self.0;
-        let two: &NodeRef = &other.0;
-        one.eq(two)
-    }
-}
-
-impl Eq for NodeRefWrapper {}
-
-impl NodeRefWrapper {
-    fn clone_node(&self) -> NodeRef {
-        self.0.clone()
-    }
-}
-
 thread_local! {
     static NODES: RefCell<AutoIdMap<NodeRef>> = RefCell::new(AutoIdMap::new());
-    static NODE_VALUE_BY_NODEREF: RefCell<HashMap<NodeRefWrapper, QuickJsValueAdapter>> = RefCell::new(HashMap::new());
+    static NODE_VALUE_BY_NODEREF: RefCell<HashMap<NodeRef, QuickJsValueAdapter>> = RefCell::new(HashMap::new());
     static NODELISTS: RefCell<AutoIdMap<NodeList>> = RefCell::new(AutoIdMap::new());
     static ELEMENTLISTS: RefCell<AutoIdMap<ElementList>> = RefCell::new(AutoIdMap::new());
     static SELECTELEMENTLISTS: RefCell<AutoIdMap<SelectElementList >> = RefCell::new(AutoIdMap::new());
@@ -314,16 +287,14 @@ fn register_node(
     // remove on finalize (dont decrement refcount :))
     // reuse here to create a new JsValueAdapter (and then increment refcount)
 
-    let node_ref_wrapper = NodeRefWrapper(node);
-
     NODE_VALUE_BY_NODEREF.with(|rc| {
         let node_ref_map = &mut *rc.borrow_mut();
-        if let Some(value) = node_ref_map.get(&node_ref_wrapper) {
+        if let Some(value) = node_ref_map.get(&node) {
             Ok(value.clone())
         } else {
             let id = NODES.with(|rc| {
                 let map = &mut *rc.borrow_mut();
-                map.insert(node_ref_wrapper.clone_node())
+                map.insert(node.clone())
             });
 
             let mut node_value_adapter =
@@ -337,7 +308,7 @@ fn register_node(
                 "register_node clone",
             );
 
-            node_ref_map.insert(node_ref_wrapper, value_without_incr);
+            node_ref_map.insert(node, value_without_incr);
 
             Ok(node_value_adapter)
         }
@@ -462,10 +433,9 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 let map = &mut rc.borrow_mut();
                 map.remove(&id)
             });
-            let node_ref_wrapper = NodeRefWrapper(node);
             NODE_VALUE_BY_NODEREF.with(|rc| {
                 let map = &mut *rc.borrow_mut();
-                map.remove(&node_ref_wrapper);
+                map.remove(&node);
             });
         })
         .getter("dataset", |_rt, realm, id| {
@@ -1614,8 +1584,6 @@ pub mod tests {
     use crate::init_greco_rt;
     use futures::executor::block_on;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
-    use std::collections::HashMap;
-
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
 
@@ -1648,7 +1616,7 @@ pub mod tests {
             let helloNode = doc.getElementById("helloId");
             let helloNode2 = doc.getElementById("helloId").firstChild.parentElement;
             
-            console.log("i want true! ", helloNode === helloNode2);
+            console.log("are nodes equal (expect true): ", helloNode === helloNode2);
             
             helloNode.textContent = "hi there";
             
