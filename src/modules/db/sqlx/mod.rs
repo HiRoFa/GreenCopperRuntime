@@ -824,7 +824,7 @@ fn with_transaction<R, C: FnOnce(&Arc<SqlxTransaction>) -> R>(
     })
 }
 
-fn store_connection(con: Arc<SqlxConnection>) -> usize {
+pub fn store_connection(con: Arc<SqlxConnection>) -> usize {
     CONNECTIONS.with(|rc| {
         let map = &mut rc.borrow_mut();
         map.insert(con)
@@ -838,7 +838,7 @@ fn drop_connection(proxy_instance_id: &usize) {
     })
 }
 
-fn store_transaction(tx: SqlxTransaction) -> usize {
+pub fn store_transaction(tx: SqlxTransaction) -> usize {
     TRANSACTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
         map.insert(Arc::new(tx))
