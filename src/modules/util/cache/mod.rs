@@ -146,7 +146,7 @@ impl ManagedCache {
 }
 
 fn cache_cleanup() {
-    log::debug!("cache_cleanup");
+
     let mut to_clean = vec![];
     {
         let lock: &mut ManagedCache = &mut CACHE.lock("cache_cleanup").unwrap();
@@ -166,19 +166,9 @@ fn cache_cleanup() {
     }
     for (key, cache_to_clean) in to_clean {
         let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
-        log::debug!(
-            "cache_cleanup clean {}.{} len_before={}",
-            key.0,
-            key.1,
-            cache_lock.lru_cache.len()
-        );
+
         cache_lock.invalidate_stale();
-        log::debug!(
-            "cache_cleanup clean {}.{} len_after={}",
-            key.0,
-            key.1,
-            cache_lock.lru_cache.len()
-        );
+        
     }
 }
 
