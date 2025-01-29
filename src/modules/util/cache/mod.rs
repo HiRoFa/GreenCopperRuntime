@@ -164,11 +164,11 @@ fn cache_cleanup() {
             }
         }
     }
-    for (key, cache_to_clean) in to_clean {
+    for (_key, cache_to_clean) in to_clean {
         let cache_lock = &mut *cache_to_clean.lock("cache_cleanup").unwrap();
 
         cache_lock.invalidate_stale();
-        
+
     }
 }
 
