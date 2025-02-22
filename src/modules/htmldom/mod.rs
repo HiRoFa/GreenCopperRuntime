@@ -959,6 +959,36 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 }
             })
         })
+        .method("append", |_rt, realm, id, args| {
+            //
+            with_node(id, |node| match node.as_element() {
+                None => Err(JsError::new_str("Node was not an Element")),
+                Some(_element) => {
+                    for arg in args {
+                        if arg.is_string() {
+                            //
+                            let new_node = NodeRef::new_text(arg.to_string()?);
+                            node.append(new_node);
+                        } else if arg.is_proxy_instance() {
+                            let p_data = realm.get_proxy_instance_info(arg)?;
+                            if !p_data.0.eq("greco.htmldom.Node") {
+                                return Err(JsError::new_str(
+                                    "appendChild expects a single Node argument",
+                                ));
+                            }
+
+                            let child = with_node(&p_data.1, |child| child.clone());
+
+                            node.append(child);
+                        } else {
+                            return Err(JsError::new_str("Arg was not an Element or a String"));
+                        }
+                    }
+                    Ok(())
+                }
+            })?;
+            realm.create_null()
+        })
         .method("removeChild", |_rt, realm, id, args| {
             // todo, calling this twice by mistake leads to other children being removed
 
