@@ -50,31 +50,49 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
         .static_method("encode", |_runtime, realm, args| {
             // todo async
 
-            if args.is_empty() || !args[0].is_typed_array() {
-                Err(JsError::new_str("encode expects a single type array arg"))
-            } else {
-                let bytes = realm.copy_typed_array_buffer(&args[0])?;
-                realm.create_resolving_promise(
-                    move || {
-                        let engine = base64::engine::general_purpose::STANDARD;
-                        let encoded = engine.encode(bytes);
-                        Ok(encoded)
-                    },
-                    |realm, p_res| realm.create_string(p_res.as_str()),
-                )
-            }
-        })
-        .static_method("encodeSync", |_runtime, realm, args| {
-            // todo async
-
-            if args.is_empty() || !args[0].is_typed_array() {
-                Err(JsError::new_str("encode expects a single type array arg"))
-            } else {
+            if args.is_empty() {
+                Err(JsError::new_str(
+                    "encode expects a single type array or string arg",
+                ))
+            } else if args[0].is_typed_array() {
                 let bytes = realm.copy_typed_array_buffer(&args[0])?;
                 let engine = base64::engine::general_purpose::STANDARD;
                 let encoded = engine.encode(bytes);
 
                 realm.create_string(encoded.as_str())
+            } else if args[0].is_string() {
+                let engine = base64::engine::general_purpose::STANDARD;
+                let string = args[0].to_string()?;
+                let encoded = engine.encode(&string);
+
+                realm.create_string(encoded.as_str())
+            } else {
+                Err(JsError::new_str(
+                    "encode expects a single type array or string arg",
+                ))
+            }
+        })
+        .static_method("encodeSync", |_runtime, realm, args| {
+            if args.is_empty() {
+                Err(JsError::new_str(
+                    "encode expects a single type array or string arg",
+                ))
+            } else if args[0].is_typed_array() {
+                let bytes = realm.copy_typed_array_buffer(&args[0])?;
+                let engine = base64::engine::general_purpose::STANDARD;
+                let encoded = engine.encode(bytes);
+
+                realm.create_string(encoded.as_str())
+            } else if args[0].is_string() {
+                let engine = base64::engine::general_purpose::STANDARD;
+                let string = args[0].to_string()?;
+                let encoded = engine.encode(&string);
+
+                realm.create_string(encoded.as_str())
+            } else {
+                Err(JsError::new_str(
+                    "encode expects a single type array or string arg",
+                ))
             }
         })
         .static_method("decode", |_runtime, realm, args| {
