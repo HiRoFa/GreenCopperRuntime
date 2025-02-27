@@ -75,7 +75,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
         .static_method("encodeSync", |_runtime, realm, args| {
             if args.is_empty() {
                 Err(JsError::new_str(
-                    "encode expects a single type array or string arg",
+                    "encodeSync expects a single type array or string arg",
                 ))
             } else if args[0].is_typed_array() {
                 let bytes = realm.copy_typed_array_buffer(&args[0])?;
@@ -91,7 +91,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 realm.create_string(encoded.as_str())
             } else {
                 Err(JsError::new_str(
-                    "encode expects a single type array or string arg",
+                    "encodeSync expects a single type array or string arg",
                 ))
             }
         })
