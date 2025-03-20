@@ -117,6 +117,50 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 )
             }
         })
+        .static_method("decodeString", |_runtime, realm, args| {
+            // todo async
+
+            if args.is_empty() || !args[0].is_string() {
+                Err(JsError::new_str("decodeString expects a single string arg"))
+            } else {
+                let s = args[0].to_string()?;
+                realm.create_resolving_promise(
+                    move || {
+                        let engine = base64::engine::general_purpose::STANDARD;
+                        let decoded = engine
+                            .decode(s)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let s = String::from_utf8_lossy(&decoded);
+                        Ok(s.to_string())
+                    },
+                    |realm, p_res| {
+                        //
+                        realm.create_string(p_res.as_str())
+                    },
+                )
+            }
+        })
+        .static_method("decodeStringSync", |_runtime, realm, args| {
+            if args.is_empty() || !args[0].is_string() {
+                Err(JsError::new_str("decodeString expects a single string arg"))
+            } else {
+                let s = args[0].to_string()?;
+                realm.create_resolving_promise(
+                    move || {
+                        let engine = base64::engine::general_purpose::STANDARD;
+                        let decoded = engine
+                            .decode(s)
+                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                        let s = String::from_utf8_lossy(&decoded);
+                        Ok(s.to_string())
+                    },
+                    |realm, p_res| {
+                        //
+                        realm.create_string(p_res.as_str())
+                    },
+                )
+            }
+        })
         .static_method("decodeSync", |_runtime, realm, args| {
             // todo async
 
