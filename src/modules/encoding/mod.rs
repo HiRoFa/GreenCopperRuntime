@@ -104,9 +104,9 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 let s = args[0].to_string()?;
                 realm.create_resolving_promise(
                     move || {
-                        let engine = base64::engine::general_purpose::STANDARD;
+                        let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                         let decoded = engine
-                            .decode(s)
+                            .decode(s.trim_end_matches('='))
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         Ok(decoded)
                     },
@@ -126,9 +126,9 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 let s = args[0].to_string()?;
                 realm.create_resolving_promise(
                     move || {
-                        let engine = base64::engine::general_purpose::STANDARD;
+                        let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                         let decoded = engine
-                            .decode(s)
+                            .decode(s.trim_end_matches('='))
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let s = String::from_utf8_lossy(&decoded);
                         Ok(s.to_string())
@@ -147,9 +147,9 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 let s = args[0].to_string()?;
                 realm.create_resolving_promise(
                     move || {
-                        let engine = base64::engine::general_purpose::STANDARD;
+                        let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                         let decoded = engine
-                            .decode(s)
+                            .decode(s.trim_end_matches('='))
                             .map_err(|e| JsError::new_string(format!("{e}")))?;
                         let s = String::from_utf8_lossy(&decoded);
                         Ok(s.to_string())
@@ -168,9 +168,9 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
                 let s = args[0].to_str()?;
-                let engine = base64::engine::general_purpose::STANDARD;
+                let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                 let decoded = engine
-                    .decode(s)
+                    .decode(s.trim_end_matches('='))
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                 //
                 realm.create_typed_array_uint8(decoded)
