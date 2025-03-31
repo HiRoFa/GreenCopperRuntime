@@ -664,11 +664,11 @@ impl SqlxConnection {
     // needs to be called from inside a tokio runtime even if not async
     pub fn get_or_new(
         protocol_type: &'static str,
-        host: String,
+        host: &str,
         port: u16,
-        user: String,
-        pass: String,
-        db_opt: Option<String>,
+        user: &str,
+        pass: &str,
+        db_opt: Option<&str>,
     ) -> Result<Arc<SqlxConnection>, JsError> {
         // todo, actually parse args
         //url, port, user, pass, dbSchema
@@ -914,7 +914,7 @@ fn create_connect_function(
                 async move {
                     // get_or_new moet aangeroepen worden in een tokio runtime.. omdat we dat nu in een async functie doen hoeven we ook niet meer connect_lazy te gebruiken maar gewoon connect
                     let con =
-                        SqlxConnection::get_or_new(protocol, host, port, user, pass, db_name_opt)?;
+                        SqlxConnection::get_or_new(protocol, host.as_str(), port, user.as_str(), pass.as_str(), db_name_opt.as_deref())?;
                     Ok(con)
                 },
                 |realm, con| {
@@ -1711,12 +1711,11 @@ unsafe extern "C" fn fn_transaction_commit(
 
 #[cfg(test)]
 pub mod tests {
-
-    use std::panic;
     //use log::LevelFilter;
     use quickjs_runtime::builder::QuickJsRuntimeBuilder;
     use quickjs_runtime::jsutils::Script;
     use quickjs_runtime::values::JsValueFacade;
+    use std::panic;
 
     #[tokio::test]
     async fn _test_sqlx() {
