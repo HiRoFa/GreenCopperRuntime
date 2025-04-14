@@ -1675,22 +1675,6 @@ unsafe extern "C" fn fn_transaction_commit(
 
             let transaction = with_transaction(proxy_instance_id, |tx| tx.clone());
 
-            let before_commit_res = q_ctx.dispatch_proxy_event(
-                &["greco", "db", "sqlx"],
-                "Transaction",
-                &proxy_instance_id,
-                "before_commit",
-                &q_ctx.create_null().unwrap(),
-            );
-            match before_commit_res {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("dispatch_before_commit failed due to {e}");
-                    return q_ctx
-                        .report_ex(format!("dispatch_before_commit failed due to {e}").as_str());
-                }
-            }
-
             let promise = q_ctx.create_resolving_promise_async(
                 async move {
                     // produce
