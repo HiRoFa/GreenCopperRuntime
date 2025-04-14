@@ -1675,6 +1675,22 @@ unsafe extern "C" fn fn_transaction_commit(
 
             let transaction = with_transaction(proxy_instance_id, |tx| tx.clone());
 
+            let before_commit_res = q_ctx.dispatch_proxy_event(
+                &["greco", "db", "sqlx"],
+                "Transaction",
+                &proxy_instance_id,
+                "before_commit",
+                &q_ctx.create_null().unwrap(),
+            );
+            match before_commit_res {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("dispatch_before_commit failed due to {e}");
+                    return q_ctx
+                        .report_ex(format!("dispatch_before_commit failed due to {e}").as_str());
+                }
+            }
+
             let promise = q_ctx.create_resolving_promise_async(
                 async move {
                     // produce
@@ -1697,14 +1713,13 @@ unsafe extern "C" fn fn_transaction_commit(
             );
             match promise {
                 Ok(p) => p.clone_value_incr_rc(),
-                Err(_) => {
-                    // todo report error?
-                    new_undefined()
+                Err(e) => {
+                    log::error!("could not create promise due to {e}");
+                    q_ctx.report_ex(format!("could not create promise due to{e}").as_str())
                 }
             }
         } else {
-            // todo report error?
-            new_undefined()
+            q_ctx.report_ex("could not find tx instance by id")
         }
     })
 }
