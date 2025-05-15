@@ -32,6 +32,7 @@ use quickjs_runtime::quickjsvalueadapter::QuickJsValueAdapter;
 use quickjs_runtime::values::JsValueFacade::TypedArray;
 use quickjs_runtime::values::{JsValueFacade, TypedArrayType};
 use serde_json::Value;
+use std::fmt::Display;
 use std::str::FromStr;
 
 struct JwtModuleLoader {}
@@ -95,12 +96,13 @@ impl FromStr for JwtAlgo {
     }
 }
 
-impl ToString for JwtAlgo {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for JwtAlgo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
             EdDSA => "EdDSA".to_string(),
             RS512 => "Rs512".to_string(),
-        }
+        };
+        write!(f, "{}", str)
     }
 }
 

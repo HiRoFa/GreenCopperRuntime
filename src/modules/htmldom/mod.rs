@@ -288,6 +288,7 @@ fn register_node(
     // reuse here to create a new JsValueAdapter (and then increment refcount)
 
     NODE_VALUE_BY_NODEREF.with(|rc| {
+        #[allow(clippy::mutable_key_type)]
         let node_ref_map = &mut *rc.borrow_mut();
         if let Some(value) = node_ref_map.get(&node) {
             Ok(value.clone())
@@ -434,6 +435,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 map.remove(&id)
             });
             NODE_VALUE_BY_NODEREF.with(|rc| {
+                #[allow(clippy::mutable_key_type)]
                 let map = &mut *rc.borrow_mut();
                 map.remove(&node);
             });
@@ -656,7 +658,6 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     while let Some(child) = node.first_child() {
                         // todo do i need to do this recursively?
                         child.detach();
-                        child.parent().take();
                     }
 
                     // todo actually use fragment and don't get a full html doc? or is there another faster way..?
@@ -1629,7 +1630,6 @@ pub mod tests {
         }));
 
         simple_logging::log_to_file("grecort.log", log::LevelFilter::max())
-            .ok()
             .expect("could not init logger");
 
         let rtb = QuickJsRuntimeBuilder::new();

@@ -1716,7 +1716,7 @@ pub mod tests {
     use quickjs_runtime::values::JsValueFacade;
     use std::panic;
 
-    #[tokio::test]
+    //#[tokio::test]
     async fn _test_sqlx() {
         /*
         panic::set_hook(Box::new(|panic_info| {
