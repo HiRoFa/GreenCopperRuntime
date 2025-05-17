@@ -1,4 +1,4 @@
-//! runtime agnostic fetch implementation
+//! fetch implementation
 
 use crate::features::js_fetch::spec::{do_fetch, FetchInit};
 use quickjs_runtime::builder::QuickJsRuntimeBuilder;

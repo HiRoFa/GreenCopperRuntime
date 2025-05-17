@@ -1224,8 +1224,56 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 Ok(node) => register_node(realm, node),
                 Err(e) => Err(e),
             }
+        })
+        .method("cloneNode", |_rt, realm, instance_id, args| {
+            let deep = args.len() >= 1 && args[0].is_bool() && args[0].to_bool();
+
+            with_node(instance_id, |node| {
+                let cloned = clone_node(node, deep);
+                register_node(realm, cloned)
+            })
         });
+
     realm.install_proxy(proxy, true)
+}
+
+fn clone_node(node: &NodeRef, deep: bool) -> NodeRef {
+    match node.data() {
+        NodeData::Element(elem) => {
+            // Clone element data
+            let new_node = NodeRef::new_element(
+                elem.name.clone(),
+                elem.attributes
+                    .borrow()
+                    .map
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.clone())),
+            );
+
+            if deep {
+                // Recursively clone children if deep clone is requested
+                let mut child = node.first_child();
+                while let Some(child_node) = child {
+                    new_node.append(clone_node(&child_node, true));
+                    child = child_node.next_sibling();
+                }
+            }
+            new_node
+        }
+        NodeData::Text(text) => NodeRef::new_text(text.borrow().clone()),
+        NodeData::Comment(comment) => NodeRef::new_comment(comment.borrow().clone()),
+        NodeData::ProcessingInstruction(pi) => {
+            let (target, data) = &*pi.borrow();
+            NodeRef::new_processing_instruction(target.clone(), data.clone())
+        }
+        NodeData::Doctype(doctype) => NodeRef::new_doctype(
+            doctype.name.clone(),
+            doctype.public_id.clone(),
+            doctype.system_id.clone(),
+        ),
+        NodeData::Document(_) => NodeRef::new_document(),
+        NodeData::DocumentFragment => NodeRef::new(NodeData::DocumentFragment),
+    }
 }
 
 fn get_num_attr(node: &NodeRef, attr_name: &str, default_value: i32) -> Result<i32, JsError> {
