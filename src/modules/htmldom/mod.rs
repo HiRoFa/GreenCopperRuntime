@@ -652,7 +652,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     return Err(JsError::new_str("innerHTML should be a string"));
                 }
 
-                let html = val.to_str()?;
+                let html = val.to_string()?;
 
                 with_node(id, |node| {
                     while let Some(child) = node.first_child() {
