@@ -407,8 +407,8 @@ fn init_dom_parser_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdap
                 ))
             } else {
                 let doc = if args[0].is_string() {
-                    let html = args[0].to_str()?;
-                    parse_from_string(html)
+                    let html = args[0].to_string()?;
+                    parse_from_string(html.as_str())
                 } else {
                     let bytes = realm.copy_typed_array_buffer(&args[0])?;
                     let html = String::from_utf8_lossy(bytes.as_slice());
