@@ -64,7 +64,7 @@ backtrace = "0.3.56"
 url = "2.2.1"
 gpp = "0.6"
 
-reqwest = { version = "0.12", features = ["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true, default-features = false }
+reqwest = { version = "0.11", features = ["rustls-tls", "cookies", "gzip", "deflate", "multipart", "blocking"], optional = true, default-features = false }
 gpio-cdev = { git = "https://github.com/rust-embedded/gpio-cdev", optional = true, features = ["async-tokio", "futures"] }
 futures = { version = "0.3" }
 sqlx_lib = { package = "sqlx", version = "0.8.6", features = ["mysql", "postgres", "runtime-tokio", "time", "chrono", "uuid", "rust_decimal"], optional = true }
