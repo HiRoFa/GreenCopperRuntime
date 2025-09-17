@@ -167,7 +167,7 @@ pub(crate) fn create_base64_proxy(_realm: &QuickJsRealmAdapter) -> JsProxy {
             if args.is_empty() || !args[0].is_string() {
                 Err(JsError::new_str("decode expects a single string arg"))
             } else {
-                let s = args[0].to_str()?;
+                let s = args[0].to_string()?;
                 let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                 let decoded = engine.decode(s.trim_end_matches('=')).map_err(|e| {
                     JsError::new_string(format!("could not decode base64({s}): {e}"))

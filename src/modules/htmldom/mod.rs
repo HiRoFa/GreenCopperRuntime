@@ -846,7 +846,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("getAttribute expects one string arg"));
             }
 
-            let local_name = args[0].to_str()?;
+            let local_name = args[0].to_string()?;
 
             with_node(id, |node| {
                 //
@@ -854,7 +854,7 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                     None => Err(JsError::new_str("not an Element")),
                     Some(element) => {
                         let attrs = &mut *element.attributes.borrow_mut();
-                        match attrs.get(local_name) {
+                        match attrs.get(local_name.as_str()) {
                             None => realm.create_null(),
                             Some(attr) => realm.create_string(attr),
                         }
@@ -910,11 +910,11 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 return Err(JsError::new_str("querySelector expects one string arg"));
             }
 
-            let selectors = args[0].to_str()?;
+            let selectors = args[0].to_string()?;
 
             let res = with_node(id, |node| {
                 //
-                let result = node.select_first(selectors);
+                let result = node.select_first(selectors.as_str());
                 match result {
                     Ok(ndr) => Some(ndr.as_node().clone()),
                     Err(_) => None,
@@ -1185,12 +1185,12 @@ fn init_node_proxy(realm: &QuickJsRealmAdapter) -> Result<QuickJsValueAdapter, J
                 ));
             }
 
-            let id_attr = args[0].to_str()?;
+            let id_attr = args[0].to_string()?;
 
             let res = with_node(id, |node| match node.as_document() {
                 None => Err(JsError::new_str("not a Document")),
                 Some(_document) => {
-                    let node_res = node.select_first(format!("#{id_attr}").as_str());
+                    let node_res = node.select_first(id_attr.as_str());
                     Ok(node_res)
                 }
             });

@@ -122,7 +122,8 @@ fn create(
     } else {
         let alg_header = realm.get_object_property(&args[0], "alg")?;
         let alg = if alg_header.is_string() {
-            JwtAlgo::from_str(alg_header.to_str()?)?
+            let string = alg_header.to_string()?;
+            JwtAlgo::from_str(string.as_str())?
         } else {
             JwtAlgo::EdDSA
         };

@@ -85,13 +85,13 @@ impl CacheRegion {
     pub fn remove(&mut self, key: &str) -> Option<CacheEntry> {
         self.lru_cache.pop(key)
     }
-    pub fn put(&mut self, key: &str, val: JsValueFacade) {
+    pub fn put(&mut self, key: String, val: JsValueFacade) {
         let ce = CacheEntry {
             val,
             created: Instant::now(),
             last_used: Instant::now(),
         };
-        self.lru_cache.put(key.to_string(), ce);
+        self.lru_cache.put(key, ce);
     }
     fn invalidate_stale(&mut self) {
         let min_last_used = Instant::now().sub(self.max_idle);
@@ -238,7 +238,7 @@ impl NativeModuleLoader for CacheModuleLoader {
 
 fn cache_add(
     realm: &QuickJsRealmAdapter,
-    key: &str,
+    key: String,
     value: &QuickJsValueAdapter,
     region: &mut CacheRegion,
 ) -> Result<(), JsError> {
@@ -293,8 +293,9 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                             "cache_add_func",
                             move |realm, _this, args| {
                                 // cache args 0
+                                let key_clone = key.clone();
                                 with_cache_region(&instance_id, |cache_region2| {
-                                    cache_add(realm, &key, &args[0], cache_region2)
+                                    cache_add(realm, key_clone, &args[0], cache_region2)
                                 })?;
 
                                 realm.create_null()
@@ -303,7 +304,7 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                         )?;
                         realm.add_promise_reactions(&init_result, Some(then), None, None)?;
                     } else {
-                        cache_add(realm, &key, &init_result, cache_region)?;
+                        cache_add(realm, key, &init_result, cache_region)?;
                     }
                     Ok(init_result)
                 }
@@ -322,7 +323,7 @@ fn init_region_proxy(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 ));
             }
 
-            let key = args[0].to_str()?;
+            let key = args[0].to_string()?;
             let val = realm.to_js_value_facade(&args[1])?;
 
             with_cache_region(instance_id, move |cache_region| {

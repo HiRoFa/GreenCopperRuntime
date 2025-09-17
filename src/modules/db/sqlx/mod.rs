@@ -1218,9 +1218,9 @@ fn prep_query_and_args(
     args: Vec<QuickJsValueAdapter>,
     protocol: Protocol,
 ) -> Result<(String, Vec<JsValueFacade>), JsError> {
-    let query = args[0].to_str()?;
+    let query = args[0].to_string()?;
 
-    let parsed_query = parse_query(protocol, query);
+    let parsed_query = parse_query(protocol, query.as_str());
 
     // param names in correct order
 

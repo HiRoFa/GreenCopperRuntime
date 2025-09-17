@@ -97,8 +97,8 @@ fn impl_response(realm: &QuickJsRealmAdapter) -> Result<(), JsError> {
                 return Err(JsError::new_str("getHeader expects a single String arg"));
             }
 
-            let name = args[0].to_str()?;
-            if let Some(headers) = response.headers.get(name) {
+            let name = args[0].to_string()?;
+            if let Some(headers) = response.headers.get(name.as_str()) {
                 if !headers.is_empty() {
                     return realm.create_string(headers.first().unwrap());
                 }
