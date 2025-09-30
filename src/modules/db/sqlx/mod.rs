@@ -682,11 +682,13 @@ impl SqlxConnection {
         let con_str = format!("{protocol_type}://{user}:{pass}@{host}:{port}{db}");
 
         // see if we have a wrapper with the correct con_str
-        let map = &mut *POOLS.lock().expect("could not lock mutex");
+        {
+            let map = &mut *POOLS.lock().expect("could not lock mutex");
 
-        if let Some(con_ref) = map.get(&con_str) {
-            if let Some(con_arc) = con_ref.upgrade() {
-                return Ok(con_arc);
+            if let Some(con_ref) = map.get(&con_str) {
+                if let Some(con_arc) = con_ref.upgrade() {
+                    return Ok(con_arc);
+                }
             }
         }
 
@@ -741,6 +743,7 @@ impl SqlxConnection {
 
         // register con in pools
         let arc = Arc::new(con);
+        let map = &mut *POOLS.lock().expect("could not lock mutex");
         map.insert(con_str2, Arc::downgrade(&arc));
         // return arc
         Ok(arc)
