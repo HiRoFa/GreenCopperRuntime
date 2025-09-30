@@ -707,7 +707,7 @@ impl SqlxConnection {
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(64)
-                    .min_connections(0)
+                    .min_connections(2)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                 Ok(SqlxConnection::MySqlConnection {
@@ -728,7 +728,7 @@ impl SqlxConnection {
                     .idle_timeout(Duration::from_secs(60))
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(64)
-                    .min_connections(0)
+                    .min_connections(2)
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e}")))?;
                 Ok(SqlxConnection::PostgresConnection {
