@@ -304,7 +304,13 @@ async fn exe_query_mysql<'e>(
                 }
             }
 
-            if let JsValueFacade::JsFunction { cached_function } = row_consumer {
+            if row_consumer.is_null_or_undefined() {
+                // turn row args vec into array
+                let arr_facade = JsValueFacade::Array {
+                    val: row_args_vec
+                };
+                ret_vec.push(arr_facade);
+            } else if let JsValueFacade::JsFunction { cached_function } = row_consumer {
                 let mut func_res = cached_function.invoke_function(row_args_vec).await?;
                 while let JsValueFacade::JsPromise { cached_promise } = func_res {
                     let prom_res = cached_promise.get_promise_result().await?;
@@ -566,7 +572,13 @@ async fn exe_query_postgres<'e>(
                 }
             }
 
-            if let JsValueFacade::JsFunction { cached_function } = row_consumer {
+            if row_consumer.is_null_or_undefined() {
+                // turn row args vec into array
+                let arr_facade = JsValueFacade::Array {
+                    val: row_args_vec
+                };
+                ret_vec.push(arr_facade);
+            } else if let JsValueFacade::JsFunction { cached_function } = row_consumer {
                 let mut func_res = cached_function.invoke_function(row_args_vec).await?;
                 while let JsValueFacade::JsPromise { cached_promise } = func_res {
                     let prom_res = cached_promise.get_promise_result().await?;
@@ -1079,9 +1091,9 @@ unsafe extern "C" fn fn_connection_query(
         if !(args.len() == 3
             && args[0].is_string()
             && (args[1].is_array() || args[1].is_object() || args[1].is_null())
-            && args[2].is_function())
+            && (args[2].is_function() || args[2].is_null()))
         {
-            return q_ctx.report_ex("query requires three args (qry: string, arguments: Array<primitive> | Record<string, primitive>, row_consumer: () => Promise<any>)");
+            return q_ctx.report_ex("query requires three args (qry: string, arguments: null | Array<primitive> | Record<string, primitive>, row_consumer: null | () => Promise<any>)");
         }
 
         if let Some(proxy_instance_id) = get_proxy_instance_id(context, &this_val_adapter) {
@@ -1364,9 +1376,9 @@ unsafe extern "C" fn fn_transaction_query(
         if !(args.len() == 3
             && args[0].is_string()
             && (args[1].is_array() || args[1].is_object() || args[1].is_null())
-            && args[2].is_function())
+            && (args[2].is_function() || args[2].is_null()))
         {
-            return q_ctx.report_ex("query requires three args (qry: string, arguments: Array<primitive> | Record<string, primitive>, row_consumer: () => Promise<any>)");
+            return q_ctx.report_ex("query requires three args (qry: string, arguments: null | Array<primitive> | Record<string, primitive>, row_consumer: null | () => Promise<any>)");
         }
 
         if let Some(proxy_instance_id) = get_proxy_instance_id(context, &this_val_adapter) {
