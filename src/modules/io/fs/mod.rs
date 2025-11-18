@@ -90,7 +90,7 @@ pub(crate) fn read_string(args: &[JsValueFacade]) -> Result<JsValueFacade, JsErr
 
         match fs::read_to_string(path) {
             Ok(s) => Ok(JsValueFacade::new_string(s)),
-            Err(e) => Err(JsError::new_string(format!("{e}"))),
+            Err(e) => Err(JsError::new_string(format!("{e:?}"))),
         }
     }
 }
@@ -105,7 +105,7 @@ pub(crate) fn remove_file(args: &[JsValueFacade]) -> Result<JsValueFacade, JsErr
 
         match fs::remove_file(path) {
             Ok(_) => Ok(JsValueFacade::Null),
-            Err(e) => Err(JsError::new_string(format!("{e}"))),
+            Err(e) => Err(JsError::new_string(format!("{e:?}"))),
         }
     }
 }
@@ -174,7 +174,7 @@ pub(crate) fn write(args: &[JsValueFacade]) -> Result<JsValueFacade, JsError> {
 
         match fs::write(path, content) {
             Ok(_) => Ok(JsValueFacade::Null),
-            Err(e) => Err(JsError::new_string(format!("{e}"))),
+            Err(e) => Err(JsError::new_string(format!("{e:?}"))),
         }
     }
 }

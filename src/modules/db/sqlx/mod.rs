@@ -125,7 +125,7 @@ async fn exe_query_mysql<'e>(
         while let Some(row) = rows
             .try_next()
             .await
-            .map_err(|e| JsError::new_string(format!("{e}")))?
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?
         {
             //
 
@@ -140,7 +140,7 @@ async fn exe_query_mysql<'e>(
                     "TINYINT(1)" | "BOOLEAN" | "BOOL" => {
                         let v_opt: Option<bool> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_bool(v),
@@ -150,7 +150,7 @@ async fn exe_query_mysql<'e>(
                     "TINYINT" | "SMALLINT" | "INT" => {
                         let v_opt: Option<i32> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_i32(v),
@@ -160,7 +160,7 @@ async fn exe_query_mysql<'e>(
                     "TINYINT UNSIGNED" | "SMALLINT UNSIGNED" | "INT UNSIGNED" => {
                         let v_opt: Option<u32> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v as f64),
@@ -170,7 +170,7 @@ async fn exe_query_mysql<'e>(
                     "BIGINT" => {
                         let v_opt: Option<i64> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v as f64),
@@ -180,7 +180,7 @@ async fn exe_query_mysql<'e>(
                     "BIGINT UNSIGNED" => {
                         let v_opt: Option<u64> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v as f64),
@@ -190,7 +190,7 @@ async fn exe_query_mysql<'e>(
                     "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" => {
                         let v_opt: Option<f64> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v),
@@ -200,7 +200,7 @@ async fn exe_query_mysql<'e>(
                     "DECIMAL" => {
                         let v_opt: Option<sqlx_lib::types::Decimal> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v.to_f64().unwrap()),
@@ -210,7 +210,7 @@ async fn exe_query_mysql<'e>(
                     "DATE" => {
                         let v_opt: Option<sqlx_lib::types::time::Date> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_string(v.to_string()),
@@ -220,7 +220,7 @@ async fn exe_query_mysql<'e>(
                     "DATETIME" => {
                         let v_opt: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -233,7 +233,7 @@ async fn exe_query_mysql<'e>(
                     "TIME" => {
                         let v_opt: Option<sqlx_lib::types::time::Time> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -245,7 +245,7 @@ async fn exe_query_mysql<'e>(
                     | "LONGTEXT" | "LONG VARCHAR" | "ROW" | "TINYTEXT" => {
                         let v_opt: Option<String> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_string(v),
@@ -255,7 +255,7 @@ async fn exe_query_mysql<'e>(
                     "UUID" => {
                         let v_opt: Option<uuid::Uuid> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -268,7 +268,7 @@ async fn exe_query_mysql<'e>(
                     "JSON" => {
                         let v_opt: Option<serde_json::Value> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -279,7 +279,7 @@ async fn exe_query_mysql<'e>(
                     "VARBINARY" | "BINARY" | "BLOB" => {
                         let v_opt: Option<Vec<u8>> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(buffer) => JsValueFacade::TypedArray {
@@ -333,7 +333,7 @@ async fn exe_query_mysql<'e>(
         let op = qry_obj
             .execute(executor)
             .await
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
         let mut obj: HashMap<String, JsValueFacade> = HashMap::new();
         obj.insert(
@@ -421,7 +421,7 @@ async fn exe_query_postgres<'e>(
         while let Some(row) = rows
             .try_next()
             .await
-            .map_err(|e| JsError::new_string(format!("{e}")))?
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?
         {
             //
 
@@ -437,7 +437,7 @@ async fn exe_query_postgres<'e>(
                     "BOOL" => {
                         let v_opt: Option<bool> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_bool(v),
@@ -448,7 +448,7 @@ async fn exe_query_postgres<'e>(
                     | "INT4" => {
                         let v_opt: Option<i32> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_i32(v),
@@ -458,7 +458,7 @@ async fn exe_query_postgres<'e>(
                     "BIGINT" | "BIGSERIAL" | "INT8" => {
                         let v_opt: Option<i64> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v as f64),
@@ -468,7 +468,7 @@ async fn exe_query_postgres<'e>(
                     "REAL" | "FLOAT4" | "DOUBLE PRECISION" | "FLOAT8" => {
                         let v_opt: Option<f64> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_f64(v),
@@ -478,7 +478,7 @@ async fn exe_query_postgres<'e>(
                     "DATE" => {
                         let v_opt: Option<sqlx_lib::types::time::Date> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_string(v.to_string()),
@@ -488,7 +488,7 @@ async fn exe_query_postgres<'e>(
                     "DATETIME" => {
                         let v_opt: Option<sqlx_lib::types::time::PrimitiveDateTime> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -501,7 +501,7 @@ async fn exe_query_postgres<'e>(
                     "TIME" => {
                         let v_opt: Option<sqlx_lib::types::time::Time> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -513,7 +513,7 @@ async fn exe_query_postgres<'e>(
                     "VARCHAR" | "CHAR(N)" | "TEXT" | "NAME" | "CITEXT" => {
                         let v_opt: Option<String> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(v) => JsValueFacade::new_string(v),
@@ -523,7 +523,7 @@ async fn exe_query_postgres<'e>(
                     "UUID" => {
                         let v_opt: Option<uuid::Uuid> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -536,7 +536,7 @@ async fn exe_query_postgres<'e>(
                     "JSON" => {
                         let v_opt: Option<serde_json::Value> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
@@ -547,7 +547,7 @@ async fn exe_query_postgres<'e>(
                     "VARBINARY" | "BINARY" | "BLOB" | "BYTEA" => {
                         let v_opt: Option<Vec<u8>> = row
                             .try_get(x)
-                            .map_err(|e| JsError::new_string(format!("{e}")))?;
+                            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                         let jsvf = match v_opt {
                             None => JsValueFacade::Null,
                             Some(buffer) => JsValueFacade::TypedArray {
@@ -601,7 +601,7 @@ async fn exe_query_postgres<'e>(
         let op = qry_obj
             .execute(executor)
             .await
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
         let mut obj: HashMap<String, JsValueFacade> = HashMap::new();
         obj.insert(
@@ -722,7 +722,7 @@ impl SqlxConnection {
                     .max_connections(64)
                     .min_connections(2)
                     .connect_lazy(con_str.as_str())
-                    .map_err(|e| JsError::new_string(format!("{e}")))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                 Ok(SqlxConnection::MySqlConnection {
                     con_str,
                     pool: Some(mysql_pool),
@@ -743,7 +743,7 @@ impl SqlxConnection {
                     .max_connections(64)
                     .min_connections(2)
                     .connect_lazy(con_str.as_str())
-                    .map_err(|e| JsError::new_string(format!("{e}")))?;
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                 Ok(SqlxConnection::PostgresConnection {
                     con_str,
                     pool: Some(pg_pool),
@@ -1026,7 +1026,7 @@ unsafe extern "C" fn fn_connection_transaction(
                                 let tx = pool
                                     .begin()
                                     .await
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?;
+                                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                                 Ok(SqlxTransaction::PostgresTransaction {
                                     tx: tokio::sync::Mutex::new(Some(tx)),
                                 })
@@ -1038,7 +1038,7 @@ unsafe extern "C" fn fn_connection_transaction(
                                 let tx = pool
                                     .begin()
                                     .await
-                                    .map_err(|e| JsError::new_string(format!("{e}")))?;
+                                    .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                                 Ok(SqlxTransaction::MySqlTransaction {
                                     tx: tokio::sync::Mutex::new(Some(tx)),
                                 })
@@ -1488,7 +1488,7 @@ unsafe extern "C" fn fn_transaction_close(
                     // produce
                     transaction_close(transaction)
                         .await
-                        .map_err(|e| JsError::new_string(format!("{e}")))
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))
                 },
                 move |realm, _res| {
                     let _ = realm.dispatch_proxy_event(
@@ -1546,7 +1546,7 @@ unsafe extern "C" fn fn_transaction_rollback(
                     // produce
                     transaction_rollback(transaction)
                         .await
-                        .map_err(|e| JsError::new_string(format!("{e}")))
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))
                 },
                 move |realm, _res| {
                     let _ = realm.dispatch_proxy_event(
@@ -1693,7 +1693,7 @@ unsafe extern "C" fn fn_transaction_commit(
                     // produce
                     transaction_commit(transaction)
                         .await
-                        .map_err(|e| JsError::new_string(format!("{e}")))
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))
                 },
                 move |realm, _res| {
                     let _ = realm.dispatch_proxy_event(

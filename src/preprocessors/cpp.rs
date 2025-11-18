@@ -121,7 +121,7 @@ impl ScriptPreProcessor for CppPreProcessor {
         let src = script.get_code();
 
         let res = process_str(src, &mut self.ctx.borrow_mut())
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
         script.set_code(res);
         Ok(())

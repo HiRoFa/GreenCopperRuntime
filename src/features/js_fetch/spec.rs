@@ -382,7 +382,7 @@ pub trait Request {
 pub async fn do_fetch(url: Option<String>, fetch_init: FetchInit) -> Result<Response, JsError> {
     let client = reqwest::ClientBuilder::new()
         .build()
-        .map_err(|e| JsError::new_string(format!("{e}")))?;
+        .map_err(|e| JsError::new_string(format!("{e:?}")))?;
     do_fetch2(&client, url, fetch_init).await
 }
 
@@ -393,9 +393,9 @@ pub async fn do_fetch2(
 ) -> Result<Response, JsError> {
     if let Some(url) = url {
         let method = reqwest::Method::from_str(fetch_init.method.as_str())
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
+            .map_err(|e| JsError::new_string(format!("{e:?}")))?;
 
-        let mut request = client.request(method, url);
+        let mut request = client.request(method, &url);
 
         if let Some(body) = fetch_init.body {
             if let Some(text) = body.text.as_ref() {
@@ -415,7 +415,7 @@ pub async fn do_fetch2(
 
         let reqwest_resp = response_fut
             .await
-            .map_err(|e| JsError::new_string(format!("{e}")))?;
+            .map_err(|e| JsError::new_string(format!("reqwest error {e:?}")))?;
 
         let mut headers = Headers::new();
         for hv in reqwest_resp.headers() {
@@ -424,7 +424,7 @@ pub async fn do_fetch2(
                 vec![hv
                     .1
                     .to_str()
-                    .map_err(|e| JsError::new_string(format!("{}", e)))?
+                    .map_err(|e| JsError::new_string(format!("{e:?}")))?
                     .to_string()],
             );
         }
@@ -436,7 +436,7 @@ pub async fn do_fetch2(
         if let Some(ct) = reqwest_resp.headers().get("content-type") {
             let ct_str = ct
                 .to_str()
-                .map_err(|e| JsError::new_string(format!("{}", e)))?;
+                .map_err(|e| JsError::new_string(format!("{e:?}")))?;
             if ct_str.eq("text/plain")
                 || ct_str.eq("text/html")
                 || ct_str.eq("application/json")
@@ -453,7 +453,7 @@ pub async fn do_fetch2(
                     reqwest_resp
                         .text()
                         .await
-                        .map_err(|e| JsError::new_string(format!("{e}")))?,
+                        .map_err(|e| JsError::new_string(format!("{e:?}")))?,
                 ),
                 bytes: None,
             }
@@ -461,7 +461,7 @@ pub async fn do_fetch2(
             let bytes: Vec<u8> = reqwest_resp
                 .bytes()
                 .await
-                .map_err(|e| JsError::new_string(format!("{}", e)))?
+                .map_err(|e| JsError::new_string(format!("{e:?}")))?
                 .to_vec();
 
             Body {
