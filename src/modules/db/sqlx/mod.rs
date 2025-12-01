@@ -17,7 +17,7 @@ use quickjs_runtime::reflection::get_proxy_instance_id;
 use quickjs_runtime::values::{JsValueFacade, TypedArrayType};
 use sqlx_lib::mysql::MySqlPoolOptions;
 use sqlx_lib::postgres::PgPoolOptions;
-use sqlx_lib::Executor;
+use sqlx_lib::{Connection, Executor};
 use sqlx_lib::{
     Column, MySql, MySqlExecutor, PgExecutor, Pool, Postgres, Row, Transaction, TypeInfo,
 };
@@ -721,6 +721,14 @@ impl SqlxConnection {
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(64)
                     .min_connections(2)
+                    .before_acquire(|conn, meta| Box::pin(async move {
+                        // if idle for more than a minute, ping before acquire
+                        if meta.idle_for.as_secs() > 60 {
+                            conn.ping().await?;
+                        }
+
+                        Ok(true)
+                    }))
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                 Ok(SqlxConnection::MySqlConnection {
@@ -742,6 +750,14 @@ impl SqlxConnection {
                     .max_lifetime(Duration::from_secs(3600))
                     .max_connections(64)
                     .min_connections(2)
+                    .before_acquire(|conn, meta| Box::pin(async move {
+                        // if idle for more than a minute, ping before acquire
+                        if meta.idle_for.as_secs() > 60 {
+                            conn.ping().await?;
+                        }
+
+                        Ok(true)
+                    }))
                     .connect_lazy(con_str.as_str())
                     .map_err(|e| JsError::new_string(format!("{e:?}")))?;
                 Ok(SqlxConnection::PostgresConnection {
