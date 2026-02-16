@@ -861,10 +861,13 @@ pub fn store_connection(con: Arc<SqlxConnection>) -> usize {
 }
 
 fn drop_connection(proxy_instance_id: &usize) {
-    CONNECTIONS.with(|rc| {
+    let arc = CONNECTIONS.with(|rc| {
         let map = &mut rc.borrow_mut();
-        map.remove(proxy_instance_id);
-    })
+        map.remove(proxy_instance_id)
+    });
+    let _unused = add_helper_task_async(async move {
+        drop(arc);
+    });
 }
 
 pub fn store_transaction(tx: SqlxTransaction) -> usize {
@@ -875,10 +878,13 @@ pub fn store_transaction(tx: SqlxTransaction) -> usize {
 }
 
 fn drop_transaction(proxy_instance_id: &usize) {
-    TRANSACTIONS.with(|rc| {
+    let arc = TRANSACTIONS.with(|rc| {
         let map = &mut *rc.borrow_mut();
-        map.remove(proxy_instance_id);
-    })
+        map.remove(proxy_instance_id)
+    });
+    let _unused = add_helper_task_async(async move {
+        drop(arc);
+    });
 }
 
 struct SqlxModuleLoader {}
