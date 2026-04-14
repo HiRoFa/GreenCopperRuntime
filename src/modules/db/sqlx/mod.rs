@@ -691,7 +691,13 @@ impl SqlxConnection {
             }
         };
 
-        let con_str = format!("{protocol_type}://{user}:{pass}@{host}:{port}{db}?ssl-mode=disabled");
+        let ssl_mode = if protocol_type.eq("mysql") {
+            "disabled"
+        } else {
+            "disable"
+        };
+
+        let con_str = format!("{protocol_type}://{user}:{pass}@{host}:{port}{db}?ssl-mode={ssl_mode}");
 
         // see if we have a wrapper with the correct con_str
         
